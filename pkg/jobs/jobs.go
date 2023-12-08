@@ -15,6 +15,12 @@ func RunDebug(container *dagger.Container) (string, error) {
 		Stdout(context.Background())
 }
 
+func RunDebugSysInfo(container *dagger.Container) (string, error) {
+	return container.
+		WithExec([]string{"uname", "-a"}).
+		Stdout(context.Background())
+}
+
 // RunBuildImage TODO: add build image command logic
 func RunBuildImage(container *dagger.Container) (string, error) {
 	return "build image", nil
