@@ -2,14 +2,38 @@ package environments
 
 import "dagger.io/dagger"
 
-// Environment wraps the dagger container for convinence
-type Envrionment struct {
-	image     string
+type Environment interface {
+	Container() *dagger.Container
+}
+
+// Omnibus is a container that contains a host of CI/CD security tools
+type Omnibus struct {
 	container *dagger.Container
 }
 
-// NewEnvironment creates a new environment in a container to run commands
-func NewEnvironment(containerImage string, client *dagger.Client) *Envrionment {
-	c := client.Container().From(containerImage)
-	return &Envrionment{image: containerImage, container: c}
+// NewOmnibus loads the appropriate image for omnibus
+func NewOmnibus(c *dagger.Client) *Omnibus {
+	container := c.Container().From("alpine:latest")
+	return &Omnibus{container: container}
+}
+
+// Container returns the internal container for the environment
+func (o *Omnibus) Container() *dagger.Container {
+	return o.container
+}
+
+// Alpine is a bare environment, used for debugging
+type Alpine struct {
+	container *dagger.Container
+}
+
+// NewAlpine return an initialized environment
+func NewAlpine(c *dagger.Client) *Alpine {
+	container := c.Container().From("alpine:latest")
+	return &Alpine{container: container}
+}
+
+// Container returns the internal container for the environment
+func (a *Alpine) Container() *dagger.Container {
+	return a.container
 }

@@ -6,7 +6,7 @@ import (
 
 // RunDebug is the debug job with specific execution logic
 func RunDebug(container *dagger.Container) (string, error) {
-	return "sample output from", nil
+	return "sample output from debug container", nil
 }
 
 // RunBuildImage TODO: add build image command logic

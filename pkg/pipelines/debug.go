@@ -24,7 +24,7 @@ func NewDebugPipeline(c *dagger.Client, stdoutWriter io.Writer) *Debug {
 
 // Execute runs the full debug pipeline
 func (p *Debug) Execute() error {
-	alpine := environments.NewEnvironment("alpine:latest", p.client)
+	alpine := environments.NewAlpine(p.client)
 	// Get the debug system information
 	debugOutput, err := jobs.RunDebug(alpine.Container())
 	strings.NewReader(debugOutput).WriteTo(p.stdout)
