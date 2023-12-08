@@ -1,12 +1,18 @@
 package jobs
 
 import (
+	"context"
+	"time"
+
 	"dagger.io/dagger"
 )
 
 // RunDebug is the debug job with specific execution logic
 func RunDebug(container *dagger.Container) (string, error) {
-	return "sample output from debug container", nil
+	return container.
+		WithEnvVariable("CACHEBUSTER", time.Now().String()).
+		WithExec([]string{"echo", "sample output from debug container"}).
+		Stdout(context.Background())
 }
 
 // RunBuildImage TODO: add build image command logic
