@@ -2,6 +2,8 @@ package system
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"time"
@@ -9,6 +11,9 @@ import (
 
 	"dagger.io/dagger"
 )
+
+const DefaultAlpineImage = "alpine:latest"
+const DefaultOmnibusImage = "ghcr.io/nightwing-demo/omnibus:v1.0.0"
 
 // Config is used to set arbitrary configuration settings that will be used in the engine
 type Config struct {
@@ -23,6 +28,8 @@ func NewConfig() *Config {
 	return &Config{
 		systemLogWriter:  io.Discard,
 		commandLogWriter: io.Discard,
+		AlpineImage:      DefaultAlpineImage,
+		OmnibusImage:     DefaultOmnibusImage,
 	}
 }
 
@@ -52,6 +59,13 @@ func WithCommandLogger(w io.Writer) ConfigOpt {
 	})
 }
 
+func WithImages(alpineImage string, omnibusImage string) ConfigOpt {
+	return configOptFunc(func(cfg *Config) {
+		cfg.AlpineImage = alpineImage
+		cfg.OmnibusImage = omnibusImage
+	})
+}
+
 // Engine contains the context and configuration for commands
 type Engine struct {
 	client        *dagger.Client
@@ -73,7 +87,7 @@ func NewEngine(opts ...ConfigOpt) (*Engine, error) {
 	engine := &Engine{
 		client:        client,
 		config:        config,
-		debugPipeline: pipelines.NewDebugPipeline(client, config.commandLogWriter),
+		debugPipeline: pipelines.NewDebugPipeline(client, config.commandLogWriter, config.AlpineImage, config.OmnibusImage),
 	}
 
 	return engine, nil
@@ -81,7 +95,7 @@ func NewEngine(opts ...ConfigOpt) (*Engine, error) {
 
 // DebugPipeline for testing purposes
 func (e *Engine) DebugPipeline() error {
-	timeout := time.Second * 5
+	timeout := time.Second * 120
 	doneChan := make(chan struct{}, 1)
 
 	var debugPipelineError error = nil
@@ -95,7 +109,7 @@ func (e *Engine) DebugPipeline() error {
 	select {
 	case <-time.After(timeout):
 		slog.Error("Debug Pipeline timed out")
-		return debugPipelineError
+		return errors.New(fmt.Sprintf("timeout exceeded [%s]", timeout))
 	case <-doneChan:
 		slog.Info("Debug Pipeline complete")
 		return debugPipelineError

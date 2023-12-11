@@ -12,8 +12,8 @@ type Omnibus struct {
 }
 
 // NewOmnibus loads the appropriate image for omnibus
-func NewOmnibus(c *dagger.Client) *Omnibus {
-	container := c.Container().From("alpine:latest")
+func NewOmnibus(c *dagger.Client, baseImage string) *Omnibus {
+	container := c.Container().From(baseImage)
 	return &Omnibus{container: container}
 }
 
@@ -28,8 +28,8 @@ type Alpine struct {
 }
 
 // NewAlpine return an initialized environment
-func NewAlpine(c *dagger.Client) *Alpine {
-	container := c.Container().From("alpine:latest")
+func NewAlpine(c *dagger.Client, baseImage string) *Alpine {
+	container := c.Container().From(baseImage)
 	return &Alpine{container: container}
 }
 
