@@ -14,6 +14,8 @@ import (
 type Config struct {
 	systemLogWriter  io.Writer // Dagger system logs
 	commandLogWriter io.Writer // stdout from the container being run
+	AlpineImage      string    `toml:"alpineImage"`
+	OmnibusImage     string    `toml:"omnibusImage"`
 }
 
 // NewConfig can be used to generate a Config with default options set

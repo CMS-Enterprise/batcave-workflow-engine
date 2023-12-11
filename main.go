@@ -12,6 +12,9 @@ import (
 	"github.com/lmittmann/tint"
 )
 
+const DefaultAlpineImage = "alpine:latest"
+const DefaultOmnibusImage = "ghcr.io/nightwing-demo/omnibus:v1.0.0"
+
 func main() {
 	// Set up custom structured logging with colorized output
 	slog.SetDefault(slog.New(tint.NewHandler(os.Stderr, &tint.Options{
