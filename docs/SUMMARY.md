@@ -17,5 +17,6 @@
 
 ---
 
+[Troubleshooting](./troubleshooting.md)
 [Developer Guide](./developer_guide.md)
 [Developer Notes](./developer_notes.md)
