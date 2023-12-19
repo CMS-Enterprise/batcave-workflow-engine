@@ -18,3 +18,20 @@ By: Kent Beck
 ## Effective Go
 
 link: [Effective Go](https://go.dev/doc/effective_go)
+
+## Formatting in Go
+
+To format the Go source files, run the following command:
+
+```
+go fmt .
+```
+
+### VSCode Setup
+
+Install the [Go extension](https://marketplace.visualstudio.com/items?itemName=golang.go) for VSCode for Go language support and highlighting.
+
+If you would like to automatically format on save in VSCode, use the following settings in VSCode:
+1. Press `Command ⌘ + ,` to view the settings.
+1. Search for `editor.formatOnSave` and set it to `true`
+1. Search for `editor.defaultformatter` and set it to `Go`

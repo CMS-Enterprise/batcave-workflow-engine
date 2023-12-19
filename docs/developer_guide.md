@@ -2,9 +2,7 @@
 
 TODO: Project info, goals, etc.
 
-## Getting Started
-
-TODO: Explain how to install go
+## [Getting Started](./getting_started.md)
 
 ## Project Layout
 
