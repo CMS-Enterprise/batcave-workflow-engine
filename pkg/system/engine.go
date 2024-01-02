@@ -81,7 +81,7 @@ func NewEngine(opts ...ConfigOpt) (*Engine, error) {
 	}
 	client, err := dagger.Connect(context.Background(), dagger.WithLogOutput(config.systemLogWriter))
 	if err != nil {
-		slog.Error("dagger could not connect to client", "err", err)
+		slog.Error("dagger could not connect to it's client", "err", err)
 		return nil, err
 	}
 	engine := &Engine{
@@ -99,7 +99,7 @@ func (e *Engine) DebugPipeline() error {
 	doneChan := make(chan struct{}, 1)
 
 	var debugPipelineError error = nil
-	slog.Info("Running Debug Pipeline", "timeout", timeout)
+	slog.Info("running debug pipeline", "timeout", timeout)
 
 	go func() {
 		debugPipelineError = e.debugPipeline.Execute()

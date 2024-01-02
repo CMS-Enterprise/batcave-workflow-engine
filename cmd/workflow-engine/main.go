@@ -1,40 +1,61 @@
 package main
 
 import (
-	"context"
-	"os"
-	"time"
-	"workflow-engine/cmd/workflow-engine/cli"
-
+	"flag"
 	"log/slog"
+	"os"
+	"slices"
+	"time"
+	"workflow-engine/pkg/system"
 
-	"github.com/bep/simplecobra"
 	"github.com/lmittmann/tint"
 )
 
 const exitOk = 0
-const exitSystemFailure = 1
-const exitCommandFailure = 2
+const exitUserInput = 1
+const exitSystemFailure = 2
+const exitPipelineFailure = 3
+
+const pipelineTypeDebug = "debug"
 
 func main() {
-	leveler := new(slog.LevelVar)
+	pipelineFlag := flag.String("pipeline", "", "pipeline to run options: [debug]")
+	flag.Parse()
+
 	// Set up custom structured logging with colorized output
 	slog.SetDefault(slog.New(tint.NewHandler(os.Stderr, &tint.Options{
-		Level:      leveler,
+		Level:      slog.LevelDebug,
 		TimeFormat: time.TimeOnly,
 	})))
 
-	command := cli.NewCommand(leveler)
+	slog.SetDefault(slog.Default().With("pipeline_type", *pipelineFlag))
 
-	x, err := simplecobra.New(command)
+	if !slices.Contains([]string{pipelineTypeDebug}, *pipelineFlag) {
+		slog.Error("pipeline type not supported")
+		os.Exit(exitUserInput)
+	}
+
+	// Create a new engine to run pipelines
+	slog.Debug("connecting to dagger engine")
+	engine, err := system.NewEngine()
 	if err != nil {
+		slog.Error("system failure", "err", err)
 		os.Exit(exitSystemFailure)
 	}
 
-	_, err = x.Execute(context.Background(), os.Args[1:])
-	if err != nil {
-		os.Exit(exitCommandFailure)
+	slog.Info("executing pipeline")
+
+	var pipelineErr error
+
+	// Select the pipeline to run based on the flag argument
+	switch *pipelineFlag {
+	case pipelineTypeDebug:
+		pipelineErr = engine.DebugPipeline()
 	}
 
-	os.Exit(exitOk)
+	if pipelineErr != nil {
+		slog.Error("pipeline execution error", "err", pipelineErr)
+		os.Exit(exitPipelineFailure)
+	}
+	slog.Info("pipeline execution complete")
 }
