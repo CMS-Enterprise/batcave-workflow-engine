@@ -1,0 +1,11 @@
+{
+  "cacheDir": "./test/wfe-cache",
+  "debugImage": "alpine:latest",
+  "daggerExec": "dagger",
+  "image": {
+    "buildDir": ".",
+    "buildDockerfile": "./Dockerfile",
+    "buildPlatform": "",
+    "buildTarget": ""
+  }
+}
