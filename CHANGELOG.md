@@ -9,6 +9,10 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ## [UNRELEASED]
 
+### Changed
+
+- Refactored the directory structure, all pipelines will exist in pkg/pipelines
+
 ### Added
 
 - cmd/workflow-engine for cli
