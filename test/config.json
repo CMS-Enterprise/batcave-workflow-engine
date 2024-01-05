@@ -1,5 +1,5 @@
 {
-  "cacheDir": "./test/wfe-cache",
+  "cacheDir": "./wfe-cache",
   "debugImage": "alpine:latest",
   "daggerExec": "dagger",
   "image": {

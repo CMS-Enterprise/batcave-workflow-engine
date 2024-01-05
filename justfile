@@ -6,3 +6,4 @@ build:
 # Locally serve documentation
 serve-docs:
 	mdbook serve
+

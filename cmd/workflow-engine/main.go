@@ -9,6 +9,7 @@ import (
 	"github.com/lmittmann/tint"
 )
 
+const CLIVersion = "v0.0.0"
 const exitOk = 0
 const exitUserInput = 1
 const exitSystemFailure = 2
