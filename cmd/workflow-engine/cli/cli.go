@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -15,6 +16,8 @@ import (
 const (
 	pipelineDebug      = "debug"
 	pipelineImageBuild = "image-build"
+	executorExec       = "exec"
+	executorDagger     = "dagger"
 )
 
 // App is the full CLI application
@@ -22,9 +25,9 @@ const (
 // Each command can be written as a method on this struct and attached to the
 // root command during the Init function
 type App struct {
-	cmd    *cobra.Command
-	cfg    pipelines.Config
-	client *dagger.Client
+	cmd          *cobra.Command
+	cfg          pipelines.Config
+	daggerClient *dagger.Client
 }
 
 // NewApp bootstrap the CLI Application
@@ -58,7 +61,7 @@ func (a *App) Init() {
 		Use:   "image-build-pipeline",
 		Short: "Build a container image",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return a.pipeline(pipelineImageBuild, cmd, args)
+			return a.daggerPipeline(pipelineImageBuild, cmd, args)
 		},
 	}
 
@@ -85,6 +88,7 @@ func (a *App) Init() {
 	}
 
 	// Flags
+	a.cmd.PersistentFlags().StringP("executor", "e", "dagger", "options: [exec, dagger] Specify the executor that runs the target pipeline")
 	a.cmd.PersistentFlags().StringP("config", "c", "", "Configuration file")
 	a.cmd.MarkFlagFilename("config", "json")
 
@@ -100,9 +104,9 @@ func (a *App) Execute() error {
 }
 
 func (a *App) loadConfig(cmd *cobra.Command, args []string) error {
-	l := slog.Default().With("flag", "--config")
+	l := slog.Default()
 
-	l.Debug("check config file flag")
+	l.Debug("check config file flag value")
 	configFile, _ := a.cmd.PersistentFlags().GetString("config")
 	if configFile == "" {
 		a.cfg = pipelines.NewDefaultConfig()
@@ -141,16 +145,36 @@ func (a *App) daggerVersion(cmd *cobra.Command, args []string) error {
 	return daggerCmd.Run()
 }
 
-// pipeline is the wrapper around any pipeline command
-//
-// This function connects to the dagger client before running the target pipeline.
-// This lazy loads the client and prevents the CLI from connecting before every command.
 func (a *App) pipeline(target string, cmd *cobra.Command, args []string) error {
-	var err error
 	if err := a.loadConfig(cmd, args); err != nil {
 		return err
 	}
-	a.client, err = dagger.Connect(context.Background())
+
+	executor, _ := a.cmd.PersistentFlags().GetString("executor")
+
+	switch executor {
+	case executorExec:
+		return a.execPipeline(target, cmd, args)
+	case executorDagger:
+		return a.daggerPipeline(target, cmd, args)
+	default:
+		return errors.New("unsupported executor, must be exec or dagger")
+	}
+
+}
+
+// execPipeline is the wrapper around pipeline commands for the local exec executor
+func (a *App) execPipeline(target string, cmd *cobra.Command, args []string) error {
+	return pipelines.NewLocalDebugExec(a.cfg)(cmd.OutOrStdout())
+}
+
+// daggerPipeline is the wrapper around daggerPipeline commands for the dagger executor
+//
+// This function connects to the dagger client before running the target daggerPipeline.
+// This lazy loads the client and prevents the CLI from connecting before every command.
+func (a *App) daggerPipeline(target string, cmd *cobra.Command, args []string) error {
+	var err error
+	a.daggerClient, err = dagger.Connect(context.Background())
 	if err != nil {
 		slog.Error("failed to connect to dagger client", "error", err)
 		return err
@@ -158,21 +182,19 @@ func (a *App) pipeline(target string, cmd *cobra.Command, args []string) error {
 
 	switch target {
 	case pipelineDebug:
-		return a.debugPipeline(cmd, args)
+		return a.daggerDebugPipeline(cmd, args)
 	case pipelineImageBuild:
-		return a.imageBuildPipeline(cmd, args)
+		return a.daggerImageBuildPipeline(cmd, args)
 	}
 	return nil
 }
 
-func (a *App) debugPipeline(cmd *cobra.Command, args []string) error {
-	pipeline := pipelines.NewDebugPipeline(a.client, pipelines.NewDefaultConfig())
-	pipeline.Stdout = cmd.OutOrStdout()
-	return pipeline.Run()
+func (a *App) daggerDebugPipeline(cmd *cobra.Command, args []string) error {
+	return pipelines.NewDaggerDebugExec(a.daggerClient, a.cfg)(cmd.OutOrStdout())
 }
 
-func (a *App) imageBuildPipeline(cmd *cobra.Command, args []string) error {
-	pipeline := pipelines.NewImageBuildPipeline(a.client, a.cfg)
+func (a *App) daggerImageBuildPipeline(cmd *cobra.Command, args []string) error {
+	pipeline := pipelines.NewImageBuildPipeline(a.daggerClient, a.cfg)
 	return pipeline.Run()
 }
 

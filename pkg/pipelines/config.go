@@ -1,15 +1,15 @@
 package pipelines
 
 type Config struct {
-	CacheDir   string `json:"cacheDir"`
-	DebugImage string `json:"debugImage"`
-	DaggerExec string `json:"daggerExec"`
-	Image      Image  `json:"image"`
+	CacheDir         string `json:"cacheDir"`
+	DaggerDebugImage string `json:"debugImage"`
+	DaggerExec       string `json:"daggerExec"`
+	Image            Image  `json:"image"`
 }
 
 func SetDefaults(c *Config) {
 	c.CacheDir = valueOrDefault(c.CacheDir, "./wfe-cache")
-	c.DebugImage = valueOrDefault(c.DebugImage, "alpine:latest")
+	c.DaggerDebugImage = valueOrDefault(c.DaggerDebugImage, "alpine:latest")
 	c.DaggerExec = valueOrDefault(c.DaggerExec, "dagger")
 	c.Image.BuildDir = valueOrDefault(c.Image.BuildDir, ".")
 	c.Image.BuildDockerfile = valueOrDefault(c.Image.BuildDockerfile, "Dockerfile")
