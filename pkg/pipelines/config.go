@@ -1,5 +1,12 @@
 package pipelines
 
+type Mode int
+
+const (
+	ModeRun Mode = iota
+	ModeDryRun
+)
+
 type Config struct {
 	CacheDir         string `json:"cacheDir"`
 	DaggerDebugImage string `json:"debugImage"`
