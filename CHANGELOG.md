@@ -11,8 +11,14 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ### Changed
 
-- Refactored the directory structure, all pipelines will exist in pkg/pipelines
+- Refactored, the directory structure, all pipelines will exist in pkg/pipelines
 
+### Added
+- pkg/shell for command wrappers
+- grype version
+- syft version
+
+## [0.0.1-rc.1] - 2024-01-01
 ### Added
 
 - cmd/workflow-engine for cli

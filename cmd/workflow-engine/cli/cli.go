@@ -47,8 +47,7 @@ func (a *App) Init() {
 		Use:   "debug",
 		Short: "Run the debug pipeline",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			dryRun, _ := cmd.Flags().GetBool("dry-run")
-			return debugPipeline(cmd, args, dryRun)
+			return debugPipeline(cmd, args)
 		},
 	}
 	imagebuildCmd := &cobra.Command{
@@ -59,7 +58,6 @@ func (a *App) Init() {
 		},
 	}
 
-	runCmd.PersistentFlags().BoolP("dry-run", "n", false, "Print the commands but don't execute")
 	runCmd.AddCommand(runDebugCmd, imagebuildCmd)
 
 	// Config Sub Command setup
@@ -136,12 +134,8 @@ func (a *App) configInit(cmd *cobra.Command, args []string) error {
 	return enc.Encode(pipelines.NewDefaultConfig())
 }
 
-func debugPipeline(cmd *cobra.Command, args []string, dryRun bool) error {
-	m := pipelines.ModeRun
-	if dryRun {
-		m = pipelines.ModeDryRun
-	}
+func debugPipeline(cmd *cobra.Command, args []string) error {
 
-	pipeline := pipelines.NewDebug(m)
+	pipeline := pipelines.NewDebug(cmd.OutOrStdout(), cmd.ErrOrStderr())
 	return pipeline.Run()
 }
