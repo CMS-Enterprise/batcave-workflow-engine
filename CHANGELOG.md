@@ -17,6 +17,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - pkg/shell for command wrappers
 - grype version
 - syft version
+- podman version
 
 ## [0.0.1-rc.1] - 2024-01-01
 ### Added
