@@ -2,27 +2,30 @@ package shell
 
 import (
 	"io"
-	"log/slog"
 )
 
 type syftCmd struct {
-	Command
-	InitCmd func() *Command
+	Executable
+	InitCmd func() *Executable
 }
 
 // Version outputs the version of the syft CLI
 //
 // shell: `syft version`
-func (s *syftCmd) Version() error {
+func (s *syftCmd) Version() *Command {
 	cmd := s.InitCmd().WithArgs("version")
-	slog.Debug("run", "command", cmd.String())
-	return cmd.Run()
+	return &Command{
+		RunE: func() error {
+			return cmd.Run()
+		},
+		DebugInfo: cmd.String(),
+	}
 }
 
 // SyftCommand with custom stdout and stderr
 func SyftCommand(stdout io.Writer, stderr io.Writer) *syftCmd {
-	return &syftCmd{InitCmd: func() *Command {
-		return NewCommand("syft").WithOutput(stdout).WithStderr(stderr)
+	return &syftCmd{InitCmd: func() *Executable {
+		return NewExecutable("syft").WithOutput(stdout).WithStderr(stderr)
 	},
 	}
 }

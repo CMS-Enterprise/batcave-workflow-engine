@@ -20,9 +20,9 @@ func NewDebug(stdoutW io.Writer, stderrW io.Writer) *Debug {
 func (d *Debug) Run() error {
 	// Runs all the commands and collects errors. Will not stop if one fails
 	errs := errors.Join(
-		shell.GrypeCommand(d.Stdout, d.Stderr).Version(),
-		shell.SyftCommand(d.Stdout, d.Stderr).Version(),
-		shell.PodmanComand(d.Stdout, d.Stderr).Version(),
+		shell.GrypeCommand(d.Stdout, d.Stderr).Version().RunE(),
+		shell.SyftCommand(d.Stdout, d.Stderr).Version().RunE(),
+		shell.PodmanComand(d.Stdout, d.Stderr).Version().RunE(),
 	)
 
 	return errs

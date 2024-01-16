@@ -2,29 +2,32 @@ package shell
 
 import (
 	"io"
-	"log/slog"
 )
 
 type podmanCmd struct {
-	Command
-	InitCmd func() *Command
+	Executable
+	InitCmd func() *Executable
 }
 
 // Version outputs the version of the podman CLI
 //
 // shell: `podman version`
-func (p *podmanCmd) Version() error {
+func (p *podmanCmd) Version() *Command {
 	cmd := p.InitCmd().WithArgs("version")
-	slog.Debug("run", "command", cmd.String())
-	return cmd.Run()
+	return &Command{
+		RunE: func() error {
+			return cmd.Run()
+		},
+		DebugInfo: cmd.String(),
+	}
 }
 
-// PodmanComand with custom stdout and stder
+// PodmanComand with custom stdout and stderr
 func PodmanComand(stdout io.Writer, stderr io.Writer) *podmanCmd {
 	return &podmanCmd{
-		Command: Command{},
-		InitCmd: func() *Command {
-			return NewCommand("podman").WithOutput(stdout).WithStderr(stderr)
+		Executable: Executable{},
+		InitCmd: func() *Executable {
+			return NewExecutable("podman").WithOutput(stdout).WithStderr(stderr)
 		},
 	}
 }

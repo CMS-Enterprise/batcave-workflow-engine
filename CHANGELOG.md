@@ -12,8 +12,12 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 ### Changed
 
 - Refactored, the directory structure, all pipelines will exist in pkg/pipelines
+- Updated Version commands to return Commands instead of just an error
 
 ### Added
+
+- pkg/shell/commands Runner interface
+- pkg/shell/commands Command struct
 - pkg/shell for command wrappers
 - grype version
 - syft version

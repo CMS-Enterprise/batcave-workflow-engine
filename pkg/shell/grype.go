@@ -2,27 +2,30 @@ package shell
 
 import (
 	"io"
-	"log/slog"
 )
 
 type grypeCmd struct {
-	Command
-	InitCmd func() *Command
+	Executable
+	InitCmd func() *Executable
 }
 
 // Version outputs the version of the Grype CLI
 //
 // shell: `grype version`
-func (g *grypeCmd) Version() error {
+func (g *grypeCmd) Version() *Command {
 	cmd := g.InitCmd().WithArgs("version")
-	slog.Debug("run", "command", cmd.String())
-	return cmd.Run()
+	return &Command{
+		RunE: func() error {
+			return cmd.Run()
+		},
+		DebugInfo: cmd.String(),
+	}
 }
 
 // GrypeCommand with custom stdout and stderr
 func GrypeCommand(stdout io.Writer, stderr io.Writer) *grypeCmd {
-	return &grypeCmd{InitCmd: func() *Command {
-		return NewCommand("grype").WithOutput(stdout).WithStderr(stderr)
+	return &grypeCmd{InitCmd: func() *Executable {
+		return NewExecutable("grype").WithOutput(stdout).WithStderr(stderr)
 	},
 	}
 }
