@@ -15,7 +15,7 @@ type syftCmd struct {
 func (s *syftCmd) Version() *Command {
 	cmd := s.InitCmd().WithArgs("version")
 	return &Command{
-		RunE: func() error {
+		RunFunc: func() error {
 			return cmd.Run()
 		},
 		DebugInfo: cmd.String(),

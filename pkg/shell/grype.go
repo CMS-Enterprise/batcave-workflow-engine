@@ -15,7 +15,7 @@ type grypeCmd struct {
 func (g *grypeCmd) Version() *Command {
 	cmd := g.InitCmd().WithArgs("version")
 	return &Command{
-		RunE: func() error {
+		RunFunc: func() error {
 			return cmd.Run()
 		},
 		DebugInfo: cmd.String(),

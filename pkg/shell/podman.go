@@ -15,7 +15,7 @@ type podmanCmd struct {
 func (p *podmanCmd) Version() *Command {
 	cmd := p.InitCmd().WithArgs("version")
 	return &Command{
-		RunE: func() error {
+		RunFunc: func() error {
 			return cmd.Run()
 		},
 		DebugInfo: cmd.String(),

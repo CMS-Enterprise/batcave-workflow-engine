@@ -88,10 +88,10 @@ func (c *Command) debug() {
 // RunOptional will only run if passed true.
 //
 // The reason for this function is to optionally run after debugging
-// the command that would run
-func (c *Command) RunOptional(run bool) error {
+// the command that would run if dry run is set to true
+func (c *Command) RunOptional(dryRun bool) error {
 	c.debug()
-	if !run {
+	if dryRun {
 		return nil
 	}
 	return c.RunFunc()

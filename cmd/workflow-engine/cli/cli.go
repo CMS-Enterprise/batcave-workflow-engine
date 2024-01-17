@@ -14,8 +14,10 @@ import (
 // Each command can be written as a method on this struct and attached to the
 // root command during the Init function
 type App struct {
-	cmd *cobra.Command
-	cfg pipelines.Config
+	cmd                *cobra.Command
+	cfg                pipelines.Config
+	flagDryRun         *bool
+	flagConfigFilename *string
 }
 
 // NewApp bootstrap the CLI Application
@@ -29,7 +31,6 @@ func NewApp() *App {
 //
 // Note: This function is automatically called if NewApp is used
 func (a *App) Init() {
-
 	// Pipeline Commands
 	runCmd := &cobra.Command{
 		Use:   "run",
@@ -40,7 +41,7 @@ func (a *App) Init() {
 		Use:   "debug",
 		Short: "Run the debug pipeline",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return debugPipeline(cmd, args)
+			return debugPipeline(cmd, args, a.flagDryRun)
 		},
 	}
 	imagebuildCmd := &cobra.Command{
@@ -75,9 +76,14 @@ func (a *App) Init() {
 		Short: "A portable, opinionate security pipeline",
 	}
 
+	// Init flag pointers
+	a.flagDryRun = new(bool)
+	a.flagConfigFilename = new(string)
 	// Persistent Flags
-	a.cmd.PersistentFlags().BoolP("dry-run", "n", false, "log commands to debug but don't execute")
-	a.cmd.PersistentFlags().StringP("config", "c", "", "Configuration file")
+	a.cmd.PersistentFlags().BoolVarP(a.flagDryRun, "dry-run", "n", false, "log commands to debug but don't execute")
+	a.cmd.PersistentFlags().StringVarP(a.flagConfigFilename, "config", "c", "", "Configuration file")
+
+	// Flag marks
 	a.cmd.MarkFlagFilename("config", "json")
 
 	// Other settings
@@ -121,19 +127,14 @@ func (a *App) loadConfig(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func dryRunFlagEnabled(cmd *cobra.Command) bool {
-	value, _ := cmd.PersistentFlags().GetBool("dry-run")
-	return value
-}
-
 func (a *App) configInit(cmd *cobra.Command, args []string) error {
 	enc := json.NewEncoder(cmd.OutOrStdout())
 	enc.SetIndent("", "  ")
 	return enc.Encode(pipelines.NewDefaultConfig())
 }
 
-func debugPipeline(cmd *cobra.Command, args []string) error {
+func debugPipeline(cmd *cobra.Command, args []string, dryRun *bool) error {
 	pipeline := pipelines.NewDebug(cmd.OutOrStdout(), cmd.ErrOrStderr())
-	pipeline.DryRunEnabled = dryRunFlagEnabled(cmd)
+	pipeline.DryRunEnabled = *dryRun
 	return pipeline.Run()
 }
