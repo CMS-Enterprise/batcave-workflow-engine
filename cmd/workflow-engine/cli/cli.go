@@ -9,13 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	pipelineDebug      = "debug"
-	pipelineImageBuild = "image-build"
-	executorExec       = "exec"
-	executorDagger     = "dagger"
-)
-
 // App is the full CLI application
 //
 // Each command can be written as a method on this struct and attached to the
@@ -83,7 +76,7 @@ func (a *App) Init() {
 	}
 
 	// Persistent Flags
-
+	a.cmd.PersistentFlags().BoolP("dry-run", "n", false, "log commands to debug but don't execute")
 	a.cmd.PersistentFlags().StringP("config", "c", "", "Configuration file")
 	a.cmd.MarkFlagFilename("config", "json")
 
@@ -128,6 +121,11 @@ func (a *App) loadConfig(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func dryRunFlagEnabled(cmd *cobra.Command) bool {
+	value, _ := cmd.PersistentFlags().GetBool("dry-run")
+	return value
+}
+
 func (a *App) configInit(cmd *cobra.Command, args []string) error {
 	enc := json.NewEncoder(cmd.OutOrStdout())
 	enc.SetIndent("", "  ")
@@ -135,7 +133,7 @@ func (a *App) configInit(cmd *cobra.Command, args []string) error {
 }
 
 func debugPipeline(cmd *cobra.Command, args []string) error {
-
 	pipeline := pipelines.NewDebug(cmd.OutOrStdout(), cmd.ErrOrStderr())
+	pipeline.DryRunEnabled = dryRunFlagEnabled(cmd)
 	return pipeline.Run()
 }

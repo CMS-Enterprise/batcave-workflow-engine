@@ -7,6 +7,7 @@ package shell
 
 import (
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 )
@@ -70,13 +71,39 @@ type Runner interface {
 
 // Command implements the Runner interface for basic use cases.
 type Command struct {
-	RunE      func() error
+	RunFunc   func() error
 	DebugInfo string
 }
 
-// Run runs the command function
+// Run the command function set at init
 func (c *Command) Run() error {
-	return c.RunE()
+	c.debug()
+	return c.RunFunc()
+}
+
+func (c *Command) debug() {
+	slog.Debug("run", "command", c.String())
+}
+
+// RunOptional will only run if passed true.
+//
+// The reason for this function is to optionally run after debugging
+// the command that would run
+func (c *Command) RunOptional(run bool) error {
+	c.debug()
+	if !run {
+		return nil
+	}
+	return c.RunFunc()
+}
+
+// RunLogError runs the command function and logs any potential errors
+// it will also debug before the run
+func (c *Command) RunLogError() {
+	err := c.Run()
+	if err != nil {
+		slog.Error("command failed", "command", c.String(), "error", err)
+	}
 }
 
 // String provides debug information about the command

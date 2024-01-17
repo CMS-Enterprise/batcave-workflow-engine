@@ -16,6 +16,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ### Added
 
+- debugging flag
 - pkg/shell/commands Runner interface
 - pkg/shell/commands Command struct
 - pkg/shell for command wrappers
