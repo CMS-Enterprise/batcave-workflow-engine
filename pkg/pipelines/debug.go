@@ -23,13 +23,18 @@ func NewDebug(stdoutW io.Writer, stderrW io.Writer) *Debug {
 // All commands will run in sequence, stopping if one of the commands fail
 func (d *Debug) Run() error {
 	l := slog.Default().With("pipeline", "debug", "dry_run", d.DryRunEnabled)
-	l.Info("start pipeline")
+	l.Info("start")
+
+	// Collect errors for mandatory commands
 	errs := errors.Join(
 		shell.GrypeCommand(d.Stdout, d.Stderr).Version().RunOptional(d.DryRunEnabled),
 		shell.SyftCommand(d.Stdout, d.Stderr).Version().RunOptional(d.DryRunEnabled),
-		shell.PodmanComand(d.Stdout, d.Stderr).Version().RunOptional(d.DryRunEnabled),
 	)
 
-	l.Info("complete pipeline")
+	// Just log errors for optional commands
+	shell.PodmanCommand(d.Stdout, d.Stderr).Version().RunLogErrorAsWarning(d.DryRunEnabled)
+	shell.DockerCommand(d.Stdout, d.Stderr).Version().RunLogErrorAsWarning(d.DryRunEnabled)
+
+	l.Info("complete")
 	return errs
 }

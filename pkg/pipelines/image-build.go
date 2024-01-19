@@ -2,22 +2,47 @@ package pipelines
 
 import (
 	"io"
-	"os"
+	"log/slog"
+	"workflow-engine/pkg/shell"
 )
 
-type PodmanImageBuild struct {
-	Stdout io.Writer
-	Stderr io.Writer
+type cliCmd interface {
+	Version() *shell.Command
+	Info() *shell.Command
 }
 
-func NewImageBuild(m Mode) *PodmanImageBuild {
-	return &PodmanImageBuild{
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
+type ImageBuild struct {
+	Stdout        io.Writer
+	Stderr        io.Writer
+	DryRunEnabled bool
+	CLICmd        cliCmd
+}
+
+func NewImageBuild(stdout io.Writer, stderr io.Writer) *ImageBuild {
+	pipeline := &ImageBuild{
+		Stdout:        stdout,
+		Stderr:        stderr,
+		DryRunEnabled: false,
 	}
+
+	pipeline.CLICmd = shell.DockerCommand(pipeline.Stdout, pipeline.Stderr)
+
+	return pipeline
 }
 
-func (i *PodmanImageBuild) Run() error {
-	// TODO: Add podman shell commands
-	return nil
+func (i *ImageBuild) WithPodman() *ImageBuild {
+	i.CLICmd = shell.PodmanCommand(i.Stdout, i.Stderr)
+	return i
+}
+
+func (i *ImageBuild) Run() error {
+	l := slog.Default().With("pipeline", "image_build", "dry_run", i.DryRunEnabled)
+
+	l.Info("start")
+
+	// print the connection information
+	err := i.CLICmd.Info().RunOptional(i.DryRunEnabled)
+	l.Info("complete")
+
+	return err
 }

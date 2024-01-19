@@ -23,6 +23,9 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - grype version
 - syft version
 - podman version
+- docker / podman support via CLI cmd interface
+- docker info
+- image build pipeline (info only)
 
 ## [0.0.1-rc.1] - 2024-01-01
 ### Added

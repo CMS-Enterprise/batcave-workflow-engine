@@ -17,6 +17,7 @@ type App struct {
 	cmd                *cobra.Command
 	cfg                pipelines.Config
 	flagDryRun         *bool
+	flagCLICmd         *string
 	flagConfigFilename *string
 }
 
@@ -48,7 +49,7 @@ func (a *App) Init() {
 		Use:   "image-build",
 		Short: "Build a container image",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return nil
+			return imageBuildPipeline(cmd, args, a.flagDryRun, imageBuildCmd(*a.flagCLICmd))
 		},
 	}
 
@@ -79,6 +80,11 @@ func (a *App) Init() {
 	// Init flag pointers
 	a.flagDryRun = new(bool)
 	a.flagConfigFilename = new(string)
+	a.flagCLICmd = new(string)
+
+	// Sub Command Flags
+	imagebuildCmd.Flags().StringVarP(a.flagCLICmd, "cli-interface", "i", "docker", "[docker|podman] CLI interface to use for image building")
+
 	// Persistent Flags
 	a.cmd.PersistentFlags().BoolVarP(a.flagDryRun, "dry-run", "n", false, "log commands to debug but don't execute")
 	a.cmd.PersistentFlags().StringVarP(a.flagConfigFilename, "config", "c", "", "Configuration file")
@@ -136,5 +142,21 @@ func (a *App) configInit(cmd *cobra.Command, args []string) error {
 func debugPipeline(cmd *cobra.Command, args []string, dryRun *bool) error {
 	pipeline := pipelines.NewDebug(cmd.OutOrStdout(), cmd.ErrOrStderr())
 	pipeline.DryRunEnabled = *dryRun
+	return pipeline.Run()
+}
+
+type imageBuildCmd string
+
+const (
+	cliDocker imageBuildCmd = "docker"
+	cliPodman               = "podman"
+)
+
+func imageBuildPipeline(cmd *cobra.Command, args []string, dryRun *bool, cliCmd imageBuildCmd) error {
+	pipeline := pipelines.NewImageBuild(cmd.OutOrStdout(), cmd.ErrOrStderr())
+	pipeline.DryRunEnabled = *dryRun
+	if cliCmd == cliPodman {
+		pipeline = pipeline.WithPodman()
+	}
 	return pipeline.Run()
 }

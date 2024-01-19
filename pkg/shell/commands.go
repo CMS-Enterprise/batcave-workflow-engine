@@ -99,10 +99,26 @@ func (c *Command) RunOptional(dryRun bool) error {
 
 // RunLogError runs the command function and logs any potential errors
 // it will also debug before the run
-func (c *Command) RunLogError() {
+func (c *Command) RunLogError(dryRun bool) {
+	c.debug()
+	if dryRun {
+		return
+	}
+
 	err := c.Run()
 	if err != nil {
 		slog.Error("command failed", "command", c.String(), "error", err)
+	}
+}
+
+func (c *Command) RunLogErrorAsWarning(dryRun bool) {
+	c.debug()
+	if dryRun {
+		return
+	}
+	err := c.Run()
+	if err != nil {
+		slog.Warn("command failed", "command", c.String(), "error", err)
 	}
 }
 
