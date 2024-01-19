@@ -25,7 +25,7 @@ The idea of Workflow Engine is that it's all abstracted to the Security Analysis
 In the Shell package, all necessary commands will be abstracted into a native Go object.
 Only the used features for the given command will be written into this package.
 
-The shell.Command wraps the exec.Cmd struct and adds some convenient methods for building a command.
+The shell.Executable wraps the exec.Cmd struct and adds some convenient methods for building a command.
 
 Instead of writing something like
 
@@ -46,8 +46,9 @@ err := cmd.Run()
 How to do it with the shell package
 
 ```go
-cmd := shell.NewCommand("syft").WithArgs("version", "-o", "json").WithStdout(os.Stdout).WithStderr(os.Stderr)
-err := cmd.Run()
+// creates the execuable
+syft := shell.NewExecutable("syft").WithArgs("version", "-o", "json").WithStdout(os.Stdout).WithStderr(os.Stderr)
+err := syft.Run()
 ```
 This isn't to save lines of code.
 It gives the developer the ability to define a command as syft and write the supported arguments as methods.
@@ -55,13 +56,36 @@ It gives the developer the ability to define a command as syft and write the sup
 The resulting API is a lot neater for both the backend (where to command logic is contained) and the caller of the 
 function which could eventually be any number of clients and the eventual pipeline where the command will be called.
 
+A Command in Workflow Engine wraps an Executable and controls *how* that command will be run.
+Instead of directly calling `syft.Run()` it can be wrapped into a command and automatically inherit additional run types.
+
+For example, if you only want to output what the command would run but not actually run the command, 
 ```go
-err := shell.SyftCommand(os.Stdout,os.Stderr).Version()
+shell.SyftCommand(os.Stdout,os.Stderr).Version().RunOptional(true) // <- parameter is dryRun bool
 ```
+
+This would log the final output command without executing.
+
+The motivation behind this architecture is to simply the Methods for all sub-commands on an executable.
+
+Implementing a new sub command is trivial, define the actual run and debug information.
+
+```go
+func (s *syftCmd) Help() *Command {
+	cmd := s.InitCmd().WithArgs("help")
+	return &Command{
+		RunFunc: func() error {
+			return cmd.Run()
+		},
+		DebugInfo: cmd.String(),
+	}
+}
+```
+
 
 ### Command Structure
 
-#### `Command` Field
+#### `Executable` Field
 
 This gives custom commands access to the methods already defined in the `exec.Cmd` object, like `Run()` by using 
 Go-syle Composition which is similar to inheritance in other languages.

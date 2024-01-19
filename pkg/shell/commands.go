@@ -18,38 +18,38 @@ import (
 //
 // Example:
 //
-// err := NewCommand("echo").WithStdout(os.Stdout).WithArgs("howdy world").Run()
+// err := NewExecutable("echo").WithStdout(os.Stdout).WithArgs("howdy world").Run()
 type Executable struct {
 	exec.Cmd
 }
 
 // WithStdout attaches the command standard output to the given writer
-func (c *Executable) WithStdout(w io.Writer) *Executable {
-	c.Stdout = w
-	return c
+func (e *Executable) WithStdout(w io.Writer) *Executable {
+	e.Stdout = w
+	return e
 }
 
 // WithStderr attaches the command standard error to the given writer
-func (c *Executable) WithStderr(w io.Writer) *Executable {
-	c.Stderr = w
-	return c
+func (e *Executable) WithStderr(w io.Writer) *Executable {
+	e.Stderr = w
+	return e
 }
 
 // WithStdin attaches the given reader to the commands standard input
-func (c *Executable) WithStdin(r io.Reader) *Executable {
-	c.Stdin = r
-	return c
+func (e *Executable) WithStdin(r io.Reader) *Executable {
+	e.Stdin = r
+	return e
 }
 
 // WithOutput attaches comand standard output and standard error to the given writer
-func (c *Executable) WithOutput(w io.Writer) *Executable {
-	return c.WithStdout(w).WithStderr(w)
+func (e *Executable) WithOutput(w io.Writer) *Executable {
+	return e.WithStdout(w).WithStderr(w)
 }
 
 // WithArgs attaches given arguments to a command
-func (c *Executable) WithArgs(args ...string) *Executable {
-	c.Args = append(c.Args[:1], args...)
-	return c
+func (e *Executable) WithArgs(args ...string) *Executable {
+	e.Args = append(e.Args[:1], args...)
+	return e
 }
 
 // NewExecutable creates an Executable initialized with the given executable name
