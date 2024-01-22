@@ -71,60 +71,66 @@ type Runner interface {
 
 // Command implements the Runner interface for basic use cases.
 type Command struct {
-	RunFunc   func() error
-	DebugInfo string
+	runFunc       func() error
+	info          string
+	dryRunEnabled bool
+	logger        *slog.Logger
+}
+
+func NewCommand(exe *Executable) *Command {
+	c := &Command{
+		runFunc: func() error {
+			return exe.Run()
+		},
+		info:          exe.String(),
+		dryRunEnabled: false,
+		logger:        slog.Default(),
+	}
+	return c
+}
+
+func (c *Command) WithRunFunc(f func() error) *Command {
+	c.runFunc = f
+	return c
+}
+
+// WithDryRun will only setup the command to only execute if dryRun is not enabled
+//
+// The reason for this function is to optionally run after debugging
+// the command that would run if dry run is set to true
+func (c *Command) WithDryRun(enabled bool) *Command {
+	c.dryRunEnabled = enabled
+	return c
 }
 
 // Run the command function set at init
 func (c *Command) Run() error {
-	c.debug()
-	return c.RunFunc()
-}
-
-func (c *Command) debug() {
-	slog.Debug("run", "command", c.String())
-}
-
-// RunOptional will only run if passed true.
-//
-// The reason for this function is to optionally run after debugging
-// the command that would run if dry run is set to true
-func (c *Command) RunOptional(dryRun bool) error {
-	c.debug()
-	if dryRun {
+	c.logger.Info("run", "command", c.String())
+	if c.dryRunEnabled {
 		return nil
 	}
-	return c.RunFunc()
+	return c.runFunc()
 }
 
 // RunLogError runs the command function and logs any potential errors
 // it will also debug before the run
-func (c *Command) RunLogError(dryRun bool) {
-	c.debug()
-	if dryRun {
-		return
-	}
-
+func (c *Command) RunLogError() {
 	err := c.Run()
 	if err != nil {
-		slog.Error("command failed", "command", c.String(), "error", err)
+		c.logger.Error("command failed", "command", c.String(), "error", err)
 	}
 }
 
-func (c *Command) RunLogErrorAsWarning(dryRun bool) {
-	c.debug()
-	if dryRun {
-		return
-	}
+func (c *Command) RunLogErrorAsWarning() {
 	err := c.Run()
 	if err != nil {
-		slog.Warn("command failed", "command", c.String(), "error", err)
+		c.logger.Warn("command failed", "command", c.String(), "error", err)
 	}
 }
 
 // String provides debug information about the command
 func (c *Command) String() string {
-	return c.DebugInfo
+	return c.info
 }
 
 func ExampleEcho() {

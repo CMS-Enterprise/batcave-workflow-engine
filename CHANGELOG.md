@@ -11,8 +11,11 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ### Changed
 
-- Refactored, the directory structure, all pipelines will exist in pkg/pipelines
-- Updated Version commands to return Commands instead of just an error
+- refactored, the directory structure, all pipelines will exist in pkg/pipelines
+- updated Version commands to return Commands instead of just an error
+- simplified Command Methods
+- converted some Command to private to prevent auto-complete overload
+- the way command dry running is called, uses builder pattern now
 
 ### Added
 

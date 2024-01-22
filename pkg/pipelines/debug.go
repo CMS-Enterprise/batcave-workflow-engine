@@ -27,13 +27,13 @@ func (d *Debug) Run() error {
 
 	// Collect errors for mandatory commands
 	errs := errors.Join(
-		shell.GrypeCommand(d.Stdout, d.Stderr).Version().RunOptional(d.DryRunEnabled),
-		shell.SyftCommand(d.Stdout, d.Stderr).Version().RunOptional(d.DryRunEnabled),
+		shell.GrypeCommand(d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
+		shell.SyftCommand(d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
 	)
 
 	// Just log errors for optional commands
-	shell.PodmanCommand(d.Stdout, d.Stderr).Version().RunLogErrorAsWarning(d.DryRunEnabled)
-	shell.DockerCommand(d.Stdout, d.Stderr).Version().RunLogErrorAsWarning(d.DryRunEnabled)
+	shell.PodmanCommand(d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).RunLogErrorAsWarning()
+	shell.DockerCommand(d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).RunLogErrorAsWarning()
 
 	l.Info("complete")
 	return errs

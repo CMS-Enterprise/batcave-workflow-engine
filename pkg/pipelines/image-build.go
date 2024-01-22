@@ -41,7 +41,7 @@ func (i *ImageBuild) Run() error {
 	l.Info("start")
 
 	// print the connection information
-	err := i.CLICmd.Info().RunOptional(i.DryRunEnabled)
+	err := i.CLICmd.Info().WithDryRun(i.DryRunEnabled).Run()
 	l.Info("complete")
 
 	return err

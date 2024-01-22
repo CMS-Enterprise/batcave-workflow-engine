@@ -61,7 +61,7 @@ Instead of directly calling `syft.Run()` it can be wrapped into a command and au
 
 For example, if you only want to output what the command would run but not actually run the command, 
 ```go
-shell.SyftCommand(os.Stdout,os.Stderr).Version().RunOptional(true) // <- parameter is dryRun bool
+shell.SyftCommand(os.Stdout,os.Stderr).Version().WithDryRun(true).Run()
 ```
 
 This would log the final output command without executing.
@@ -72,23 +72,14 @@ Implementing a new sub command is trivial, define the actual run and debug infor
 
 ```go
 func (s *syftCmd) Help() *Command {
-	cmd := s.InitCmd().WithArgs("help")
-	return &Command{
-		RunFunc: func() error {
-			return cmd.Run()
-		},
-		DebugInfo: cmd.String(),
-	}
-}
+	exe := s.InitCmd().WithArgs("help")
+  // Use the convience function to create a new command
+  return NewCommand(exe)
+ }
 ```
 
 
 ### Command Structure
-
-#### `Executable` Field
-
-This gives custom commands access to the methods already defined in the `exec.Cmd` object, like `Run()` by using 
-Go-syle Composition which is similar to inheritance in other languages.
 
 #### `InitCmd` Field
 
