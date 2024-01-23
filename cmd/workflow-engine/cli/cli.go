@@ -158,24 +158,33 @@ func (a *App) loadConfig(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	l = l.With("flag", "--config", "value", configFile)
-
 	// viper reads in config values from all sources based on precedence
+	l.Debug("viper read-in config", "config_file_flag_value", configFile)
+
 	if err := viper.ReadInConfig(); err != nil {
-		l.Error("viper read-in config")
-		return err
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			// Config file not found; ignore error if desired
+			l.Debug("viper did not find a config file; check other sources")
+		} else {
+			return err
+		}
 	}
 
 	// viper will unmarshal the values into the cfg object
 	l.Debug("decode configuration file")
-	cfg := pipelines.NewDefaultConfig()
-
-	if err := viper.Unmarshal(cfg); err != nil {
-		l.Error("viper decoding")
-		return err
+	a.cfg = &pipelines.Config{
+		Image: pipelines.ImageBuildConfig{
+			BuildDir:        viper.GetString("buildDir"),
+			BuildDockerfile: viper.GetString("buildDockerfile"),
+			BuildTag:        viper.GetString("buildTag"),
+			BuildPlatform:   viper.GetString("buildPlatform"),
+			BuildTarget:     viper.GetString("buildTarget"),
+			BuildCacheTo:    viper.GetString("buildCacheTo"),
+			BuildCacheFrom:  viper.GetString("buildCacheFrom"),
+			BuildArgs:       make([][2]string, 0),
+		},
 	}
 
-	a.cfg = cfg
 	l.Debug("config file loaded", "content", fmt.Sprintf("%+v", a.cfg))
 	return nil
 }
