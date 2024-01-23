@@ -1,12 +1,10 @@
 package pipelines
 
 type Config struct {
-	CacheDir string `json:"cacheDir"`
-	Image    Image  `json:"image"`
+	Image ImageBuildConfig `json:"image" yaml:"image" toml:"image"`
 }
 
 func SetDefaults(c *Config) {
-	c.CacheDir = valueOrDefault(c.CacheDir, "./wfe-cache")
 	c.Image.BuildDir = valueOrDefault(c.Image.BuildDir, ".")
 	c.Image.BuildDockerfile = valueOrDefault(c.Image.BuildDockerfile, "Dockerfile")
 	c.Image.BuildPlatform = valueOrDefault(c.Image.BuildPlatform, "")
@@ -23,18 +21,19 @@ func valueOrDefault(value string, d string) string {
 	return value
 }
 
-type Image struct {
-	BuildDir        string      `json:"buildDir"`
-	BuildDockerfile string      `json:"buildDockerfile"`
-	BuildPlatform   string      `json:"buildPlatform"`
-	BuildTarget     string      `json:"buildTarget"`
-	BuildCacheTo    string      `json:"buildCacheTo"`
-	BuildCacheFrom  string      `json:"buildCacheFrom"`
-	BuildArgs       [][2]string `json:"buildArgs"`
+type ImageBuildConfig struct {
+	BuildDir        string      `json:"buildDir" yaml:"buildDir" toml:"buildDir"`
+	BuildDockerfile string      `json:"buildDockerfile" yaml:"buildDockerfile" toml:"buildDockerfile"`
+	BuildTag        string      `json:"buildTag" yaml:"buildTag" toml:"buildTag"`
+	BuildPlatform   string      `json:"buildPlatform" yaml:"buildPlatform" toml:"buildPlatform"`
+	BuildTarget     string      `json:"buildTarget" yaml:"buildTarget" toml:"buildTarget"`
+	BuildCacheTo    string      `json:"buildCacheTo" yaml:"buildCacheTo" toml:"buildCacheTo"`
+	BuildCacheFrom  string      `json:"buildCacheFrom" yaml:"buildCacheFrom" toml:"buildCacheFrom"`
+	BuildArgs       [][2]string `json:"buildArgs" yaml:"buildArgs" toml:"buildArgs"`
 }
 
-func NewDefaultConfig() Config {
+func NewDefaultConfig() *Config {
 	config := new(Config)
 	SetDefaults(config)
-	return *config
+	return config
 }

@@ -9,6 +9,8 @@ import (
 type cliCmd interface {
 	Version() *shell.Command
 	Info() *shell.Command
+	Push(string) *shell.Command
+	Build(*shell.ImageBuildOptions) *shell.Command
 }
 
 type ImageBuild struct {
@@ -17,6 +19,7 @@ type ImageBuild struct {
 	DryRunEnabled bool
 	CLICmd        cliCmd
 	logger        *slog.Logger
+	cfg           ImageBuildConfig
 }
 
 func NewImageBuild(stdout io.Writer, stderr io.Writer) *ImageBuild {
@@ -35,6 +38,12 @@ func NewImageBuild(stdout io.Writer, stderr io.Writer) *ImageBuild {
 func (i *ImageBuild) WithPodman() *ImageBuild {
 	i.logger.Debug("use podman cli")
 	i.CLICmd = shell.PodmanCommand(i.Stdout, i.Stderr)
+	return i
+}
+
+func (i *ImageBuild) WithBuildConfig(buildConfig ImageBuildConfig) *ImageBuild {
+	i.logger.Debug("apply build config")
+	i.cfg = buildConfig
 	return i
 }
 

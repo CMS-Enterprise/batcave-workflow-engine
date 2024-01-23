@@ -2,11 +2,12 @@ package cli
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
-	"os"
 	"workflow-engine/pkg/pipelines"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // App is the full CLI application
@@ -15,7 +16,7 @@ import (
 // root command during the Init function
 type App struct {
 	cmd                *cobra.Command
-	cfg                pipelines.Config
+	cfg                *pipelines.Config
 	flagDryRun         *bool
 	flagCLICmd         *string
 	flagConfigFilename *string
@@ -49,7 +50,10 @@ func (a *App) Init() {
 		Use:   "image-build",
 		Short: "Build a container image",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return imageBuildPipeline(cmd, args, a.flagDryRun, imageBuildCmd(*a.flagCLICmd))
+			if err := a.loadConfig(cmd, args); err != nil {
+				return err
+			}
+			return imageBuildPipeline(cmd, args, a.flagDryRun, imageBuildCmd(*a.flagCLICmd), a.cfg.Image)
 		},
 	}
 
@@ -84,16 +88,57 @@ func (a *App) Init() {
 
 	// Sub Command Flags
 	imagebuildCmd.Flags().StringVarP(a.flagCLICmd, "cli-interface", "i", "docker", "[docker|podman] CLI interface to use for image building")
+	imagebuildCmd.Flags().String("build-dir", ".", "image build context directory")
+	imagebuildCmd.Flags().String("dockerfile", "Dockerfile", "image build custom Dockerfile")
+	imagebuildCmd.Flags().String("tag", "", "image build custom tag")
+	imagebuildCmd.Flags().String("platform", "platform", "image build custom platform option")
+	imagebuildCmd.Flags().String("target", "", "image build custom target option")
+	imagebuildCmd.Flags().String("cache-to", "", "image build custom cache-to option")
+	imagebuildCmd.Flags().String("cache-from", "", "image build custom cache-from option")
 
-	// Persistent Flags
+	// Persistent Flags, available on all commands
 	a.cmd.PersistentFlags().BoolVarP(a.flagDryRun, "dry-run", "n", false, "log commands to debug but don't execute")
-	a.cmd.PersistentFlags().StringVarP(a.flagConfigFilename, "config", "c", "", "Configuration file")
+	a.cmd.PersistentFlags().StringVar(a.flagConfigFilename, "config", "", "workflow engine config file in json, yaml, or toml")
 
 	// Flag marks
 	a.cmd.MarkFlagFilename("config", "json")
 
 	// Other settings
 	a.cmd.SilenceUsage = true
+
+	// Viper set up. Viper loads configuration values in this order of precedence
+	// 1. explicit call to Set
+	// 2. flag
+	// 3. env
+	// 4. config
+	// 5. key/value store
+	// 6. default
+
+	// Viper settings
+	viper.SetConfigName("workflow-engine")
+	viper.AddConfigPath(".")
+
+	// Viper bind config keys to flag values and environment variables
+	viper.BindPFlag("buildDir", imagebuildCmd.Flags().Lookup("build-dir"))
+	viper.MustBindEnv("buildDir", "WFE_BUILD_DIR")
+
+	viper.BindPFlag("buildDockerfile", imagebuildCmd.Flags().Lookup("dockerfile"))
+	viper.MustBindEnv("buildDockerfile", "WFE_BUILD_DOCKERFILE")
+
+	viper.BindPFlag("buildTag", imagebuildCmd.Flags().Lookup("tag"))
+	viper.MustBindEnv("buildTag", "WFE_BUILD_TAG")
+
+	viper.BindPFlag("buildPlatform", imagebuildCmd.Flags().Lookup("platform"))
+	viper.MustBindEnv("buildPlatform", "WFE_BUILD_PLATFORM")
+
+	viper.BindPFlag("buildTarget", imagebuildCmd.Flags().Lookup("target"))
+	viper.MustBindEnv("buildTarget", "WFE_BUILD_TARGET")
+
+	viper.BindPFlag("buildCacheTo", imagebuildCmd.Flags().Lookup("cache-to"))
+	viper.MustBindEnv("buildCacheTo", "WFE_BUILD_CACHE_TO")
+
+	viper.BindPFlag("buildCacheFrom", imagebuildCmd.Flags().Lookup("cache-from"))
+	viper.MustBindEnv("buildCacheFrom", "WFE_BUILD_CACHE_FROM")
 
 	a.cmd.AddCommand(runCmd, configCmd)
 }
@@ -104,32 +149,34 @@ func (a *App) Execute() error {
 }
 
 func (a *App) loadConfig(cmd *cobra.Command, args []string) error {
-	l := slog.Default()
+	l := slog.Default().With("step", "load_config")
 
 	l.Debug("check config file flag value")
 	configFile, _ := a.cmd.PersistentFlags().GetString("config")
-	if configFile == "" {
-		a.cfg = pipelines.NewDefaultConfig()
+	if configFile != "" {
+		viper.SetConfigFile(configFile)
 		return nil
 	}
+
 	l = l.With("flag", "--config", "value", configFile)
 
-	l.Debug("open configuration file")
-	f, err := os.Open(configFile)
-	if err != nil {
-		l.Error("cannot open configuration file", "error", err)
+	// viper reads in config values from all sources based on precedence
+	if err := viper.ReadInConfig(); err != nil {
+		l.Error("viper read-in config")
 		return err
 	}
 
+	// viper will unmarshal the values into the cfg object
 	l.Debug("decode configuration file")
-	var cfg pipelines.Config
-	if err := json.NewDecoder(f).Decode(&cfg); err != nil {
-		l.Error("cannot decode configuration file", "error", err)
+	cfg := pipelines.NewDefaultConfig()
+
+	if err := viper.Unmarshal(cfg); err != nil {
+		l.Error("viper decoding")
 		return err
 	}
 
 	a.cfg = cfg
-	l.Debug("config file loaded", "content", a.cfg)
+	l.Debug("config file loaded", "content", fmt.Sprintf("%+v", a.cfg))
 	return nil
 }
 
@@ -152,7 +199,7 @@ const (
 	cliPodman               = "podman"
 )
 
-func imageBuildPipeline(cmd *cobra.Command, args []string, dryRun *bool, cliCmd imageBuildCmd) error {
+func imageBuildPipeline(cmd *cobra.Command, args []string, dryRun *bool, cliCmd imageBuildCmd, buildOpts pipelines.ImageBuildConfig) error {
 	pipeline := pipelines.NewImageBuild(cmd.OutOrStdout(), cmd.ErrOrStderr())
 	pipeline.DryRunEnabled = *dryRun
 	if cliCmd == cliPodman {

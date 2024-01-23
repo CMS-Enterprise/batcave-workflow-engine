@@ -31,6 +31,8 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - image build pipeline (info only)
 - docker info, build, and push commands
 - internal logger to image build pipeline
+- json, yaml, toml meta tags for pipelines/config
+- config parsing with viper
 
 ## [0.0.1-rc.1] - 2024-01-01
 ### Added
@@ -41,4 +43,3 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - pkg/pipelines
 - pkg/system
 - initial project structure
-

@@ -5,7 +5,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"workflow-engine/pkg/shell"
 )
 
 type ImageBuildOptions struct {
@@ -146,6 +145,6 @@ func DockerCommand(stdout io.Writer, stderr io.Writer) *dockerCLICmd {
 
 func ExampleDockerCommand() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})))
-	buildOpts := shell.NewImageBuildOptions().WithBuildDir("./some-dir").WithBuildFile("Dockerfile-custom")
-	shell.DockerCommand(os.Stdout, os.Stderr).Build(buildOpts).WithDryRun(true).RunLogError()
+	buildOpts := NewImageBuildOptions().WithBuildDir("./some-dir").WithBuildFile("Dockerfile-custom")
+	DockerCommand(os.Stdout, os.Stderr).Build(buildOpts).WithDryRun(true).RunLogError()
 }
