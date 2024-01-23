@@ -32,27 +32,34 @@ func (o *ImageBuildOptions) append(f func(e *Executable)) *ImageBuildOptions {
 	return o
 }
 
-func (o *ImageBuildOptions) WithBuildDir(v string) *ImageBuildOptions {
+func (o *ImageBuildOptions) WithTag(imageName string) *ImageBuildOptions {
 	return o.append(func(e *Executable) {
-		e = e.WithArgs(v)
+		e = e.WithArgs("--tag", imageName)
+	})
+
+}
+
+func (o *ImageBuildOptions) WithBuildDir(directory string) *ImageBuildOptions {
+	return o.append(func(e *Executable) {
+		e = e.WithArgs(directory)
 	})
 }
 
-func (o *ImageBuildOptions) WithBuildFile(v string) *ImageBuildOptions {
+func (o *ImageBuildOptions) WithBuildFile(filename string) *ImageBuildOptions {
 	return o.append(func(e *Executable) {
-		e = e.WithArgs("--file", v)
+		e = e.WithArgs("--file", filename)
 	})
 }
 
-func (o *ImageBuildOptions) WithBuildTarget(v string) *ImageBuildOptions {
+func (o *ImageBuildOptions) WithBuildTarget(target string) *ImageBuildOptions {
 	return o.append(func(e *Executable) {
-		e = e.WithArgs("--target", v)
+		e = e.WithArgs("--target", target)
 	})
 }
 
-func (o *ImageBuildOptions) WithBuildPlatform(v string) *ImageBuildOptions {
+func (o *ImageBuildOptions) WithBuildPlatform(platform string) *ImageBuildOptions {
 	return o.append(func(e *Executable) {
-		e = e.WithArgs("--platform", v)
+		e = e.WithArgs("--platform", platform)
 	})
 }
 
@@ -104,6 +111,14 @@ func (p *dockerCLICmd) Build(opts *ImageBuildOptions) *Command {
 	return NewCommand(e)
 }
 
+// Push will push an image to a registry
+//
+// shell: [docker|podman] push <image>
+func (p *dockerCLICmd) Push(imageName string) *Command {
+	e := p.initCmd().WithArgs("push").WithArgs(imageName)
+	return NewCommand(e)
+}
+
 // Info tests the connection to the container runtime daemon
 //
 // shell: `[docker|podman] info`
@@ -131,6 +146,6 @@ func DockerCommand(stdout io.Writer, stderr io.Writer) *dockerCLICmd {
 
 func ExampleDockerCommand() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})))
-	buildOpts := shell.NewImageBuildOptions().WithBuildDir("some-dir/").WithBuildFile("Dockerfile-custom")
+	buildOpts := shell.NewImageBuildOptions().WithBuildDir("./some-dir").WithBuildFile("Dockerfile-custom")
 	shell.DockerCommand(os.Stdout, os.Stderr).Build(buildOpts).WithDryRun(true).RunLogError()
 }

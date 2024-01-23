@@ -29,6 +29,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - docker / podman support via CLI cmd interface
 - docker info
 - image build pipeline (info only)
+- docker info, build, and push commands
 
 ## [0.0.1-rc.1] - 2024-01-01
 ### Added
