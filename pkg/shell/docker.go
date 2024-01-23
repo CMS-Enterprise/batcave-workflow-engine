@@ -7,11 +7,26 @@ import (
 	"os"
 )
 
+// ImageBuildOptions implements the builder pattern to handle
+// construction of the `docker build` command. Support flags or arguments
+// that are set to the default values are not included in the constructed command.
+//
+// Example:
+//
+//	If you want to generate a build command with possibly the existence of a build target,
+//	`NewImageBuildOptions().WithBuildTarget("")`
+//	generates:
+//	`docker build .`
+//
+//	`NewImageBuildOptions().WithBuildTarget("debug")`
+//	generates:
+//	`docker build --target debug .`
 type ImageBuildOptions struct {
 	args     []string
 	buildDir string
 }
 
+// NewImageBuildOptions inits the image build options to the default values
 func NewImageBuildOptions() *ImageBuildOptions {
 	return &ImageBuildOptions{
 		args:     make([]string, 0),
@@ -19,6 +34,7 @@ func NewImageBuildOptions() *ImageBuildOptions {
 	}
 }
 
+// applyTo sets the arguments to an executable
 func (o *ImageBuildOptions) applyTo(e *Executable) {
 	allArgs := []string{"build"}
 	allArgs = append(allArgs, o.args...)
@@ -26,6 +42,7 @@ func (o *ImageBuildOptions) applyTo(e *Executable) {
 	e = e.WithArgs(allArgs...)
 }
 
+// WithTag sets the docker image name and tag ex. "alpine:latest"
 func (o *ImageBuildOptions) WithTag(imageName string) *ImageBuildOptions {
 	if imageName != "" {
 		o.args = append(o.args, "--tag", imageName)
@@ -33,11 +50,13 @@ func (o *ImageBuildOptions) WithTag(imageName string) *ImageBuildOptions {
 	return o
 }
 
+// WithBuildDir sets the build context
 func (o *ImageBuildOptions) WithBuildDir(directory string) *ImageBuildOptions {
 	o.buildDir = directory
 	return o
 }
 
+// WithBuildFile sets the target Dockerfile flag
 func (o *ImageBuildOptions) WithBuildFile(filename string) *ImageBuildOptions {
 	if filename != "" {
 		o.args = append(o.args, "--file", filename)
@@ -45,6 +64,7 @@ func (o *ImageBuildOptions) WithBuildFile(filename string) *ImageBuildOptions {
 	return o
 }
 
+// WithBuildTarget sets a specific build target
 func (o *ImageBuildOptions) WithBuildTarget(target string) *ImageBuildOptions {
 	if target != "" {
 		o.args = append(o.args, "--target", target)
@@ -52,6 +72,7 @@ func (o *ImageBuildOptions) WithBuildTarget(target string) *ImageBuildOptions {
 	return o
 }
 
+// WithBuildPlatform sets to build to a specific platform ex. "x86_64"
 func (o *ImageBuildOptions) WithBuildPlatform(platform string) *ImageBuildOptions {
 	if platform != "" {
 		o.args = append(o.args, "--platform", platform)
@@ -59,6 +80,7 @@ func (o *ImageBuildOptions) WithBuildPlatform(platform string) *ImageBuildOption
 	return o
 }
 
+// WithSquashLayers sets the cli option to squash an image to a single layer
 func (o *ImageBuildOptions) WithSquashLayers(enabled bool) *ImageBuildOptions {
 	if enabled {
 		o.args = append(o.args, "--squash-all")
@@ -67,6 +89,7 @@ func (o *ImageBuildOptions) WithSquashLayers(enabled bool) *ImageBuildOptions {
 	return o
 }
 
+// WithCache sets caching to a registry
 func (o *ImageBuildOptions) WithCache(cacheTo string, cacheFrom string) *ImageBuildOptions {
 
 	if cacheTo != "" {
@@ -80,6 +103,7 @@ func (o *ImageBuildOptions) WithCache(cacheTo string, cacheFrom string) *ImageBu
 	return o
 }
 
+// WithBuildArgs defines specific build arguments for build time
 func (o *ImageBuildOptions) WithBuildArgs(args [][2]string) *ImageBuildOptions {
 	for _, kv := range args {
 		arg := fmt.Sprintf("%s=%s", kv[0], kv[1])
