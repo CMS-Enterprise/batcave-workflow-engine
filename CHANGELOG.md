@@ -30,6 +30,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - docker info
 - image build pipeline (info only)
 - docker info, build, and push commands
+- internal logger to image build pipeline
 
 ## [0.0.1-rc.1] - 2024-01-01
 ### Added

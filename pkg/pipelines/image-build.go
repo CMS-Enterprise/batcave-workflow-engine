@@ -16,6 +16,7 @@ type ImageBuild struct {
 	Stderr        io.Writer
 	DryRunEnabled bool
 	CLICmd        cliCmd
+	logger        *slog.Logger
 }
 
 func NewImageBuild(stdout io.Writer, stderr io.Writer) *ImageBuild {
@@ -23,6 +24,7 @@ func NewImageBuild(stdout io.Writer, stderr io.Writer) *ImageBuild {
 		Stdout:        stdout,
 		Stderr:        stderr,
 		DryRunEnabled: false,
+		logger:        slog.Default().With("pipeline", "image_build"),
 	}
 
 	pipeline.CLICmd = shell.DockerCommand(pipeline.Stdout, pipeline.Stderr)
@@ -31,18 +33,23 @@ func NewImageBuild(stdout io.Writer, stderr io.Writer) *ImageBuild {
 }
 
 func (i *ImageBuild) WithPodman() *ImageBuild {
+	i.logger.Debug("use podman cli")
 	i.CLICmd = shell.PodmanCommand(i.Stdout, i.Stderr)
 	return i
 }
 
 func (i *ImageBuild) Run() error {
-	l := slog.Default().With("pipeline", "image_build", "dry_run", i.DryRunEnabled)
+	l := slog.Default()
 
-	l.Info("start")
+	l.Info("start", "dry_run_enabled", i.DryRunEnabled)
+	// defer will run right before the return of this function, even for early returns due to errors
+	defer l.Info("complete")
 
-	// print the connection information
+	// print the connection information, exit pipeline if failed
 	err := i.CLICmd.Info().WithDryRun(i.DryRunEnabled).Run()
-	l.Info("complete")
+	if err != nil {
+		return err
+	}
 
 	return err
 }
