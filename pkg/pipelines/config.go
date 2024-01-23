@@ -22,14 +22,15 @@ func valueOrDefault(value string, d string) string {
 }
 
 type ImageBuildConfig struct {
-	BuildDir        string      `json:"buildDir" yaml:"buildDir" toml:"buildDir"`
-	BuildDockerfile string      `json:"buildDockerfile" yaml:"buildDockerfile" toml:"buildDockerfile"`
-	BuildTag        string      `json:"buildTag" yaml:"buildTag" toml:"buildTag"`
-	BuildPlatform   string      `json:"buildPlatform" yaml:"buildPlatform" toml:"buildPlatform"`
-	BuildTarget     string      `json:"buildTarget" yaml:"buildTarget" toml:"buildTarget"`
-	BuildCacheTo    string      `json:"buildCacheTo" yaml:"buildCacheTo" toml:"buildCacheTo"`
-	BuildCacheFrom  string      `json:"buildCacheFrom" yaml:"buildCacheFrom" toml:"buildCacheFrom"`
-	BuildArgs       [][2]string `json:"buildArgs" yaml:"buildArgs" toml:"buildArgs"`
+	BuildDir          string      `json:"buildDir" yaml:"buildDir" toml:"buildDir"`
+	BuildDockerfile   string      `json:"buildDockerfile" yaml:"buildDockerfile" toml:"buildDockerfile"`
+	BuildTag          string      `json:"buildTag" yaml:"buildTag" toml:"buildTag"`
+	BuildPlatform     string      `json:"buildPlatform" yaml:"buildPlatform" toml:"buildPlatform"`
+	BuildTarget       string      `json:"buildTarget" yaml:"buildTarget" toml:"buildTarget"`
+	BuildCacheTo      string      `json:"buildCacheTo" yaml:"buildCacheTo" toml:"buildCacheTo"`
+	BuildCacheFrom    string      `json:"buildCacheFrom" yaml:"buildCacheFrom" toml:"buildCacheFrom"`
+	BuildSquashLayers bool        `json:"buildSquashLayers" yaml:"buildSquashLayers" toml:"buildSquashLayers"`
+	BuildArgs         [][2]string `json:"buildArgs" yaml:"buildArgs" toml:"buildArgs"`
 }
 
 func NewDefaultConfig() *Config {

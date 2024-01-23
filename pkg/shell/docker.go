@@ -8,85 +8,84 @@ import (
 )
 
 type ImageBuildOptions struct {
-	buildFuncs   []func(*Executable)
-	buildDirFunc func(*Executable)
+	args     []string
+	buildDir string
 }
 
 func NewImageBuildOptions() *ImageBuildOptions {
 	return &ImageBuildOptions{
-		buildFuncs:   make([]func(*Executable), 0),
-		buildDirFunc: func(*Executable) {},
+		args:     make([]string, 0),
+		buildDir: "",
 	}
 }
 
 func (o *ImageBuildOptions) applyTo(e *Executable) {
-	for _, f := range o.buildFuncs {
-		f(e)
-	}
-	o.buildDirFunc(e)
-}
-
-func (o *ImageBuildOptions) append(f func(e *Executable)) *ImageBuildOptions {
-	o.buildFuncs = append(o.buildFuncs, f)
-	return o
+	allArgs := []string{"build"}
+	allArgs = append(allArgs, o.args...)
+	allArgs = append(allArgs, o.buildDir)
+	e = e.WithArgs(allArgs...)
 }
 
 func (o *ImageBuildOptions) WithTag(imageName string) *ImageBuildOptions {
-	return o.append(func(e *Executable) {
-		e = e.WithArgs("--tag", imageName)
-	})
-
+	if imageName != "" {
+		o.args = append(o.args, "--tag", imageName)
+	}
+	return o
 }
 
 func (o *ImageBuildOptions) WithBuildDir(directory string) *ImageBuildOptions {
-	return o.append(func(e *Executable) {
-		e = e.WithArgs(directory)
-	})
+	o.buildDir = directory
+	return o
 }
 
 func (o *ImageBuildOptions) WithBuildFile(filename string) *ImageBuildOptions {
-	return o.append(func(e *Executable) {
-		e = e.WithArgs("--file", filename)
-	})
+	if filename != "" {
+		o.args = append(o.args, "--file", filename)
+	}
+	return o
 }
 
 func (o *ImageBuildOptions) WithBuildTarget(target string) *ImageBuildOptions {
-	return o.append(func(e *Executable) {
-		e = e.WithArgs("--target", target)
-	})
+	if target != "" {
+		o.args = append(o.args, "--target", target)
+	}
+	return o
 }
 
 func (o *ImageBuildOptions) WithBuildPlatform(platform string) *ImageBuildOptions {
-	return o.append(func(e *Executable) {
-		e = e.WithArgs("--platform", platform)
-	})
+	if platform != "" {
+		o.args = append(o.args, "--platform", platform)
+	}
+	return o
 }
 
-func (o *ImageBuildOptions) WithSquashLayers() *ImageBuildOptions {
-	return o.append(func(e *Executable) {
-		e = e.WithArgs("--squash-all")
-	})
+func (o *ImageBuildOptions) WithSquashLayers(enabled bool) *ImageBuildOptions {
+	if enabled {
+		o.args = append(o.args, "--squash-all")
+	}
+
+	return o
 }
 
 func (o *ImageBuildOptions) WithCache(cacheTo string, cacheFrom string) *ImageBuildOptions {
-	return o.append(func(e *Executable) {
-		if cacheTo != "" {
-			e = e.WithArgs("--cache-to", cacheTo)
-		}
-		if cacheFrom != "" {
-			e = e.WithArgs("--cache-from", cacheFrom)
-		}
-	})
+
+	if cacheTo != "" {
+		o.args = append(o.args, "--cache-to", cacheTo)
+	}
+
+	if cacheFrom != "" {
+		o.args = append(o.args, "--cache-from", cacheFrom)
+	}
+
+	return o
 }
 
 func (o *ImageBuildOptions) WithBuildArgs(args [][2]string) *ImageBuildOptions {
-	return o.append(func(e *Executable) {
-		for _, kv := range args {
-			arg := fmt.Sprintf("%s=%s", kv[0], kv[1])
-			e = e.WithArgs("--build-arg", arg)
-		}
-
-	})
+	for _, kv := range args {
+		arg := fmt.Sprintf("%s=%s", kv[0], kv[1])
+		o.args = append(o.args, "--build-arg", arg)
+	}
+	return o
 }
 
 type dockerCLICmd struct {
@@ -105,7 +104,7 @@ func (p *dockerCLICmd) Version() *Command {
 // The caller is responsible for validation, strings will be directly inserted into the shell command
 // shell: [docker|podman] build [args] <build directory>
 func (p *dockerCLICmd) Build(opts *ImageBuildOptions) *Command {
-	e := p.initCmd().WithArgs("build")
+	e := p.initCmd()
 	opts.applyTo(e)
 	return NewCommand(e)
 }

@@ -60,5 +60,14 @@ func (i *ImageBuild) Run() error {
 		return err
 	}
 
-	return err
+	buildOpts := shell.NewImageBuildOptions().
+		WithBuildDir(i.cfg.BuildDir).
+		WithBuildFile(i.cfg.BuildDockerfile).
+		WithTag(i.cfg.BuildTag).
+		WithBuildPlatform(i.cfg.BuildPlatform).
+		WithBuildTarget(i.cfg.BuildTarget).
+		WithCache(i.cfg.BuildCacheTo, i.cfg.BuildCacheFrom)
+
+	return i.CLICmd.Build(buildOpts).WithDryRun(i.DryRunEnabled).Run()
+
 }

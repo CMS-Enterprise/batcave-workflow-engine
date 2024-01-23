@@ -91,10 +91,11 @@ func (a *App) Init() {
 	imagebuildCmd.Flags().String("build-dir", ".", "image build context directory")
 	imagebuildCmd.Flags().String("dockerfile", "Dockerfile", "image build custom Dockerfile")
 	imagebuildCmd.Flags().String("tag", "", "image build custom tag")
-	imagebuildCmd.Flags().String("platform", "platform", "image build custom platform option")
+	imagebuildCmd.Flags().String("platform", "", "image build custom platform option")
 	imagebuildCmd.Flags().String("target", "", "image build custom target option")
 	imagebuildCmd.Flags().String("cache-to", "", "image build custom cache-to option")
 	imagebuildCmd.Flags().String("cache-from", "", "image build custom cache-from option")
+	imagebuildCmd.Flags().Bool("squash-layers", true, "image build squash all layers into one option")
 
 	// Persistent Flags, available on all commands
 	a.cmd.PersistentFlags().BoolVarP(a.flagDryRun, "dry-run", "n", false, "log commands to debug but don't execute")
@@ -139,6 +140,9 @@ func (a *App) Init() {
 
 	viper.BindPFlag("buildCacheFrom", imagebuildCmd.Flags().Lookup("cache-from"))
 	viper.MustBindEnv("buildCacheFrom", "WFE_BUILD_CACHE_FROM")
+
+	viper.BindPFlag("buildSquashLayers", imagebuildCmd.Flags().Lookup("squash-layers"))
+	viper.MustBindEnv("buildSquashLayers", "WFE_BUILD_SQUASH_LAYERS")
 
 	a.cmd.AddCommand(runCmd, configCmd)
 }
@@ -208,11 +212,11 @@ const (
 	cliPodman               = "podman"
 )
 
-func imageBuildPipeline(cmd *cobra.Command, args []string, dryRun *bool, cliCmd imageBuildCmd, buildOpts pipelines.ImageBuildConfig) error {
+func imageBuildPipeline(cmd *cobra.Command, args []string, dryRun *bool, cliCmd imageBuildCmd, config pipelines.ImageBuildConfig) error {
 	pipeline := pipelines.NewImageBuild(cmd.OutOrStdout(), cmd.ErrOrStderr())
 	pipeline.DryRunEnabled = *dryRun
 	if cliCmd == cliPodman {
 		pipeline = pipeline.WithPodman()
 	}
-	return pipeline.Run()
+	return pipeline.WithBuildConfig(config).Run()
 }
