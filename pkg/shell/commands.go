@@ -47,6 +47,8 @@ func (e *Executable) WithOutput(w io.Writer) *Executable {
 }
 
 // WithArgs attaches given arguments to a command
+//
+// All other arguments will be overridden except for the base command/binary
 func (e *Executable) WithArgs(args ...string) *Executable {
 	e.Args = append(e.Args[:1], args...)
 	return e
