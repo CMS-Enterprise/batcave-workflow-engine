@@ -1,9 +1,9 @@
 # Workflow Engine
 
-Workflow Engine is a security and delivery pipeline designed to orchestrate the process of building and scanning an 
+Workflow Engine is a security and delivery pipeline designed to orchestrate the process of building and scanning an
 application image for security vulnerabilities.
 It solves the problem of having to configure a hardened-predefined security pipeline using traditional CI/CD.
-Workflow Engine can be statically compiled as a binary and run with [Dagger](dagger.io) on virtually any platform, CI/CD
+Workflow Engine can be statically compiled as a binary and run on virtually any platform, CI/CD
 environment, or locally.
 
 ## Getting Started
@@ -11,8 +11,7 @@ environment, or locally.
 Install Prerequisites:
 
 - Container Engine
-- Docker CLI
-- Dagger
+- Docker or Podman CLI
 - Golang >= v1.21.5
 - Just (optional)
 
@@ -40,3 +39,8 @@ You can run the executable directory
 dagger run workflow-engine --pipeline debug
 ```
 
+## Configuring a Pipeline
+
+| Variable Name        | Default Value | Description                      |
+| -------------------- | ------------- | -------------------------------- |
+| WFE_BUILD_DOCKERFILE |               | The Dockerfile to build and scan |
