@@ -17,6 +17,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - converted some Command to private to prevent auto-complete overload
 - the way command dry running is called, uses builder pattern now
 - fixed a bug where only the last docker build flag was being added to the final command
+- remove args from wrapper functions in CLI
 
 ### Added
 

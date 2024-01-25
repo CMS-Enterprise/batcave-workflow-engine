@@ -43,7 +43,7 @@ func (a *App) Init() {
 		Use:   "debug",
 		Short: "Run the debug pipeline",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return debugPipeline(cmd, args, a.flagDryRun)
+			return debugPipeline(cmd, a.flagDryRun)
 		},
 	}
 	imagebuildCmd := &cobra.Command{
@@ -53,7 +53,7 @@ func (a *App) Init() {
 			if err := a.loadConfig(cmd, args); err != nil {
 				return err
 			}
-			return imageBuildPipeline(cmd, args, a.flagDryRun, imageBuildCmd(*a.flagCLICmd), a.cfg.Image)
+			return imageBuildPipeline(cmd, a.flagDryRun, imageBuildCmd(*a.flagCLICmd), a.cfg.Image)
 		},
 	}
 
@@ -69,7 +69,7 @@ func (a *App) Init() {
 		Use:   "init",
 		Short: "Output the default configuration file to stdout",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return a.configInit(cmd, args)
+			return a.configInit(cmd)
 		},
 	}
 
@@ -193,13 +193,13 @@ func (a *App) loadConfig(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (a *App) configInit(cmd *cobra.Command, args []string) error {
+func (a *App) configInit(cmd *cobra.Command) error {
 	enc := json.NewEncoder(cmd.OutOrStdout())
 	enc.SetIndent("", "  ")
 	return enc.Encode(pipelines.NewDefaultConfig())
 }
 
-func debugPipeline(cmd *cobra.Command, args []string, dryRun *bool) error {
+func debugPipeline(cmd *cobra.Command, dryRun *bool) error {
 	pipeline := pipelines.NewDebug(cmd.OutOrStdout(), cmd.ErrOrStderr())
 	pipeline.DryRunEnabled = *dryRun
 	return pipeline.Run()
@@ -212,7 +212,7 @@ const (
 	cliPodman               = "podman"
 )
 
-func imageBuildPipeline(cmd *cobra.Command, args []string, dryRun *bool, cliCmd imageBuildCmd, config pipelines.ImageBuildConfig) error {
+func imageBuildPipeline(cmd *cobra.Command, dryRun *bool, cliCmd imageBuildCmd, config pipelines.ImageBuildConfig) error {
 	pipeline := pipelines.NewImageBuild(cmd.OutOrStdout(), cmd.ErrOrStderr())
 	pipeline.DryRunEnabled = *dryRun
 	if cliCmd == cliPodman {
