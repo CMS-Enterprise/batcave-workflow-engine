@@ -220,3 +220,10 @@ func imageBuildPipeline(cmd *cobra.Command, dryRun *bool, cliCmd imageBuildCmd, 
 	}
 	return pipeline.WithBuildConfig(config).Run()
 }
+
+func imageScanPipeline(cmd *cobra.Command, dryRun *bool, config pipelines.Config) error {
+	pipeline := pipelines.NewImageScan(cmd.OutOrStdout(), cmd.ErrOrStderr())
+	pipeline.DryRunEnabled = *dryRun
+
+	return pipeline.WithArtifactConfig(config.Artifacts).WithImageName(config.Image.BuildTag).Run()
+}
