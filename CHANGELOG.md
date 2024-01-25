@@ -41,6 +41,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - syft scan image command
 - syft to image-scan pipeline
 - image scan pipeline to CLI
+- image scan pipeline wiring in CLI for Viper config variables
 
 ## [0.0.1-rc.1] - 2024-01-01
 ### Added

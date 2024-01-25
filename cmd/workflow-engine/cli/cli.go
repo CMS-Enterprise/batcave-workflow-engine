@@ -46,6 +46,7 @@ func (a *App) Init() {
 			return debugPipeline(cmd, a.flagDryRun)
 		},
 	}
+
 	imagebuildCmd := &cobra.Command{
 		Use:   "image-build",
 		Short: "Build a container image",
@@ -57,7 +58,18 @@ func (a *App) Init() {
 		},
 	}
 
-	runCmd.AddCommand(runDebugCmd, imagebuildCmd)
+	imageScanCmd := &cobra.Command{
+		Use:   "image-scan",
+		Short: "Scan a container image",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := a.loadConfig(cmd, args); err != nil {
+				return err
+			}
+			return imageScanPipeline(cmd, a.flagDryRun, a.cfg.Artifacts, a.cfg.Image.BuildTag)
+		},
+	}
+
+	runCmd.AddCommand(runDebugCmd, imagebuildCmd, imageScanCmd)
 
 	// Config Sub Command setup
 	configCmd := &cobra.Command{
@@ -86,7 +98,7 @@ func (a *App) Init() {
 	a.flagConfigFilename = new(string)
 	a.flagCLICmd = new(string)
 
-	// Sub Command Flags
+	// Sub Command Flags - image build
 	imagebuildCmd.Flags().StringVarP(a.flagCLICmd, "cli-interface", "i", "docker", "[docker|podman] CLI interface to use for image building")
 	imagebuildCmd.Flags().String("build-dir", ".", "image build context directory")
 	imagebuildCmd.Flags().String("dockerfile", "Dockerfile", "image build custom Dockerfile")
@@ -96,6 +108,12 @@ func (a *App) Init() {
 	imagebuildCmd.Flags().String("cache-to", "", "image build custom cache-to option")
 	imagebuildCmd.Flags().String("cache-from", "", "image build custom cache-from option")
 	imagebuildCmd.Flags().Bool("squash-layers", true, "image build squash all layers into one option")
+
+	// Sub Command Flags - image scan
+	imageScanCmd.Flags().String("artifact-directory", "", "the output directory for all artifacts generated in the pipeline")
+	imageScanCmd.Flags().String("sbom-filename", "", "the output filename for the syft SBOM")
+	imageScanCmd.Flags().String("grype-filename", "", "the output filename for the grype vulnerability report")
+	imageScanCmd.Flags().String("scan-image-target", "", "scan a specific image")
 
 	// Persistent Flags, available on all commands
 	a.cmd.PersistentFlags().BoolVarP(a.flagDryRun, "dry-run", "n", false, "log commands to debug but don't execute")
@@ -144,6 +162,19 @@ func (a *App) Init() {
 	viper.BindPFlag("buildSquashLayers", imagebuildCmd.Flags().Lookup("squash-layers"))
 	viper.MustBindEnv("buildSquashLayers", "WFE_BUILD_SQUASH_LAYERS")
 
+	viper.BindPFlag("artifactDirectory", imagebuildCmd.Flags().Lookup("artifact-directory"))
+	viper.MustBindEnv("artifactDirectory", "WFE_ARTIFACT_DIRECTORY")
+
+	viper.BindPFlag("sbomFilename", imagebuildCmd.Flags().Lookup("sbom-filename"))
+	viper.MustBindEnv("sbomFilename", "WFE_SBOM_FILENAME")
+
+	viper.BindPFlag("grypeFilename", imagebuildCmd.Flags().Lookup("grype-filename"))
+	viper.MustBindEnv("grypeFilename", "WFE_GRYPE_FILENAME")
+
+	// TODO: need to consider the logic for overwriting the build tag here
+	viper.BindPFlag("buildTag", imagebuildCmd.Flags().Lookup("scan-image-target"))
+	viper.MustBindEnv("buildTag", "WFE_SCAN_IMAGE_TARGET")
+
 	a.cmd.AddCommand(runCmd, configCmd)
 }
 
@@ -187,6 +218,11 @@ func (a *App) loadConfig(cmd *cobra.Command, args []string) error {
 			BuildCacheFrom:  viper.GetString("buildCacheFrom"),
 			BuildArgs:       make([][2]string, 0),
 		},
+		Artifacts: pipelines.ArtifactConfig{
+			Directory:     viper.GetString("artifactDirectory"),
+			SBOMFilename:  viper.GetString("sbomFilename"),
+			GrypeFilename: viper.GetString("grypeFilename"),
+		},
 	}
 
 	l.Debug("config file loaded", "content", fmt.Sprintf("%+v", a.cfg))
@@ -221,9 +257,9 @@ func imageBuildPipeline(cmd *cobra.Command, dryRun *bool, cliCmd imageBuildCmd, 
 	return pipeline.WithBuildConfig(config).Run()
 }
 
-func imageScanPipeline(cmd *cobra.Command, dryRun *bool, config pipelines.Config) error {
+func imageScanPipeline(cmd *cobra.Command, dryRun *bool, config pipelines.ArtifactConfig, imageName string) error {
 	pipeline := pipelines.NewImageScan(cmd.OutOrStdout(), cmd.ErrOrStderr())
 	pipeline.DryRunEnabled = *dryRun
 
-	return pipeline.WithArtifactConfig(config.Artifacts).WithImageName(config.Image.BuildTag).Run()
+	return pipeline.WithArtifactConfig(config).WithImageName(imageName).Run()
 }

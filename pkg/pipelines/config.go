@@ -9,11 +9,11 @@ package pipelines
 // the image build commands.
 type Config struct {
 	Image     ImageBuildConfig `json:"image" yaml:"image" toml:"image"`
-	Artifacts ArtifactConfig   `json:"Artifacts" yaml:"Artifacts" toml:"Artifacts"`
+	Artifacts ArtifactConfig   `json:"artifacts" yaml:"artifacts" toml:"artifacts"`
 }
 
 type ArtifactConfig struct {
-	Directory     string `json:"Directory" yaml:"Directory" toml:"Directory"`
+	Directory     string `json:"directory" yaml:"directory" toml:"directory"`
 	SBOMFilename  string `json:"sbomFilename" yaml:"sbomFilename" toml:"sbomFilename"`
 	GrypeFilename string `json:"grypeFilename" yaml:"grypeFilename" toml:"grypeFilename"`
 }
