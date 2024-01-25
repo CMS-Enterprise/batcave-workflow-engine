@@ -36,28 +36,39 @@ go build -o bin/workflow-engine ./cmd/workflow-engine
 You can run the executable directory
 
 ```bash
-dagger run workflow-engine --pipeline debug
+workflow-engine run debug
 ```
 
 ## Configuring a Pipeline
 
-| Variable Name           | Type   | Default Value | Description                                          |
-| ----------------------- | ------ | ------------- | ---------------------------------------------------- |
-| WFE_BUILD_DIR           | string |               | The container build directory                        |
-| WFE_BUILD_DOCKERFILE    | string |               | The name of the Dockerfile to build and scan         |
-| WFE_BUILD_TAG           | string |               | The container build tag to use for building an image |
-|                         |        |               | This is passed to the --tag flag                     |
-| WFE_BUILD_PLATFORM      | string |               | The container build platform                         |
-|                         |        |               | This is passed to the --platform flag                |
-| WFE_BUILD_TARGET        | string |               | The container build target                           |
-|                         |        |               | This is passed to the --targe flag                   |
-| WFE_BUILD_CACHE_TO      | string |               | The container cache to directory                     |
-|                         |        |               | This is passed to the --cache-to flag                |
-| WFE_BUILD_CACHE_FROM    | string |               | The container cache from directory                   |
-|                         |        |               | This is passed to the --cache-from flag              |
-| WFE_BUILD_SQUASH_LAYERS | bool   |               | Flag to squash layers                                |
-|                         |        |               | Setting this to true enables the --squash-all flag   |
-| WFE_ARTIFACT_DIRECTORY  | string |               | The directory to store artifacts                     |
-| WFE_SBOM_FILENAME       | string |               | The SBOM file name                                   |
-| WFE_GRYPE_FILENAME      | string |               | The Grype file name                                  |
-| WFE_SCAN_IMAGE_TARGET   | string |               | The scan image tag name                              |
+Configuration Options:
+
+* Configuration via CLI flags
+* Environment Variables
+* Config File in JSON
+* Config File in YAML
+* Config File in TOML
+
+Configuration Order-of-Precedence:
+
+1. CLI Flag
+2. Environment Variable
+3. Config File Value
+4. Default Value
+
+
+
+| Variable Name             | Type   | Default | CLI Flag             | Config Field Name         | Description                                          |
+| ------------------------- | ------ | ------- | -------------------- | ------------------------- | ---------------------------------------------------- |
+| `WFE_BUILD_DIR`           | string |         | --build-dir          | `image.buildDir`          | The container build directory                        |
+| `WFE_BUILD_DOCKERFILE`    | string |         | --dockerfile         | `image.buildDockerfile`   | The name of the Dockerfile to build and scan         |
+| `WFE_BUILD_TAG`           | string |         | --tag                | `image.buildTag`          | The container build tag to use for building an image |
+| `WFE_BUILD_PLATFORM`      | string |         | --platform           | `image.buildPlatform`     | The container build platform                         |
+| `WFE_BUILD_TARGET`        | string |         | --target             | `image.buildTarget`       | The container build target                           |
+| `WFE_BUILD_CACHE_TO`      | string |         | --cache-to           | `image.buildCacheTo`      | The container cache to directory                     |
+| `WFE_BUILD_CACHE_FROM`    | string |         | --cache-from         | `image.buildCacheFrom`    | The container cache from directory                   |
+| `WFE_BUILD_SQUASH_LAYERS` | bool   |         | --squash-layers      | `image.buildSquashLayers` | Flag to squash layers                                |
+| `WFE_SCAN_IMAGE_TARGET`   | string |         | --scan-image-target  | `image.scanTarget`        | The scan image tag name                              |
+| `WFE_ARTIFACT_DIRECTORY`  | string |         | --artifact-directory | `artifacts.directory`     | The directory to store artifacts                     |
+| `WFE_SBOM_FILENAME`       | string |         | --sbom-filename      | `artifacts.sbomFilename`  | The SBOM file name                                   |
+| `WFE_GRYPE_FILENAME`      | string |         | --grype-filename     | `artifacts.grypeFilename` | The Grype file name                                  |
