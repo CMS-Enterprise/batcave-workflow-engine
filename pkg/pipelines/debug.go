@@ -2,8 +2,11 @@ package pipelines
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"workflow-engine/pkg/shell"
 )
 
@@ -25,10 +28,36 @@ func (d *Debug) Run() error {
 	l := slog.Default().With("pipeline", "debug", "dry_run", d.DryRunEnabled)
 	l.Info("start")
 
+	config := NewDefaultConfig()
+	config.Syft.ImageTarball = "./test/.artifacts/build-image/test-local.tar"
+	config.Syft.ImageSbom = "./test/.artifacts/sbom/sbom.json"
+
+	ld := slog.Default()
+
+	// Get current directory
+	pwd, err := os.Getwd()
+	if err != nil {
+		ld.Error(fmt.Sprintln(err))
+		os.Exit(1)
+	}
+	ld.Info(fmt.Sprintf("Current directory: %s", pwd))
+
+	// Create artifact directory
+	artifactDir := filepath.Join(pwd, "test", ".artifacts", "build-image")
+	err = os.MkdirAll(artifactDir, os.ModePerm)
+	if err != nil {
+		ld.Error(fmt.Sprintln(err))
+		os.Exit(1)
+	}
+
 	// Collect errors for mandatory commands
 	errs := errors.Join(
 		shell.GrypeCommand(d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
 		shell.SyftCommand(d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
+
+		// TODO: Add docker build and save commands here
+
+		shell.SyftCommand(d.Stdout, d.Stderr).ScanImage(config.Syft.ImageTarball, config.Syft.ImageSbom).WithDryRun(d.DryRunEnabled).Run(),
 	)
 
 	// Just log errors for optional commands

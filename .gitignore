@@ -1,2 +1,5 @@
 book
 bin
+.vscode
+test/.artifacts
+
