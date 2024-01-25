@@ -36,6 +36,8 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - config parsing with viper
 - grype scan sbom command
 - image-scan pipeline
+- syft scan image command
+- syft to image-scan pipeline
 
 ## [0.0.1-rc.1] - 2024-01-01
 ### Added

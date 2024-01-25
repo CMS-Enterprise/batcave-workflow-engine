@@ -17,10 +17,16 @@ type ImageScan struct {
 	logger         *slog.Logger
 	DryRunEnabled  bool
 	artifactConfig ArtifactConfig
+	imageName      string
 }
 
 func (p *ImageScan) WithArtifactConfig(config ArtifactConfig) *ImageScan {
 	p.artifactConfig = config
+	return p
+}
+
+func (p *ImageScan) WithImageName(imageName string) *ImageScan {
+	p.imageName = imageName
 	return p
 }
 
@@ -47,21 +53,24 @@ func (p *ImageScan) Run() error {
 
 	// TODO: need syft SBOM output filename, it'll have to be saved in the artifact directory
 	sbomFilename := path.Join(p.artifactConfig.Directory, p.artifactConfig.SBOMFilename)
-	p.logger.Debug("SIMULATED: create SBOM by copying", "dest", sbomFilename)
-	sbomFile, err := os.Open(mockSBOMFilename)
+	p.logger.Debug("create SBOM", "dest", sbomFilename)
+
+	sbomFile, err := os.OpenFile(sbomFilename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+
 	if err != nil {
 		return err
 	}
 
-	f, err := os.Open(sbomFilename)
+	err = shell.SyftCommand(sbomFile, p.Stderr).
+		ScanImage(p.imageName, p.artifactConfig.SBOMFilename).
+		WithDryRun(p.DryRunEnabled).Run()
+
 	if err != nil {
-		return err
-	}
-	if _, err := io.Copy(f, sbomFile); err != nil {
+		sbomFile.Close()
 		return err
 	}
 
-	// TODO: End where the Syft code will go
+	sbomFile.Close()
 
 	// Holds the grype scan output TODO: multi writer to the artifact directory and gatecheck
 	buf := new(bytes.Buffer)
@@ -79,6 +88,7 @@ func (p *ImageScan) Run() error {
 	if err != nil {
 		return err
 	}
+	defer grypeFile.Close()
 
 	p.logger.Debug("save grype artifact", "dest", grypeFilename)
 	if _, err := io.Copy(grypeFile, buf); err != nil {
