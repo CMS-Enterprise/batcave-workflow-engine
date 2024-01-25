@@ -34,6 +34,8 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - internal logger to image build pipeline
 - json, yaml, toml meta tags for pipelines/config
 - config parsing with viper
+- grype scan sbom command
+- image-scan pipeline
 
 ## [0.0.1-rc.1] - 2024-01-01
 ### Added

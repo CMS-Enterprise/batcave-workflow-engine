@@ -8,7 +8,14 @@ package pipelines
 // config file. When it's passed to the image build pipeline, additional logic is used to build
 // the image build commands.
 type Config struct {
-	Image ImageBuildConfig `json:"image" yaml:"image" toml:"image"`
+	Image     ImageBuildConfig `json:"image" yaml:"image" toml:"image"`
+	Artifacts ArtifactConfig   `json:"Artifacts" yaml:"Artifacts" toml:"Artifacts"`
+}
+
+type ArtifactConfig struct {
+	Directory     string `json:"Directory" yaml:"Directory" toml:"Directory"`
+	SBOMFilename  string `json:"sbomFilename" yaml:"sbomFilename" toml:"sbomFilename"`
+	GrypeFilename string `json:"grypeFilename" yaml:"grypeFilename" toml:"grypeFilename"`
 }
 
 // ImageBuildConfig is a struct representation of the Image field in the Config file
