@@ -9,6 +9,7 @@ package pipelines
 // the image build commands.
 type Config struct {
 	Image ImageBuildConfig `json:"image" yaml:"image" toml:"image"`
+	Syft  SyftConfig       `json:"syft" yaml:"syft" toml:"syft"`
 }
 
 // ImageBuildConfig is a struct representation of the Image field in the Config file
@@ -22,6 +23,11 @@ type ImageBuildConfig struct {
 	BuildCacheFrom    string      `json:"buildCacheFrom" yaml:"buildCacheFrom" toml:"buildCacheFrom"`
 	BuildSquashLayers bool        `json:"buildSquashLayers" yaml:"buildSquashLayers" toml:"buildSquashLayers"`
 	BuildArgs         [][2]string `json:"buildArgs" yaml:"buildArgs" toml:"buildArgs"`
+}
+
+type SyftConfig struct {
+	ImageTarball string `json:"imageTarball" yaml:"imageTarball" toml:"imageTarball"`
+	ImageSbom    string `json:"imageSbom" yaml:"imageSbom" toml:"imageSbom"`
 }
 
 // NewDefaultConfig creates a new "safe" config object.
