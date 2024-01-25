@@ -41,6 +41,23 @@ dagger run workflow-engine --pipeline debug
 
 ## Configuring a Pipeline
 
-| Variable Name        | Default Value | Description                      |
-| -------------------- | ------------- | -------------------------------- |
-| WFE_BUILD_DOCKERFILE |               | The Dockerfile to build and scan |
+| Variable Name           | Type   | Default Value | Description                                          |
+| ----------------------- | ------ | ------------- | ---------------------------------------------------- |
+| WFE_BUILD_DIR           | string |               | The container build directory                        |
+| WFE_BUILD_DOCKERFILE    | string |               | The name of the Dockerfile to build and scan         |
+| WFE_BUILD_TAG           | string |               | The container build tag to use for building an image |
+|                         |        |               | This is passed to the --tag flag                     |
+| WFE_BUILD_PLATFORM      | string |               | The container build platform                         |
+|                         |        |               | This is passed to the --platform flag                |
+| WFE_BUILD_TARGET        | string |               | The container build target                           |
+|                         |        |               | This is passed to the --targe flag                   |
+| WFE_BUILD_CACHE_TO      | string |               | The container cache to directory                     |
+|                         |        |               | This is passed to the --cache-to flag                |
+| WFE_BUILD_CACHE_FROM    | string |               | The container cache from directory                   |
+|                         |        |               | This is passed to the --cache-from flag              |
+| WFE_BUILD_SQUASH_LAYERS | bool   |               | Flag to squash layers                                |
+|                         |        |               | Setting this to true enables the --squash-all flag   |
+| WFE_ARTIFACT_DIRECTORY  | string |               | The directory to store artifacts                     |
+| WFE_SBOM_FILENAME       | string |               | The SBOM file name                                   |
+| WFE_GRYPE_FILENAME      | string |               | The Grype file name                                  |
+| WFE_SCAN_IMAGE_TARGET   | string |               | The scan image tag name                              |
