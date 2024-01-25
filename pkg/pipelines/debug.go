@@ -28,10 +28,6 @@ func (d *Debug) Run() error {
 	l := slog.Default().With("pipeline", "debug", "dry_run", d.DryRunEnabled)
 	l.Info("start")
 
-	config := NewDefaultConfig()
-	config.Syft.ImageTarball = "./test/.artifacts/build-image/test-local.tar"
-	config.Syft.ImageSbom = "./test/.artifacts/sbom/sbom.json"
-
 	ld := slog.Default()
 
 	// Get current directory
@@ -54,10 +50,6 @@ func (d *Debug) Run() error {
 	errs := errors.Join(
 		shell.GrypeCommand(d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
 		shell.SyftCommand(d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
-
-		// TODO: Add docker build and save commands here
-
-		shell.SyftCommand(d.Stdout, d.Stderr).ScanImage(config.Syft.ImageTarball, config.Syft.ImageSbom).WithDryRun(d.DryRunEnabled).Run(),
 	)
 
 	// Just log errors for optional commands

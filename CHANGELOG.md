@@ -18,6 +18,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - the way command dry running is called, uses builder pattern now
 - fixed a bug where only the last docker build flag was being added to the final command
 - remove args from wrapper functions in CLI
+- fixed the debug-pipeline calling syft scan
 
 ### Added
 
@@ -39,6 +40,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - image-scan pipeline
 - syft scan image command
 - syft to image-scan pipeline
+- image scan pipeline to CLI
 
 ## [0.0.1-rc.1] - 2024-01-01
 ### Added
