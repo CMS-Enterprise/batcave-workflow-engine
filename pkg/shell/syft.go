@@ -17,7 +17,7 @@ func (s *syftCmd) Version() *Command {
 // Run executes the Syft CLI
 //
 // shell: `syft <image> --scope=squashed -o cyclonedx-json`
-func (s *syftCmd) ScanImage(image string, sbomFilename string) *Command {
+func (s *syftCmd) ScanImage(image string) *Command {
 	cmd := s.InitCmd().WithArgs(image, "--scope=squashed", "-o", "cyclonedx-json")
 
 	return NewCommand(cmd)

@@ -6,7 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"workflow-engine/pkg/shell"
 )
 
@@ -37,14 +36,6 @@ func (d *Debug) Run() error {
 		os.Exit(1)
 	}
 	ld.Info(fmt.Sprintf("Current directory: %s", pwd))
-
-	// Create artifact directory
-	artifactDir := filepath.Join(pwd, "test", ".artifacts", "build-image")
-	err = os.MkdirAll(artifactDir, os.ModePerm)
-	if err != nil {
-		ld.Error(fmt.Sprintln(err))
-		os.Exit(1)
-	}
 
 	// Collect errors for mandatory commands
 	errs := errors.Join(

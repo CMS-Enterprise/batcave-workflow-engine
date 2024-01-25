@@ -19,7 +19,7 @@ type ImageBuild struct {
 	DryRunEnabled bool
 	CLICmd        cliCmd
 	logger        *slog.Logger
-	cfg           ImageBuildConfig
+	cfg           ImageConfig
 }
 
 func NewImageBuild(stdout io.Writer, stderr io.Writer) *ImageBuild {
@@ -41,7 +41,7 @@ func (i *ImageBuild) WithPodman() *ImageBuild {
 	return i
 }
 
-func (i *ImageBuild) WithBuildConfig(buildConfig ImageBuildConfig) *ImageBuild {
+func (i *ImageBuild) WithBuildConfig(buildConfig ImageConfig) *ImageBuild {
 	i.logger.Debug("apply build config")
 	i.cfg = buildConfig
 	return i

@@ -8,8 +8,8 @@ package pipelines
 // config file. When it's passed to the image build pipeline, additional logic is used to build
 // the image build commands.
 type Config struct {
-	Image     ImageBuildConfig `json:"image" yaml:"image" toml:"image"`
-	Artifacts ArtifactConfig   `json:"artifacts" yaml:"artifacts" toml:"artifacts"`
+	Image     ImageConfig    `json:"image" yaml:"image" toml:"image"`
+	Artifacts ArtifactConfig `json:"artifacts" yaml:"artifacts" toml:"artifacts"`
 }
 
 type ArtifactConfig struct {
@@ -18,8 +18,8 @@ type ArtifactConfig struct {
 	GrypeFilename string `json:"grypeFilename" yaml:"grypeFilename" toml:"grypeFilename"`
 }
 
-// ImageBuildConfig is a struct representation of the Image field in the Config file
-type ImageBuildConfig struct {
+// ImageConfig is a struct representation of the Image field in the Config file
+type ImageConfig struct {
 	BuildDir          string      `json:"buildDir" yaml:"buildDir" toml:"buildDir"`
 	BuildDockerfile   string      `json:"buildDockerfile" yaml:"buildDockerfile" toml:"buildDockerfile"`
 	BuildTag          string      `json:"buildTag" yaml:"buildTag" toml:"buildTag"`
@@ -29,11 +29,12 @@ type ImageBuildConfig struct {
 	BuildCacheFrom    string      `json:"buildCacheFrom" yaml:"buildCacheFrom" toml:"buildCacheFrom"`
 	BuildSquashLayers bool        `json:"buildSquashLayers" yaml:"buildSquashLayers" toml:"buildSquashLayers"`
 	BuildArgs         [][2]string `json:"buildArgs" yaml:"buildArgs" toml:"buildArgs"`
+	ScanTarget        string      `json:"scanTarget" yaml:"scanTarget" toml:"scanTarget"`
 }
 
 // NewDefaultConfig creates a new "safe" config object.
 // This can be used to prevent nil reference panics
 func NewDefaultConfig() *Config {
 	// Only fields that are slices need to be inited, the default string value is ""
-	return &Config{Image: ImageBuildConfig{BuildArgs: make([][2]string, 0)}}
+	return &Config{Image: ImageConfig{BuildArgs: make([][2]string, 0)}}
 }

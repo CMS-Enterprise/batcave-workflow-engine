@@ -65,7 +65,7 @@ func (a *App) Init() {
 			if err := a.loadConfig(cmd, args); err != nil {
 				return err
 			}
-			return imageScanPipeline(cmd, a.flagDryRun, a.cfg.Artifacts, a.cfg.Image.BuildTag)
+			return imageScanPipeline(cmd, a.flagDryRun, a.cfg.Artifacts, a.cfg.Image.ScanTarget)
 		},
 	}
 
@@ -121,6 +121,7 @@ func (a *App) Init() {
 
 	// Flag marks
 	a.cmd.MarkFlagFilename("config", "json")
+	a.cmd.MarkFlagDirname("artifact-directory")
 
 	// Other settings
 	a.cmd.SilenceUsage = true
@@ -137,7 +138,8 @@ func (a *App) Init() {
 	viper.SetConfigName("workflow-engine")
 	viper.AddConfigPath(".")
 
-	// Viper bind config keys to flag values and environment variables
+	// Image Build Bindings
+	//   Viper bind config keys to flag values and environment variables
 	viper.BindPFlag("buildDir", imagebuildCmd.Flags().Lookup("build-dir"))
 	viper.MustBindEnv("buildDir", "WFE_BUILD_DIR")
 
@@ -162,18 +164,19 @@ func (a *App) Init() {
 	viper.BindPFlag("buildSquashLayers", imagebuildCmd.Flags().Lookup("squash-layers"))
 	viper.MustBindEnv("buildSquashLayers", "WFE_BUILD_SQUASH_LAYERS")
 
-	viper.BindPFlag("artifactDirectory", imagebuildCmd.Flags().Lookup("artifact-directory"))
+	// Image Scan Bindings
+	viper.BindPFlag("artifactDirectory", imageScanCmd.Flags().Lookup("artifact-directory"))
 	viper.MustBindEnv("artifactDirectory", "WFE_ARTIFACT_DIRECTORY")
 
-	viper.BindPFlag("sbomFilename", imagebuildCmd.Flags().Lookup("sbom-filename"))
+	viper.BindPFlag("sbomFilename", imageScanCmd.Flags().Lookup("sbom-filename"))
 	viper.MustBindEnv("sbomFilename", "WFE_SBOM_FILENAME")
 
-	viper.BindPFlag("grypeFilename", imagebuildCmd.Flags().Lookup("grype-filename"))
+	viper.BindPFlag("grypeFilename", imageScanCmd.Flags().Lookup("grype-filename"))
 	viper.MustBindEnv("grypeFilename", "WFE_GRYPE_FILENAME")
 
-	// TODO: need to consider the logic for overwriting the build tag here
-	viper.BindPFlag("buildTag", imagebuildCmd.Flags().Lookup("scan-image-target"))
-	viper.MustBindEnv("buildTag", "WFE_SCAN_IMAGE_TARGET")
+	// TODO: need to consider the logic for overthe build tag here
+	viper.BindPFlag("scanImageTarget", imageScanCmd.Flags().Lookup("scan-image-target"))
+	viper.MustBindEnv("scanImageTarget", "WFE_SCAN_IMAGE_TARGET")
 
 	a.cmd.AddCommand(runCmd, configCmd)
 }
@@ -208,7 +211,7 @@ func (a *App) loadConfig(cmd *cobra.Command, args []string) error {
 	// viper will unmarshal the values into the cfg object
 	l.Debug("decode configuration file")
 	a.cfg = &pipelines.Config{
-		Image: pipelines.ImageBuildConfig{
+		Image: pipelines.ImageConfig{
 			BuildDir:        viper.GetString("buildDir"),
 			BuildDockerfile: viper.GetString("buildDockerfile"),
 			BuildTag:        viper.GetString("buildTag"),
@@ -217,6 +220,7 @@ func (a *App) loadConfig(cmd *cobra.Command, args []string) error {
 			BuildCacheTo:    viper.GetString("buildCacheTo"),
 			BuildCacheFrom:  viper.GetString("buildCacheFrom"),
 			BuildArgs:       make([][2]string, 0),
+			ScanTarget:      viper.GetString("scanImageTarget"),
 		},
 		Artifacts: pipelines.ArtifactConfig{
 			Directory:     viper.GetString("artifactDirectory"),
@@ -248,7 +252,7 @@ const (
 	cliPodman               = "podman"
 )
 
-func imageBuildPipeline(cmd *cobra.Command, dryRun *bool, cliCmd imageBuildCmd, config pipelines.ImageBuildConfig) error {
+func imageBuildPipeline(cmd *cobra.Command, dryRun *bool, cliCmd imageBuildCmd, config pipelines.ImageConfig) error {
 	pipeline := pipelines.NewImageBuild(cmd.OutOrStdout(), cmd.ErrOrStderr())
 	pipeline.DryRunEnabled = *dryRun
 	if cliCmd == cliPodman {

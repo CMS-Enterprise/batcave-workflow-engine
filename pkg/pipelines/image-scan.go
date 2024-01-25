@@ -53,7 +53,7 @@ func (p *ImageScan) Run() error {
 
 	// TODO: need syft SBOM output filename, it'll have to be saved in the artifact directory
 	sbomFilename := path.Join(p.artifactConfig.Directory, p.artifactConfig.SBOMFilename)
-	p.logger.Debug("create SBOM", "dest", sbomFilename)
+	p.logger.Debug("open sbom dest file for write", "dest", sbomFilename)
 
 	sbomFile, err := os.OpenFile(sbomFilename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 
@@ -62,7 +62,7 @@ func (p *ImageScan) Run() error {
 	}
 
 	err = shell.SyftCommand(sbomFile, p.Stderr).
-		ScanImage(p.imageName, p.artifactConfig.SBOMFilename).
+		ScanImage(p.imageName).
 		WithDryRun(p.DryRunEnabled).Run()
 
 	if err != nil {
@@ -76,7 +76,7 @@ func (p *ImageScan) Run() error {
 	buf := new(bytes.Buffer)
 
 	// Do a grype scan on the SBOM, fail if the command fails
-	err = shell.GrypeCommand(buf, p.Stderr).ScanSBOM(p.artifactConfig.SBOMFilename).WithDryRun(p.DryRunEnabled).Run()
+	err = shell.GrypeCommand(buf, p.Stderr).ScanSBOM(sbomFilename).WithDryRun(p.DryRunEnabled).Run()
 	if err != nil {
 		return err
 	}
