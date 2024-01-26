@@ -72,3 +72,27 @@ Configuration Order-of-Precedence:
 | `WFE_ARTIFACT_DIRECTORY`  | string |         | --artifact-directory | `artifacts.directory`     | The directory to store artifacts                     |
 | `WFE_SBOM_FILENAME`       | string |         | --sbom-filename      | `artifacts.sbomFilename`  | The SBOM file name                                   |
 | `WFE_GRYPE_FILENAME`      | string |         | --grype-filename     | `artifacts.grypeFilename` | The Grype file name                                  |
+
+## Running in Docker
+
+When running workflow-engine in a docker container there are some pipelines that need to run docker commands. In order for the docker CLI in the workflow-engine to connect to the docker daemon running on the host machine, you must either mount the `/var/run/docker.sock` in the `workflow-engine` container, or provide configuration for accessing the docker daemon remotely with the `DOCKER_HOST` environment variable.
+
+### Using `/var/run/docker.sock`
+
+This approach assumes you have the docker daemon running on your host machine.
+
+Example:
+
+```
+docker run -it --rm \
+  `# Mount your Dockerfile and supporting files in the working directory: /app` \
+  -v "$(pwd):/app:ro" \
+  `# Mount docker.sock for use by the docker CLI running inside the container` \
+  -v "/var/run/docker.sock:/var/run/docker.sock" \
+  `# Run the workflow-engine container with the desired arguments` \
+  workflow-engine run image-build
+```
+
+### Using a Remote Daemon
+
+For more information see the [Docker CLI](https://docs.docker.com/engine/reference/commandline/cli/#environment-variables) and [Docker Daemon](https://docs.docker.com/config/daemon/remote-access/) documentation pages.
