@@ -75,7 +75,13 @@ Configuration Order-of-Precedence:
 
 ## Running in Docker
 
-When running workflow-engine in a docker container there are some pipelines that need to run docker commands. In order for the docker CLI in the workflow-engine to connect to the docker daemon running on the host machine, you must either mount the `/var/run/docker.sock` in the `workflow-engine` container, or provide configuration for accessing the docker daemon remotely with the `DOCKER_HOST` environment variable.
+When running workflow-engine in a docker container there are some pipelines that need to run docker commands. 
+In order for the docker CLI in the workflow-engine to connect to the docker daemon running on the host machine, 
+you must either mount the `/var/run/docker.sock` in the `workflow-engine` container, or provide configuration for 
+accessing the docker daemon remotely with the `DOCKER_HOST` environment variable.
+
+If you don't have access to Artifactory to pull in the Omnibus base image, you can build the image manually which is 
+in `images/omnibus/Dockerfile`.
 
 ### Using `/var/run/docker.sock`
 
@@ -95,4 +101,6 @@ docker run -it --rm \
 
 ### Using a Remote Daemon
 
-For more information see the [Docker CLI](https://docs.docker.com/engine/reference/commandline/cli/#environment-variables) and [Docker Daemon](https://docs.docker.com/config/daemon/remote-access/) documentation pages.
+For more information see the 
+[Docker CLI](https://docs.docker.com/engine/reference/commandline/cli/#environment-variables) and 
+[Docker Daemon](https://docs.docker.com/config/daemon/remote-access/) documentation pages.
