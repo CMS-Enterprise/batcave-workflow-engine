@@ -230,15 +230,16 @@ func (a *App) loadConfig(cmd *cobra.Command, args []string) error {
 	l.Debug("decode configuration file")
 	a.cfg = &pipelines.Config{
 		Image: pipelines.ImageConfig{
-			BuildDir:        viper.GetString("buildDir"),
-			BuildDockerfile: viper.GetString("buildDockerfile"),
-			BuildTag:        viper.GetString("buildTag"),
-			BuildPlatform:   viper.GetString("buildPlatform"),
-			BuildTarget:     viper.GetString("buildTarget"),
-			BuildCacheTo:    viper.GetString("buildCacheTo"),
-			BuildCacheFrom:  viper.GetString("buildCacheFrom"),
-			BuildArgs:       make([][2]string, 0),
-			ScanTarget:      viper.GetString("scanImageTarget"),
+			BuildDir:          viper.GetString("buildDir"),
+			BuildDockerfile:   viper.GetString("buildDockerfile"),
+			BuildTag:          viper.GetString("buildTag"),
+			BuildPlatform:     viper.GetString("buildPlatform"),
+			BuildTarget:       viper.GetString("buildTarget"),
+			BuildCacheTo:      viper.GetString("buildCacheTo"),
+			BuildCacheFrom:    viper.GetString("buildCacheFrom"),
+      BuildSquashLayers: viper.GetBool("buildSquashLayers"),
+			BuildArgs:         make([][2]string, 0),
+			ScanTarget:        viper.GetString("scanImageTarget"),
 		},
 		Artifacts: pipelines.ArtifactConfig{
 			Directory:     viper.GetString("artifactDirectory"),
