@@ -1,0 +1,44 @@
+name: Build Image
+description: Builds a Docker Image using workflow-engine
+
+inputs:
+  path:
+    description: The path where the container should be built from (defaults to the root of the repository).
+  dockerfile:
+    description: The filename (or path relative to build_dir) of the Dockerfile to build.
+  image_tag:
+    description: The tag to use for the image being built (defaults to the repository name and current commit SHA).
+    default: ${{ github.repository }}:${{ github.sha }}
+  platform:
+    description: The platform to build tha container image for.
+  build_target:
+    description: When using a multi-stage docker file, name of the build target to create an image for (as defined in the Dockerfile).
+  cache_from:
+    description: A remote container registry location to check for existing cached layers when building a container image.
+  cache_to:
+    description: A remote container registry location to push intermediate layers for caching purposes.
+  squash_layers:
+    description: When set to true, squashes the layers of the container image at the end of the build process.
+    default: "true"
+
+runs:
+  using: docker
+  image: docker://ghcr.io/cms-enterprise/batcave/workflow-engine:v0.0.1-rc.1
+  args:
+    - run
+    - image-build
+    - "--build-dir"
+    - ${{ inputs.path }}
+    - "--dockerfile"
+    - ${{ inputs.dockerfile }}
+    - "--tag"
+    - ${{ inputs.image_tag }}
+    - "--platform"
+    - ${{ inputs.platform }}
+    - "--target"
+    - ${{ inputs.build_target }}
+    - "--cache-from"
+    - ${{ inputs.cache_from }}
+    - "--cache-to"
+    - ${{ inputs.cache_to }}
+    - "--squash-layers=${{ inputs.squash_layers }}"
