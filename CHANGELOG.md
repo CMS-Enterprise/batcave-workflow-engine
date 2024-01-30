@@ -9,6 +9,12 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ## [UNRELEASED]
 
+## Added
+
+- Configuration File template rendering with built-in values
+
+## [0.0.1-rc.1] - 2024-01-29
+
 ### Changed
 
 - refactored, the directory structure, all pipelines will exist in pkg/pipelines
@@ -43,7 +49,6 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - image scan pipeline to CLI
 - image scan pipeline wiring in CLI for Viper config variables
 
-## [0.0.1-rc.1] - 2024-01-01
 ### Added
 
 - cmd/workflow-engine for cli

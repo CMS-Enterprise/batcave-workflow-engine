@@ -1,5 +1,14 @@
 package pipelines
 
+import (
+	"fmt"
+	"html/template"
+	"io"
+	"log/slog"
+
+	"github.com/go-git/go-git/v5"
+)
+
 // Config is the main configuration file for all of workflow engine
 //
 // The file is intended to be represented in json, yaml, or toml which is done via struct field tags
@@ -37,4 +46,46 @@ type ImageConfig struct {
 func NewDefaultConfig() *Config {
 	// Only fields that are slices need to be inited, the default string value is ""
 	return &Config{Image: ImageConfig{BuildArgs: make([][2]string, 0)}}
+}
+
+func RenderTemplate(dst io.Writer, templateSrc io.Reader) error {
+	builtins, err := BuiltIns()
+	if err != nil {
+		return fmt.Errorf("template rendering failed: could not load built-in values: %w", err)
+	}
+	tmpl := template.New("workflow-engine config")
+
+	content, err := io.ReadAll(templateSrc)
+	if err != nil {
+		return fmt.Errorf("template rendering failed: could not load template content: %w", err)
+	}
+
+	tmpl, err = tmpl.Parse(string(content))
+	if err != nil {
+		return fmt.Errorf("template rendering failed: could not parse template input: %w", err)
+	}
+
+	return tmpl.Execute(dst, builtins)
+}
+
+func BuiltIns() (map[string]string, error) {
+	builtins := map[string]string{}
+
+	slog.Debug("open current repo", "step", "builtins")
+	r, err := git.PlainOpen(".")
+	if err != nil {
+		return builtins, err
+	}
+
+	slog.Debug("get repo HEAD")
+	ref, err := r.Head()
+	if err != nil {
+		return builtins, err
+	}
+
+	builtins["GitCommitSHA"] = ref.Hash().String()
+	builtins["GitCommitShortSHA"] = ref.Hash().String()[:8]
+	builtins["GitCommitBranch"] = ref.Name().String()
+
+	return builtins, nil
 }
