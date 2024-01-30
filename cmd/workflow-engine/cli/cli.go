@@ -95,7 +95,15 @@ func (a *App) Init() {
 		},
 	}
 
-	configCmd.AddCommand(configInitCmd, configRenderCmd)
+	configBuiltinsCmd := &cobra.Command{
+		Use:   "builtins",
+		Short: "List supported built-in template variables",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return configBuiltins(cmd)
+		},
+	}
+
+	configCmd.AddCommand(configInitCmd, configRenderCmd, configBuiltinsCmd)
 
 	// Root Command Configuration
 	a.cmd = &cobra.Command{
@@ -255,6 +263,18 @@ func configRender(cmd *cobra.Command, configTemplateFilename string) error {
 		return err
 	}
 	return pipelines.RenderTemplate(cmd.OutOrStdout(), f)
+}
+
+func configBuiltins(cmd *cobra.Command) error {
+	builtins, err := pipelines.BuiltIns()
+	if err != nil {
+		return err
+	}
+	for key, value := range builtins {
+		s := fmt.Sprintf("%-25s %s", key, value)
+		cmd.Println(s)
+	}
+	return nil
 }
 
 func debugPipeline(cmd *cobra.Command, dryRun *bool) error {
