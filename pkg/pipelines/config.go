@@ -45,7 +45,18 @@ type ImageConfig struct {
 // This can be used to prevent nil reference panics
 func NewDefaultConfig() *Config {
 	// Only fields that are slices need to be inited, the default string value is ""
-	return &Config{Image: ImageConfig{BuildArgs: make([][2]string, 0)}}
+	return &Config{
+		Image: ImageConfig{
+			BuildDir:        ".",
+			BuildDockerfile: "Dockerfile",
+			BuildArgs:       make([][2]string, 0),
+		},
+		Artifacts: ArtifactConfig{
+			Directory:     "artifacts",
+			SBOMFilename:  "syft-sbom.json",
+			GrypeFilename: "grype-report.json",
+		},
+	}
 }
 
 func RenderTemplate(dst io.Writer, templateSrc io.Reader) error {
