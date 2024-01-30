@@ -86,7 +86,16 @@ func (a *App) Init() {
 		},
 	}
 
-	configCmd.AddCommand(configInitCmd)
+	configRenderCmd := &cobra.Command{
+		Use:   "render",
+		Short: "Render a configuration template and output to STDOUT",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return configRender(cmd, args[0])
+		},
+	}
+
+	configCmd.AddCommand(configInitCmd, configRenderCmd)
 
 	// Root Command Configuration
 	a.cmd = &cobra.Command{
