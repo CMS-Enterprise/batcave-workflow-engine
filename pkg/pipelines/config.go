@@ -85,7 +85,7 @@ func BuiltIns() (map[string]string, error) {
 
 	builtins["GitCommitSHA"] = ref.Hash().String()
 	builtins["GitCommitShortSHA"] = ref.Hash().String()[:8]
-	builtins["GitCommitBranch"] = ref.Name().String()
+	builtins["GitCommitBranch"] = ref.Name().Short()
 
 	return builtins, nil
 }
