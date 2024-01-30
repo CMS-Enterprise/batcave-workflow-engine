@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"os"
 	"workflow-engine/pkg/pipelines"
 
 	"github.com/spf13/cobra"
@@ -81,7 +82,7 @@ func (a *App) Init() {
 		Use:   "init",
 		Short: "Output the default configuration file to stdout",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return a.configInit(cmd)
+			return configInit(cmd)
 		},
 	}
 
@@ -233,10 +234,18 @@ func (a *App) loadConfig(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (a *App) configInit(cmd *cobra.Command) error {
+func configInit(cmd *cobra.Command) error {
 	enc := json.NewEncoder(cmd.OutOrStdout())
 	enc.SetIndent("", "  ")
 	return enc.Encode(pipelines.NewDefaultConfig())
+}
+
+func configRender(cmd *cobra.Command, configTemplateFilename string) error {
+	f, err := os.Open(configTemplateFilename)
+	if err != nil {
+		return err
+	}
+	return pipelines.RenderTemplate(cmd.OutOrStdout(), f)
 }
 
 func debugPipeline(cmd *cobra.Command, dryRun *bool) error {
