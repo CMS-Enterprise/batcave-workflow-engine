@@ -1,4 +1,4 @@
-FROM artifactory.cloud.cms.gov/docker/golang:alpine3.19 as build
+FROM golang:alpine3.19 as build
 
 WORKDIR /app/src
 
@@ -13,7 +13,7 @@ COPY pkg ./pkg
 RUN mkdir -p ../bin && \
     go build -o ../bin/workflow-engine ./cmd/workflow-engine
 
-FROM artifactory.cloud.cms.gov/batcave-docker/devops-pipelines/pipeline-tools/omnibus:v1.0.0
+FROM ghcr.io/cms-enterprise/batcave/omnibus:v1.1.0-rc1
 
 # Install docker and podman CLIs
 RUN apk update && apk add --no-cache docker-cli-buildx podman fuse-overlayfs
