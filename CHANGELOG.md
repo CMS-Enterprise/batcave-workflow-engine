@@ -9,9 +9,13 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ## [UNRELEASED]
 
-## Added
+### Added
 
 - Configuration File template rendering with built-in values
+
+### Fixed
+
+- Viper config key names
 
 ## [0.0.1-rc.1] - 2024-01-29
 
