@@ -33,11 +33,12 @@ func (g *grypeCmd) ScanSBOM(filename string) *Command {
 	return NewCommand(exe)
 }
 
-// GrypeCommand with custom stdout and stderr
-func GrypeCommand(stdout io.Writer, stderr io.Writer) *grypeCmd {
+// GrypeCommand with custom stdin, stdout, and stderr
+// stdin must be provided even though it isn't used because without it grype exits immediately
+func GrypeCommand(stdin io.Reader, stdout io.Writer, stderr io.Writer) *grypeCmd {
 	return &grypeCmd{
 		InitCmd: func() *Executable {
-			return NewExecutable("grype").WithOutput(stdout).WithStderr(stderr)
+			return NewExecutable("grype").WithStdin(stdin).WithOutput(stdout).WithStderr(stderr)
 		},
 	}
 }

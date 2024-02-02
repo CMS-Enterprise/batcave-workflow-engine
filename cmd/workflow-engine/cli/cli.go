@@ -279,7 +279,7 @@ func configBuiltins(cmd *cobra.Command) error {
 }
 
 func debugPipeline(cmd *cobra.Command, dryRun *bool) error {
-	pipeline := pipelines.NewDebug(cmd.OutOrStdout(), cmd.ErrOrStderr())
+	pipeline := pipelines.NewDebug(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr())
 	pipeline.DryRunEnabled = *dryRun
 	return pipeline.Run()
 }
@@ -301,7 +301,7 @@ func imageBuildPipeline(cmd *cobra.Command, dryRun *bool, cliCmd imageBuildCmd, 
 }
 
 func imageScanPipeline(cmd *cobra.Command, dryRun *bool, config pipelines.ArtifactConfig, imageName string) error {
-	pipeline := pipelines.NewImageScan(cmd.OutOrStdout(), cmd.ErrOrStderr())
+	pipeline := pipelines.NewImageScan(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr())
 	pipeline.DryRunEnabled = *dryRun
 
 	return pipeline.WithArtifactConfig(config).WithImageName(imageName).Run()
