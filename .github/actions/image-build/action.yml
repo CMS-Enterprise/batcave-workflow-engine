@@ -1,7 +1,10 @@
 name: Build Image
-description: Builds a Docker Image using workflow-engine
+description: Builds a Container Image using workflow-engine
 
 inputs:
+  workflow_engine_version:
+    description: "The version of workflow-engine to use (note: different versions of the workflow-engine image may not be compatible with this version of the GitHub action)."
+    default: "v0.0.1-rc.2"
   path:
     description: The path where the container should be built from (defaults to the root of the repository).
   dockerfile:
@@ -36,14 +39,14 @@ runs:
         username: ${{ github.actor }}
         password: ${{ inputs.repo_token }}
     - shell: bash
-      run: docker pull ghcr.io/cms-enterprise/batcave/workflow-engine:v0.0.1-rc.1
+      run: docker pull ghcr.io/cms-enterprise/batcave/workflow-engine:${{ inputs.workflow_engine_version }}
     - shell: bash
       run: |-
         docker run --workdir /github/workspace -e HOME -e CI=true \
           -v "/var/run/docker.sock":"/var/run/docker.sock" \
           -v "$HOME":"/github/home" \
           -v "$(pwd)":"/github/workspace" \
-          ghcr.io/cms-enterprise/batcave/workflow-engine:v0.0.1-rc.1 \
+          ghcr.io/cms-enterprise/batcave/workflow-engine:${{ inputs.workflow_engine_version }} \
           run image-build \
           --build-dir "${{ inputs.path }}" \
           --dockerfile "${{ inputs.dockerfile }}" \
