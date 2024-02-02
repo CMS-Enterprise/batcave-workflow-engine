@@ -41,12 +41,21 @@ runs:
     - shell: bash
       run: docker pull ghcr.io/cms-enterprise/batcave/workflow-engine:${{ inputs.workflow_engine_version }}
     - shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.repo_token }}
       run: |-
+        # login with ghcr *inside* the workflow-engine container
+        # TODO: Make this dynamic and configurable (the user may need to authenticate with multiple registries besides ghcr.io)
+        docker run -i -e HOME -v "$HOME":"/github/home" --name workflow_engine_local --entrypoint sh \
+          ghcr.io/cms-enterprise/batcave/workflow-engine:${{ inputs.workflow_engine_version }} \
+          -c 'docker login -u "${{ github.actor }}" --password-stdin ghcr.io' <<< "$GITHUB_TOKEN"
+        docker commit workflow_engine_local workflow_engine_local
         docker run --workdir /github/workspace -e HOME -e CI=true \
           -v "/var/run/docker.sock":"/var/run/docker.sock" \
           -v "$HOME":"/github/home" \
           -v "$(pwd)":"/github/workspace" \
-          ghcr.io/cms-enterprise/batcave/workflow-engine:${{ inputs.workflow_engine_version }} \
+          --entrypoint workflow-engine \
+          workflow_engine_local \
           run image-build \
           --build-dir "${{ inputs.path }}" \
           --dockerfile "${{ inputs.dockerfile }}" \
