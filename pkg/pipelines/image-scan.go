@@ -2,6 +2,7 @@ package pipelines
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"log/slog"
 	"os"
@@ -12,6 +13,7 @@ import (
 const mockSBOMFilename = "../../test/ubuntu_latest_20240125.syft_sbom.json"
 
 type ImageScan struct {
+	Stdin          io.Reader
 	Stdout         io.Writer
 	Stderr         io.Writer
 	logger         *slog.Logger
@@ -21,7 +23,15 @@ type ImageScan struct {
 }
 
 func (p *ImageScan) WithArtifactConfig(config ArtifactConfig) *ImageScan {
-	p.artifactConfig = config
+	if config.Directory != "" {
+		p.artifactConfig.Directory = config.Directory
+	}
+	if config.SBOMFilename != "" {
+		p.artifactConfig.SBOMFilename = config.SBOMFilename
+	}
+	if config.GrypeFilename != "" {
+		p.artifactConfig.GrypeFilename = config.GrypeFilename
+	}
 	return p
 }
 
@@ -30,13 +40,15 @@ func (p *ImageScan) WithImageName(imageName string) *ImageScan {
 	return p
 }
 
-func NewImageScan(stdout io.Writer, stderr io.Writer) *ImageScan {
+func NewImageScan(stdin io.Reader, stdout io.Writer, stderr io.Writer) *ImageScan {
 	return &ImageScan{
+		Stdin:  stdin,
 		Stdout: stdout,
 		Stderr: stderr,
 		artifactConfig: ArtifactConfig{
-			Directory:    os.TempDir(),
-			SBOMFilename: "sbom.json",
+			Directory:     os.TempDir(),
+			SBOMFilename:  "sbom.json",
+			GrypeFilename: "scan.json",
 		},
 		DryRunEnabled: false,
 		logger:        slog.Default().With("pipeline", "image_scan"),
@@ -51,6 +63,16 @@ func (p *ImageScan) Run() error {
 		"artifact_config.grype_filename", p.artifactConfig.GrypeFilename,
 	)
 
+	dir, err := os.Stat(p.artifactConfig.Directory)
+	if err != nil && os.IsNotExist(err) {
+		err := os.MkdirAll(p.artifactConfig.Directory, 0755 /* rwxr-xr-x */)
+		if err != nil {
+			return err
+		}
+	} else if !dir.IsDir() {
+		return errors.New("ArtifactConfig.Directory must be a directory, but it is a file")
+	}
+
 	// TODO: need syft SBOM output filename, it'll have to be saved in the artifact directory
 	sbomFilename := path.Join(p.artifactConfig.Directory, p.artifactConfig.SBOMFilename)
 	p.logger.Debug("open sbom dest file for write", "dest", sbomFilename)
@@ -61,7 +83,7 @@ func (p *ImageScan) Run() error {
 		return err
 	}
 
-	err = shell.SyftCommand(sbomFile, p.Stderr).
+	err = shell.SyftCommand(p.Stdin, sbomFile, p.Stderr).
 		ScanImage(p.imageName).
 		WithDryRun(p.DryRunEnabled).Run()
 
@@ -76,7 +98,7 @@ func (p *ImageScan) Run() error {
 	buf := new(bytes.Buffer)
 
 	// Do a grype scan on the SBOM, fail if the command fails
-	err = shell.GrypeCommand(buf, p.Stderr).ScanSBOM(sbomFilename).WithDryRun(p.DryRunEnabled).Run()
+	err = shell.GrypeCommand(p.Stdin, buf, p.Stderr).ScanSBOM(sbomFilename).WithDryRun(p.DryRunEnabled).Run()
 	if err != nil {
 		return err
 	}
