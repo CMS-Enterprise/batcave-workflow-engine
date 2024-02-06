@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"strings"
@@ -45,7 +46,7 @@ func (a *App) Init() {
 		Use:   "debug",
 		Short: "Run the debug pipeline",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return debugPipeline(cmd, a.flagDryRun)
+			return debugPipeline(cmdIO(cmd), a.flagDryRun)
 		},
 	}
 
@@ -56,7 +57,7 @@ func (a *App) Init() {
 			if err := a.loadConfig(); err != nil {
 				return err
 			}
-			return imageBuildPipeline(cmd, a.flagDryRun, imageBuildCmd(*a.flagCLICmd), a.cfg.Image)
+			return imageBuildPipeline(cmdIO(cmd), *a.flagDryRun, imageBuildCmd(*a.flagCLICmd), a.cfg.Image)
 		},
 	}
 
@@ -67,7 +68,7 @@ func (a *App) Init() {
 			if err := a.loadConfig(); err != nil {
 				return err
 			}
-			return imageScanPipeline(cmd, a.flagDryRun, a.cfg.Artifacts, a.cfg.Image.ScanTarget)
+			return imageScanPipeline(cmdIO(cmd), *a.flagDryRun, a.cfg.Artifacts, a.cfg.Image.ScanTarget)
 		},
 	}
 
@@ -83,7 +84,7 @@ func (a *App) Init() {
 		Use:   "init",
 		Short: "Output the default configuration file to stdout",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return configInit(cmd)
+			return writeConfigExample(cmd.OutOrStdout())
 		},
 	}
 
@@ -92,7 +93,7 @@ func (a *App) Init() {
 		Short: "Render a configuration template and output to STDOUT",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return configRender(cmd, args[0])
+			return writeRenderedConfig(cmd.OutOrStdout(), args[0])
 		},
 	}
 
@@ -100,7 +101,7 @@ func (a *App) Init() {
 		Use:   "builtins",
 		Short: "List supported built-in template variables",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return configBuiltins(cmd)
+			return configBuiltins(cmd.OutOrStdout())
 		},
 	}
 
@@ -258,34 +259,49 @@ func (a *App) loadConfig() error {
 	return nil
 }
 
-func configInit(cmd *cobra.Command) error {
-	enc := json.NewEncoder(cmd.OutOrStdout())
+type customIO struct {
+	stdin  io.Reader
+	stdout io.Writer
+	stderr io.Writer
+}
+
+// cmdIO links the cobra command IO defaults to a customIO object
+func cmdIO(cmd *cobra.Command) customIO {
+	return customIO{
+		stdin:  cmd.InOrStdin(),
+		stdout: cmd.OutOrStdout(),
+		stderr: cmd.ErrOrStderr(),
+	}
+}
+
+func writeConfigExample(w io.Writer) error {
+	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(pipelines.NewDefaultConfig())
 }
 
-func configRender(cmd *cobra.Command, configTemplateFilename string) error {
+func writeRenderedConfig(w io.Writer, configTemplateFilename string) error {
 	f, err := os.Open(configTemplateFilename)
 	if err != nil {
 		return err
 	}
-	return pipelines.RenderTemplate(cmd.OutOrStdout(), f)
+	return pipelines.RenderTemplate(w, f)
 }
 
-func configBuiltins(cmd *cobra.Command) error {
+func configBuiltins(w io.Writer) error {
 	builtins, err := pipelines.BuiltIns()
 	if err != nil {
 		return err
 	}
 	for key, value := range builtins {
 		s := fmt.Sprintf("%-25s %s", key, value)
-		cmd.Println(s)
+		fmt.Fprintln(w, s)
 	}
 	return nil
 }
 
-func debugPipeline(cmd *cobra.Command, dryRun *bool) error {
-	pipeline := pipelines.NewDebug(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr())
+func debugPipeline(cio customIO, dryRun *bool) error {
+	pipeline := pipelines.NewDebug(cio.stdin, cio.stderr, cio.stdout)
 	pipeline.DryRunEnabled = *dryRun
 	return pipeline.Run()
 }
@@ -297,18 +313,18 @@ const (
 	cliPodman               = "podman"
 )
 
-func imageBuildPipeline(cmd *cobra.Command, dryRun *bool, cliCmd imageBuildCmd, config pipelines.ImageConfig) error {
-	pipeline := pipelines.NewImageBuild(cmd.OutOrStdout(), cmd.ErrOrStderr())
-	pipeline.DryRunEnabled = *dryRun
+func imageBuildPipeline(cio customIO, dryRunEnabled bool, cliCmd imageBuildCmd, config pipelines.ImageConfig) error {
+	pipeline := pipelines.NewImageBuild(cio.stdout, cio.stderr)
+	pipeline.DryRunEnabled = dryRunEnabled
 	if cliCmd == cliPodman {
 		pipeline = pipeline.WithPodman()
 	}
 	return pipeline.WithBuildConfig(config).Run()
 }
 
-func imageScanPipeline(cmd *cobra.Command, dryRun *bool, config pipelines.ArtifactConfig, imageName string) error {
-	pipeline := pipelines.NewImageScan(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr())
-	pipeline.DryRunEnabled = *dryRun
+func imageScanPipeline(cio customIO, dryRunEnabled bool, config pipelines.ArtifactConfig, imageName string) error {
+	pipeline := pipelines.NewImageScan(cio.stdin, cio.stdout, cio.stderr)
+	pipeline.DryRunEnabled = dryRunEnabled
 
 	return pipeline.WithArtifactConfig(config).WithImageName(imageName).Run()
 }
