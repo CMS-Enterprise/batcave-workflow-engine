@@ -104,3 +104,41 @@ docker run -it --rm \
 For more information see the 
 [Docker CLI](https://docs.docker.com/engine/reference/commandline/cli/#environment-variables) and 
 [Docker Daemon](https://docs.docker.com/config/daemon/remote-access/) documentation pages.
+
+### Using Podman in Docker
+
+In addition to building images with Docker it is also possible to build them with podman. When running podman in docker it is necessary to either launch the container in privileged mode, or to run as the `podman` user:
+
+```bash
+docker run --user podman -it --rm \
+  `# Mount your Dockerfile and supporting files in the working directory: /app` \
+  -v "$(pwd):/app:ro" \
+  `# Run the workflow-engine container with the desired arguments` \
+  workflow-engine:local run image-build -i podman
+```
+
+If root access is needed, the easiest solution for using podman inside a docker container is to run the container in "privileged" mode:
+
+```bash
+docker run -it --rm \
+  `# Mount your Dockerfile and supporting files in the working directory: /app` \
+  -v "$(pwd):/app:ro" \
+  `# Run the container in privileged mode so that podman is fully functional` \
+  --privileged \
+  `# Run the workflow-engine container with the desired arguments` \
+  workflow-engine run image-build -i podman
+```
+
+### Using Podman in Podman
+
+To run the workflow-engine container using podman the process is quite similar, but there are a few additional security options required:
+
+```bash
+podman run --user podman  -it --rm \
+  `# Mount your Dockerfile and supporting files in the working directory: /app` \
+  -v "$(pwd):/app:ro" \
+  `# Run the container with additional security options so that podman is fully functional` \
+  --security-opt label=disable --device /dev/fuse \
+  `# Run the workflow-engine container with the desired arguments` \
+  workflow-engine:local run image-build -i podman
+```

@@ -16,9 +16,24 @@ RUN mkdir -p ../bin && \
 FROM artifactory.cloud.cms.gov/batcave-docker/devops-pipelines/pipeline-tools/omnibus:v1.0.0
 
 # Install docker and podman CLIs
-RUN apk update && apk add --no-cache docker-cli podman
+RUN apk update && apk add --no-cache docker-cli podman fuse-overlayfs
+
+COPY docker/storage.conf /etc/containers/
+COPY docker/containers.conf /etc/containers/
 
 COPY --from=build /app/bin/workflow-engine /usr/local/bin/workflow-engine
+
+RUN addgroup -S podman && adduser -S podman -G podman && \
+    echo podman:10000:5000 > /etc/subuid && \
+    echo podman:10000:5000 > /etc/subgid
+
+COPY docker/rootless-containers.conf /home/podman/.config/containers/containers.conf
+
+RUN mkdir -p /home/podman/.local/share/containers
+RUN chown podman:podman -R /home/podman
+
+VOLUME /var/lib/containers
+VOLUME /home/podman/.local/share/containers
 
 ENTRYPOINT ["workflow-engine"]
 
