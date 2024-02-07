@@ -10,14 +10,15 @@ import (
 )
 
 type Debug struct {
+	Stdin         io.Reader
 	Stdout        io.Writer
 	Stderr        io.Writer
 	DryRunEnabled bool
 }
 
 // NewDebug creates a new debug pipeline with custom stdout and stderr
-func NewDebug(stdoutW io.Writer, stderrW io.Writer) *Debug {
-	return &Debug{Stdout: stdoutW, Stderr: stderrW, DryRunEnabled: false}
+func NewDebug(stdinR io.Reader, stdoutW io.Writer, stderrW io.Writer) *Debug {
+	return &Debug{Stdin: stdinR, Stdout: stdoutW, Stderr: stderrW, DryRunEnabled: false}
 }
 
 // Run prints the version for all expected commands
@@ -39,8 +40,8 @@ func (d *Debug) Run() error {
 
 	// Collect errors for mandatory commands
 	errs := errors.Join(
-		shell.GrypeCommand(d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
-		shell.SyftCommand(d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
+		shell.GrypeCommand(d.Stdin, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
+		shell.SyftCommand(d.Stdin, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
 	)
 
 	// Just log errors for optional commands

@@ -23,11 +23,12 @@ func (s *syftCmd) ScanImage(image string) *Command {
 	return NewCommand(cmd)
 }
 
-// SyftCommand with custom stdout and stderr
-func SyftCommand(stdout io.Writer, stderr io.Writer) *syftCmd {
+// SyftCommand with custom stdin, stdout, and stderr
+// stdin must be provided even though it isn't used because without it syft exits immediately
+func SyftCommand(stdin io.Reader, stdout io.Writer, stderr io.Writer) *syftCmd {
 	return &syftCmd{
 		InitCmd: func() *Executable {
-			return NewExecutable("syft").WithOutput(stdout).WithStderr(stderr)
+			return NewExecutable("syft").WithStdin(stdin).WithOutput(stdout).WithStderr(stderr)
 		},
 	}
 }
