@@ -115,9 +115,8 @@ func (a *AbstractEncoder) Encode(asFormat string) error {
 
 // Helper Functions
 
+// ConfigFromViper sets the configuration values to a config object from env, flags, or config file
 func ConfigFromViper(v *viper.Viper) pipelines.Config {
-	slog.Debug("decode configuration file", "source", "viper")
-
 	viperKVs := []any{}
 	for _, key := range v.AllKeys() {
 		viperKVs = append(viperKVs, key, v.Get(key))
@@ -144,10 +143,28 @@ func ConfigFromViper(v *viper.Viper) pipelines.Config {
 	}
 }
 
-// parseOutput splits the format and filename
+// Config checks for the `--config` value and hands off to viper for parsing
+func Config(cmd *cobra.Command) (pipelines.Config, error) {
+	configFilename, _ := cmd.Flags().GetString("config")
+
+	if configFilename != "" {
+		slog.Debug("set configuration from flag value", "config_filename", configFilename)
+		viper.SetConfigFile(configFilename)
+	}
+
+	slog.Debug("attempt read configuration")
+	if err := viper.ReadInConfig(); err != nil {
+		return pipelines.Config{}, err
+	}
+
+	config := ConfigFromViper(viper.GetViper())
+	return config, nil
+}
+
+// ParsedOutput splits the format and filename
 //
 // expects the `--output` argument in the <format>=<filename> format
-func parseOutput(output string) (format, filename string) {
+func ParsedOutput(output string) (format, filename string) {
 	switch {
 	case strings.Contains(output, "="):
 		parts := strings.Split(output, "=")

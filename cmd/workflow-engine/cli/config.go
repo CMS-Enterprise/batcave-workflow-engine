@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"slices"
 	"workflow-engine/pkg/pipelines"
 
 	"github.com/spf13/cobra"
@@ -29,8 +30,10 @@ func newConfigCommand() *cobra.Command {
 	// config convert
 	convertCmd := newBasicCommand("convert", "convert a configuration file (`--file` or STDIN) to another format", runConfigConvert)
 	convertCmd.Flags().StringP("file", "f", "", "input file to use as source")
+	convertCmd.Flags().StringP("input", "i", "json", "the input file format [json yaml yml toml]")
 	convertCmd.Flags().StringP("output", "o", "json", "config output format (<format>=<file>) empty will write to STDOUT, formats=[json yaml yml toml]")
 	convertCmd.MarkFlagFilename("file")
+	convertCmd.MarkFlagsOneRequired("file", "input")
 
 	// config
 	cmd := &cobra.Command{Use: "config", Short: "manage the workflow engine config file"}
@@ -41,14 +44,14 @@ func newConfigCommand() *cobra.Command {
 	return cmd
 }
 
-// Run Functions - responsible for parsing flags at runtime
+// Run Functions - Parsing flags and arguments at command runtime
 
 func runConfigInit(cmd *cobra.Command, _ []string) error {
 	var targetWriter io.Writer
 
 	output, _ := cmd.Flags().GetString("output")
 
-	format, filename := parseOutput(output)
+	format, filename := ParsedOutput(output)
 
 	switch {
 	case filename == "":
@@ -90,12 +93,10 @@ func runConfigRender(cmd *cobra.Command, _ []string) error {
 func runConfigConvert(cmd *cobra.Command, _ []string) error {
 	configFilename, _ := cmd.Flags().GetString("file")
 
-	output, err := cmd.Flags().GetString("output")
-	if err != nil {
-		panic(err)
-	}
+	output, _ := cmd.Flags().GetString("output")
+	input, _ := cmd.Flags().GetString("input")
 
-	format, filename := parseOutput(output)
+	format, filename := ParsedOutput(output)
 
 	slog.Debug("config convert", "config_filename", configFilename, "output_format",
 		format, "output_filename", filename, "output_flag_value", output)
@@ -111,6 +112,11 @@ func runConfigConvert(cmd *cobra.Command, _ []string) error {
 		tempViper.SetConfigFile(configFilename)
 		readErr = tempViper.ReadInConfig()
 	default:
+		if !slices.Contains([]string{"json", "yaml", "yml", "toml"}, input) {
+			return fmt.Errorf("unsupported input format '%s'", input)
+		}
+		slog.Debug("config convert read config from stdin")
+		tempViper.SetConfigType(input)
 		readErr = tempViper.ReadConfig(cmd.InOrStdin())
 	}
 
@@ -135,7 +141,7 @@ func runConfigConvert(cmd *cobra.Command, _ []string) error {
 	return writeConfigTo(outputWriter, config, format)
 }
 
-// Execution functions - contains runtime logic
+// Execution functions - Logic for command execution
 
 func writeRenderedConfigTo(w io.Writer, configTemplateFilename string) error {
 	slog.Debug("open render src", "src_filename", configTemplateFilename)
