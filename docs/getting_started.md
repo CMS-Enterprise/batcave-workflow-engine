@@ -1,7 +1,5 @@
 # Getting Started
 
-This project contains the Nightwing Workflow Engine. It uses the [Dagger](https://dagger.io) framework to implement the batCAVE CI/CD pipelines as code that will run on both GitLab and GitHub environments.
-
 ## Github Access
 
 You will need access to the https://github.com/nightwing-demo/workflow-engine repository. If you don't already have access you can contact the following Nightwing team members:
@@ -39,46 +37,6 @@ If you are new to Go, or would like a refresher, here are some recommended resou
 
 - [Go Documentation](https://go.dev/doc/effective_go)
 - [101 Go Mistakes and How to Avoid Them](https://www.manning.com/books/100-go-mistakes-and-how-to-avoid-them) - A free an online summarized version can be found [here](https://github.com/teivah/100-go-mistakes)
-
-### Dagger
-
-The Nightwing Workflow Engine uses the [Dagger](https://dagger.io) framework to implement the batCAVE CI/CD pipelines as code.
-
-Prerequisites - To use Dagger, you will need to have the following installed:
-
-- [Docker](https://docs.docker.com/engine/install/)
-- [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-
-To install Dagger on a Mac using Homebrew:
-
-```
-brew install dagger/tap/dagger
-```
-
-Then from your existing Go module, run the following commands:
-
-```
-go get dagger.io/dagger@latest
-go mod init <module name>
-go mod tidy
-```
-
-Finally, run Dagger:
-
-```
-dagger run go run <module name>
-```
-
-<b>Example</b>: to run the Nightwing Workflow Engine:
-
-```
-git clone https://github.com/nightwing-demo/workflow-engine.git
-cd workflow-engine
-go get dagger.io/dagger@latest
-go mod init main.go
-go mod tidy
-dagger run go run main.go
-```
 
 ## Optional Tools
 
