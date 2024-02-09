@@ -133,6 +133,7 @@ func (a *App) Init() {
 	imageScanCmd.Flags().String("artifact-directory", "", "the output directory for all artifacts generated in the pipeline")
 	imageScanCmd.Flags().String("sbom-filename", "", "the output filename for the syft SBOM")
 	imageScanCmd.Flags().String("grype-filename", "", "the output filename for the grype vulnerability report")
+	imageScanCmd.Flags().String("gitleaks-filename", "", "the output filename for the gitleaks secrets report")
 	imageScanCmd.Flags().String("scan-image-target", "", "scan a specific image")
 
 	// Persistent Flags, available on all commands
@@ -194,6 +195,9 @@ func (a *App) Init() {
 	viper.BindPFlag("artifacts.grypefilename", imageScanCmd.Flags().Lookup("grype-filename"))
 	viper.MustBindEnv("artifacts.grypefilename", "WFE_GRYPE_FILENAME")
 
+	viper.BindPFlag("artifacts.gitleaksfilename", imageScanCmd.Flags().Lookup("gitleaks-filename"))
+	viper.MustBindEnv("artifacts.gitleaksfilename", "WFE_GITLEAKS_FILENAME")
+
 	// TODO: need to consider the logic for overthe build tag here
 	viper.BindPFlag("image.scantarget", imageScanCmd.Flags().Lookup("scan-image-target"))
 	viper.MustBindEnv("image.scantarget", "WFE_SCAN_IMAGE_TARGET")
@@ -251,9 +255,10 @@ func (a *App) loadConfig() error {
 
 		},
 		Artifacts: pipelines.ArtifactConfig{
-			Directory:     viper.GetString("artifacts.directory"),
-			SBOMFilename:  viper.GetString("artifacts.sbomfilename"),
-			GrypeFilename: viper.GetString("artifacts.grypefilename"),
+			Directory:        viper.GetString("artifacts.directory"),
+			SBOMFilename:     viper.GetString("artifacts.sbomfilename"),
+			GrypeFilename:    viper.GetString("artifacts.grypefilename"),
+			GitleaksFilename: viper.GetString("artifacts.gitleaksfilename"),
 		},
 	}
 

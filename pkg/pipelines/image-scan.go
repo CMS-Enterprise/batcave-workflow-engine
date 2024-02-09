@@ -32,6 +32,9 @@ func (p *ImageScan) WithArtifactConfig(config ArtifactConfig) *ImageScan {
 	if config.GrypeFilename != "" {
 		p.artifactConfig.GrypeFilename = config.GrypeFilename
 	}
+	if config.GitleaksFilename != "" {
+		p.artifactConfig.GitleaksFilename = config.GitleaksFilename
+	}
 	return p
 }
 
@@ -46,9 +49,10 @@ func NewImageScan(stdin io.Reader, stdout io.Writer, stderr io.Writer) *ImageSca
 		Stdout: stdout,
 		Stderr: stderr,
 		artifactConfig: ArtifactConfig{
-			Directory:     os.TempDir(),
-			SBOMFilename:  "sbom.json",
-			GrypeFilename: "scan.json",
+			Directory:        os.TempDir(),
+			SBOMFilename:     "sbom.json",
+			GrypeFilename:    "scan.json",
+			GitleaksFilename: "gitleaks.json",
 		},
 		DryRunEnabled: false,
 		logger:        slog.Default().With("pipeline", "image_scan"),
@@ -61,6 +65,7 @@ func (p *ImageScan) Run() error {
 		"artifact_config.directory", p.artifactConfig.Directory,
 		"artifact_config.sbom_filename", p.artifactConfig.SBOMFilename,
 		"artifact_config.grype_filename", p.artifactConfig.GrypeFilename,
+		"artifact_config.gitleaks_filename", p.artifactConfig.GitleaksFilename,
 	)
 
 	dir, err := os.Stat(p.artifactConfig.Directory)
@@ -71,6 +76,15 @@ func (p *ImageScan) Run() error {
 		}
 	} else if !dir.IsDir() {
 		return errors.New("ArtifactConfig.Directory must be a directory, but it is a file")
+	}
+
+	// Do a gitleaks scan on the source directory, fail if the command fails
+	gitleaksDirectory := p.artifactConfig.Directory
+	gitleaksFilename := path.Join(p.artifactConfig.Directory, p.artifactConfig.GitleaksFilename)
+	p.logger.Debug("open gitleaks dest file for write", "dest", gitleaksFilename)
+	err = shell.GitleaksCommand(p.Stdin, p.Stdout, p.Stderr).DetectSecrets(gitleaksDirectory, gitleaksFilename).WithDryRun(p.DryRunEnabled).Run()
+	if err != nil {
+		return err
 	}
 
 	// TODO: need syft SBOM output filename, it'll have to be saved in the artifact directory
