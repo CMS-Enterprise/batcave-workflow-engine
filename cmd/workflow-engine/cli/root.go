@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"strings"
+	"workflow-engine/pkg/pipelines"
 
 	"github.com/pelletier/go-toml/v2"
 	"github.com/spf13/cobra"
@@ -109,4 +111,48 @@ func (a *AbstractEncoder) Encode(asFormat string) error {
 		return fmt.Errorf("unsupported format: '%s'", asFormat)
 	}
 
+}
+
+// Helper Functions
+
+func ConfigFromViper(v *viper.Viper) pipelines.Config {
+	slog.Debug("decode configuration file", "source", "viper")
+
+	viperKVs := []any{}
+	for _, key := range v.AllKeys() {
+		viperKVs = append(viperKVs, key, v.Get(key))
+	}
+	slog.Debug("viper config values", viperKVs...)
+
+	return pipelines.Config{
+		Image: pipelines.ImageConfig{
+			BuildDir:        v.GetString("image.builddir"),
+			BuildDockerfile: v.GetString("image.builddockerfile"),
+			BuildTag:        v.GetString("image.buildtag"),
+			BuildPlatform:   v.GetString("image.buildplatform"),
+			BuildTarget:     v.GetString("image.buildtarget"),
+			BuildCacheTo:    v.GetString("image.buildcacheto"),
+			BuildCacheFrom:  v.GetString("image.buildcachefrom"),
+			BuildArgs:       make([][2]string, 0),
+			ScanTarget:      v.GetString("image.scantarget"),
+		},
+		Artifacts: pipelines.ArtifactConfig{
+			Directory:     v.GetString("artifacts.directory"),
+			SBOMFilename:  v.GetString("artifacts.sbomfilename"),
+			GrypeFilename: v.GetString("artifacts.grypefilename"),
+		},
+	}
+}
+
+// parseOutput splits the format and filename
+//
+// expects the `--output` argument in the <format>=<filename> format
+func parseOutput(output string) (format, filename string) {
+	switch {
+	case strings.Contains(output, "="):
+		parts := strings.Split(output, "=")
+		return parts[0], parts[1]
+	default:
+		return output, ""
+	}
 }

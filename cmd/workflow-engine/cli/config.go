@@ -1,13 +1,14 @@
 package cli
 
 import (
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
-	"strings"
 	"workflow-engine/pkg/pipelines"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 func newConfigCommand() *cobra.Command {
@@ -21,15 +22,21 @@ func newConfigCommand() *cobra.Command {
 	varsCmd.Flags().StringP("output", "o", "table", "config output format (<format>=<file>) empty will write to STDOUT, formats=[table json yaml yml toml]")
 
 	// config render
-	renderCmd := newBasicCommand("render", "render a configuration template from `--file` flag or STDIN", runConfigRender)
+	renderCmd := newBasicCommand("render", "render a configuration template (`--file` flag or STDIN) and write to STDOUT", runConfigRender)
 	renderCmd.Flags().StringP("file", "f", "", "a text file that contains placeholders")
 	renderCmd.MarkFlagFilename("file")
+
+	// config convert
+	convertCmd := newBasicCommand("convert", "convert a configuration file (`--file` or STDIN) to another format", runConfigConvert)
+	convertCmd.Flags().StringP("file", "f", "", "input file to use as source")
+	convertCmd.Flags().StringP("output", "o", "json", "config output format (<format>=<file>) empty will write to STDOUT, formats=[json yaml yml toml]")
+	convertCmd.MarkFlagFilename("file")
 
 	// config
 	cmd := &cobra.Command{Use: "config", Short: "manage the workflow engine config file"}
 
 	// add sub commands
-	cmd.AddCommand(initCmd, varsCmd, renderCmd)
+	cmd.AddCommand(initCmd, varsCmd, renderCmd, convertCmd)
 
 	return cmd
 }
@@ -38,16 +45,13 @@ func newConfigCommand() *cobra.Command {
 
 func runConfigInit(cmd *cobra.Command, _ []string) error {
 	var targetWriter io.Writer
-	var format, filename string
 
 	output, _ := cmd.Flags().GetString("output")
-	if strings.Contains(output, "=") {
-		parts := strings.Split(output, "=")
-		format, filename = parts[0], parts[1]
-	}
 
-	switch filename {
-	case "":
+	format, filename := parseOutput(output)
+
+	switch {
+	case filename == "":
 		targetWriter = cmd.OutOrStdout()
 	default:
 		slog.Debug("open", "filename", filename)
@@ -83,6 +87,54 @@ func runConfigRender(cmd *cobra.Command, _ []string) error {
 	}
 }
 
+func runConfigConvert(cmd *cobra.Command, _ []string) error {
+	configFilename, _ := cmd.Flags().GetString("file")
+
+	output, err := cmd.Flags().GetString("output")
+	if err != nil {
+		panic(err)
+	}
+
+	format, filename := parseOutput(output)
+
+	slog.Debug("config convert", "config_filename", configFilename, "output_format",
+		format, "output_filename", filename, "output_flag_value", output)
+
+	// Let viper handle unmarshalling from the various file types without env or flag values
+	tempViper := viper.New()
+
+	var readErr error
+
+	// Use config filename from flag or default to reading from STDIN
+	switch {
+	case configFilename != "":
+		tempViper.SetConfigFile(configFilename)
+		readErr = tempViper.ReadInConfig()
+	default:
+		readErr = tempViper.ReadConfig(cmd.InOrStdin())
+	}
+
+	if readErr != nil {
+		return readErr
+	}
+	config := ConfigFromViper(tempViper)
+
+	// check for a target destination filename or default to STDOUT
+	var outputWriter io.Writer
+	switch {
+	case filename != "":
+		f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return fmt.Errorf("failed to open output file: %w", err)
+		}
+		outputWriter = f
+	default:
+		outputWriter = cmd.OutOrStdout()
+	}
+
+	return writeConfigTo(outputWriter, config, format)
+}
+
 // Execution functions - contains runtime logic
 
 func writeRenderedConfigTo(w io.Writer, configTemplateFilename string) error {
@@ -96,6 +148,10 @@ func writeRenderedConfigTo(w io.Writer, configTemplateFilename string) error {
 
 func writeRenderConfigToFrom(out io.Writer, in io.Reader) error {
 	return pipelines.RenderTemplate(out, in)
+}
+
+func writeConfigTo(w io.Writer, config pipelines.Config, asFormat string) error {
+	return NewAbstractEncoder(w, config).Encode(asFormat)
 }
 
 func writeBuiltins(w io.Writer, asFormat string) error {
