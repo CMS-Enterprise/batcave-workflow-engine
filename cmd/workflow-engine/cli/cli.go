@@ -238,6 +238,7 @@ func (a *App) loadConfig() error {
 	l.Debug("decode configuration file")
 	a.cfg = &pipelines.Config{
 		Image: pipelines.ImageConfig{
+
 			BuildDir:        viper.GetString("image.builddir"),
 			BuildDockerfile: viper.GetString("image.builddockerfile"),
 			BuildTag:        viper.GetString("image.buildtag"),
@@ -247,6 +248,7 @@ func (a *App) loadConfig() error {
 			BuildCacheFrom:  viper.GetString("image.buildcachefrom"),
 			BuildArgs:       make([][2]string, 0),
 			ScanTarget:      viper.GetString("image.scantarget"),
+
 		},
 		Artifacts: pipelines.ArtifactConfig{
 			Directory:     viper.GetString("artifacts.directory"),

@@ -1,0 +1,67 @@
+name: Build Image
+description: Builds a Container Image using workflow-engine
+
+inputs:
+  workflow_engine_version:
+    description: "The version of workflow-engine to use (note: different versions of the workflow-engine image may not be compatible with this version of the GitHub action)."
+    default: "v0.0.1-rc.3"
+  path:
+    description: The path where the container should be built from (defaults to the root of the repository).
+  dockerfile:
+    description: The filename (or path relative to build_dir) of the Dockerfile to build.
+  image_tag:
+    description: The tag to use for the image being built (defaults to the repository name and current commit SHA).
+    default: ${{ github.repository }}:${{ github.sha }}
+  platform:
+    description: The platform to build tha container image for.
+  build_target:
+    description: When using a multi-stage docker file, name of the build target to create an image for (as defined in the Dockerfile).
+  cache_from:
+    description: A remote container registry location to check for existing cached layers when building a container image.
+  cache_to:
+    description: A remote container registry location to push intermediate layers for caching purposes.
+  squash_layers:
+    description: When set to true, squashes the layers of the container image at the end of the build process.
+    default: "true"
+  repo_token:
+    description: The GITHUB_TOKEN environment variable, used to authentication with the ghcr.io container registry.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # This hack is necessary so long as the workflow-engine image is in a registry requiring
+    # authentication. However, there may be ather workarounds if we are using self-hosted runners
+    # where we can configure the runner to pre-authenticate with the registry
+    - uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ inputs.repo_token }}
+    - shell: bash
+      run: docker pull ghcr.io/cms-enterprise/batcave/workflow-engine:${{ inputs.workflow_engine_version }}
+    - shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.repo_token }}
+      run: |-
+        # login with ghcr *inside* the workflow-engine container
+        # TODO: Make this dynamic and configurable (the user may need to authenticate with multiple registries besides ghcr.io)
+        docker run -i -e HOME -v "$HOME":"/github/home" --name workflow_engine_local --entrypoint sh \
+          ghcr.io/cms-enterprise/batcave/workflow-engine:${{ inputs.workflow_engine_version }} \
+          -c 'docker login -u "${{ github.actor }}" --password-stdin ghcr.io' <<< "$GITHUB_TOKEN"
+        docker commit workflow_engine_local workflow_engine_local
+        docker run --workdir /github/workspace -e HOME -e CI=true \
+          -v "/var/run/docker.sock":"/var/run/docker.sock" \
+          -v "$HOME":"/github/home" \
+          -v "$(pwd)":"/github/workspace" \
+          --entrypoint workflow-engine \
+          workflow_engine_local \
+          run image-build \
+          --build-dir "${{ inputs.path }}" \
+          --dockerfile "${{ inputs.dockerfile }}" \
+          --tag "${{ inputs.image_tag }}" \
+          --platform "${{ inputs.platform }}" \
+          --target "${{ inputs.build_target }}" \
+          --cache-from "${{ inputs.cache_from }}" \
+          --cache-to "${{ inputs.cache_to }}" \
+          --squash-layers=${{ inputs.squash_layers }}
