@@ -12,6 +12,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 ### Changed
 
 - refactored CLI for readability and maintenance
+- upgraded to go 1.22.0
 
 ### Added
 
