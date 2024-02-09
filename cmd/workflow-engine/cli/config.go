@@ -1,40 +1,42 @@
 package cli
 
 import (
-	"encoding/json"
-	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"strings"
 	"workflow-engine/pkg/pipelines"
 
-	"github.com/pelletier/go-toml/v2"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
 
 func newConfigCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "config",
-		Short: "Manage the configuration file",
-	}
 
-	cmd.AddCommand(newConfigInitCommand(), newConfigBuiltinCommand())
+	// config init
+	initCmd := newBasicCommand("init", "write the default configuration file", runConfigInit)
+	initCmd.Flags().StringP("output", "o", "yaml", "config output format (<format>=<file>) empty will write to STDOUT, formats=[json yaml yml toml]")
+
+	// config vars
+	varsCmd := newBasicCommand("vars", "list supported builtin variables that can be used in templates", runConfigVars)
+	varsCmd.Flags().StringP("output", "o", "table", "config output format (<format>=<file>) empty will write to STDOUT, formats=[table json yaml yml toml]")
+
+	// config render
+	renderCmd := newBasicCommand("render", "render a configuration template from `--file` flag or STDIN", runConfigRender)
+	renderCmd.Flags().StringP("file", "f", "", "a text file that contains placeholders")
+	renderCmd.MarkFlagFilename("file")
+
+	// config
+	cmd := &cobra.Command{Use: "config", Short: "manage the workflow engine config file"}
+
+	// add sub commands
+	cmd.AddCommand(initCmd, varsCmd, renderCmd)
+
 	return cmd
 }
 
-func newConfigInitCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "init",
-		Short: "Output the default configuration file to stdout",
-		RunE:  configInitRun,
-	}
-	cmd.Flags().StringP("output", "o", "yaml", "config output format (<format>=<file>) empty will write to STDOUT, formats=[json yaml yml toml]")
-	return cmd
-}
+// Run Functions - responsible for parsing flags at runtime
 
-func configInitRun(cmd *cobra.Command, _ []string) error {
+func runConfigInit(cmd *cobra.Command, _ []string) error {
 	var targetWriter io.Writer
 	var format, filename string
 
@@ -65,29 +67,35 @@ func configInitRun(cmd *cobra.Command, _ []string) error {
 	return nil
 }
 
-func newConfigBuiltinCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "builtins",
-		Short: "List supported built-in template variables",
-		RunE:  configBuiltinRun,
-	}
-	cmd.Aliases = []string{"vars", "env"}
-	cmd.Flags().StringP("output", "o", "table", "config output format (<format>=<file>) empty will write to STDOUT, formats=[table env json yaml yml toml]")
-	return cmd
-}
-
-func configBuiltinRun(cmd *cobra.Command, _ []string) error {
+func runConfigVars(cmd *cobra.Command, _ []string) error {
 	output, _ := cmd.Flags().GetString("output")
 
 	return writeBuiltins(cmd.OutOrStdout(), output)
 }
 
+func runConfigRender(cmd *cobra.Command, _ []string) error {
+	tmplFilename, _ := cmd.Flags().GetString("file")
+	switch {
+	case tmplFilename == "":
+		return writeRenderConfigToFrom(cmd.OutOrStdout(), cmd.InOrStdin())
+	default:
+		return writeRenderedConfigTo(cmd.OutOrStdout(), tmplFilename)
+	}
+}
+
+// Execution functions - contains runtime logic
+
 func writeRenderedConfigTo(w io.Writer, configTemplateFilename string) error {
+	slog.Debug("open render src", "src_filename", configTemplateFilename)
 	f, err := os.Open(configTemplateFilename)
 	if err != nil {
 		return err
 	}
 	return pipelines.RenderTemplate(w, f)
+}
+
+func writeRenderConfigToFrom(out io.Writer, in io.Reader) error {
+	return pipelines.RenderTemplate(out, in)
 }
 
 func writeBuiltins(w io.Writer, asFormat string) error {
@@ -96,68 +104,9 @@ func writeBuiltins(w io.Writer, asFormat string) error {
 		return err
 	}
 
-	printableBuiltins := printableMap(builtins)
-
-	switch asFormat {
-	case "table":
-		printableBuiltins.WriteTableTo(w)
-	case "json":
-		printableBuiltins.encodeJSON(w)
-	case "yaml", "yml":
-		printableBuiltins.encodeYAML(w)
-	case "toml":
-		printableBuiltins.encodeTOML(w)
-	default:
-		return fmt.Errorf("unsupported format: '%s'", asFormat)
-
-	}
-	return nil
-}
-
-type printableMap map[string]string
-
-func (p printableMap) encodeJSON(w io.Writer) {
-	enc := json.NewEncoder(w)
-	enc.SetIndent("", "  ")
-	_ = enc.Encode(p)
-}
-
-func (p printableMap) encodeYAML(w io.Writer) {
-	enc := yaml.NewEncoder(w)
-	enc.SetIndent(4)
-	_ = enc.Encode(p)
-}
-
-func (p printableMap) encodeTOML(w io.Writer) {
-	toml.NewEncoder(w).Encode(p)
-}
-
-func (p printableMap) WriteTableTo(w io.Writer) {
-	for key, value := range p {
-		s := fmt.Sprintf("%-25s %s", key, value)
-		fmt.Fprintln(w, s)
-	}
+	return NewAbstractEncoder(w, builtins).Encode(asFormat)
 }
 
 func writeExampleTo(w io.Writer, asFormat string) error {
-	type encoder interface {
-		Encode(any) error
-	}
-	var enc encoder
-	switch asFormat {
-	case "json":
-		jsonEnc := json.NewEncoder(w)
-		jsonEnc.SetIndent("", "  ")
-		enc = jsonEnc
-	case "yaml", "yml":
-		yamlEnc := yaml.NewEncoder(w)
-		yamlEnc.SetIndent(4)
-		enc = yamlEnc
-	case "toml":
-		enc = toml.NewEncoder(w)
-	default:
-		return fmt.Errorf("unsupported format: '%s'", asFormat)
-	}
-
-	return enc.Encode(pipelines.NewDefaultConfig())
+	return NewAbstractEncoder(w, pipelines.NewDefaultConfig()).Encode(asFormat)
 }
