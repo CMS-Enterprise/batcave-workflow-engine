@@ -17,8 +17,8 @@ type Debug struct {
 }
 
 // NewDebug creates a new debug pipeline with custom stdout and stderr
-func NewDebug(stdinR io.Reader, stdoutW io.Writer, stderrW io.Writer) *Debug {
-	return &Debug{Stdin: stdinR, Stdout: stdoutW, Stderr: stderrW, DryRunEnabled: false}
+func NewDebug(stdoutW io.Writer, stderrW io.Writer) *Debug {
+	return &Debug{Stdin: os.Stdin, Stdout: stdoutW, Stderr: stderrW, DryRunEnabled: false}
 }
 
 // Run prints the version for all expected commands

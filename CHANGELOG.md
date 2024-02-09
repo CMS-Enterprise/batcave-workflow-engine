@@ -9,9 +9,15 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ## [UNRELEASED]
 
+### Changed
+
+- refactored CLI for readability and maintenance
+
 ### Added
 
 - Configuration File template rendering with built-in values
+- Configuration conversions
+- Configuration init with the format option 
 
 ### Fixed
 

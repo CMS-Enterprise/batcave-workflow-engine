@@ -43,9 +43,9 @@ func (p *ImageScan) WithImageName(imageName string) *ImageScan {
 	return p
 }
 
-func NewImageScan(stdin io.Reader, stdout io.Writer, stderr io.Writer) *ImageScan {
+func NewImageScan(stdout io.Writer, stderr io.Writer) *ImageScan {
 	return &ImageScan{
-		Stdin:  stdin,
+		Stdin:  os.Stdin, // Default to OS stdin
 		Stdout: stdout,
 		Stderr: stderr,
 		artifactConfig: ArtifactConfig{

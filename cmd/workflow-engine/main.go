@@ -18,15 +18,16 @@ const exitCommandFailure = 3
 const pipelineTypeDebug = "debug"
 
 func main() {
+	lvler := &slog.LevelVar{}
+	lvler.Set(slog.LevelInfo)
 	// Set up custom structured logging with colorized output
 	slog.SetDefault(slog.New(tint.NewHandler(os.Stderr, &tint.Options{
-		Level:      slog.LevelDebug,
+		Level:      lvler,
 		TimeFormat: time.TimeOnly,
 	})))
 
-	app := cli.NewApp()
-
-	if err := app.Execute(); err != nil {
+	cmd := cli.NewWorkflowEngineCommand(lvler)
+	if err := cmd.Execute(); err != nil {
 		slog.Error("command execution failure. See log for details")
 		os.Exit(exitCommandFailure)
 	}

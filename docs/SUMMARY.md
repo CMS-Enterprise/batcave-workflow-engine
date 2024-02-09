@@ -6,6 +6,7 @@
 
 - [Installation](installation.md)
 - [Getting Started](getting_started.md)
+- [Configuration](configuration.md)
 
 # Pipelines
 

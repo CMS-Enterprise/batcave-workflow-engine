@@ -57,7 +57,11 @@ func (e *Executable) WithArgs(args ...string) *Executable {
 // NewExecutable creates an Executable initialized with the given executable name
 // it does not check if the given command is present on the $PATH
 func NewExecutable(executableName string) *Executable {
-	return &Executable{Cmd: *exec.Command(executableName)}
+	exe := exec.Command(executableName)
+	exe.Stderr = os.Stderr
+	exe.Stdin = os.Stdin
+	exe.Stdout = os.Stdout
+	return &Executable{Cmd: *exe}
 }
 
 // Runner is the interface that wraps the Run method.
