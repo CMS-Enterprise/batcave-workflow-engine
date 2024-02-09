@@ -3,8 +3,10 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
+	"strings"
 	"workflow-engine/pkg/pipelines"
 
 	"github.com/spf13/cobra"
@@ -44,7 +46,7 @@ func (a *App) Init() {
 		Use:   "debug",
 		Short: "Run the debug pipeline",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return debugPipeline(cmd, a.flagDryRun)
+			return debugPipeline(cmdIO(cmd), a.flagDryRun)
 		},
 	}
 
@@ -52,10 +54,10 @@ func (a *App) Init() {
 		Use:   "image-build",
 		Short: "Build a container image",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := a.loadConfig(cmd, args); err != nil {
+			if err := a.loadConfig(); err != nil {
 				return err
 			}
-			return imageBuildPipeline(cmd, a.flagDryRun, imageBuildCmd(*a.flagCLICmd), a.cfg.Image)
+			return imageBuildPipeline(cmdIO(cmd), *a.flagDryRun, imageBuildCmd(*a.flagCLICmd), a.cfg.Image)
 		},
 	}
 
@@ -63,10 +65,10 @@ func (a *App) Init() {
 		Use:   "image-scan",
 		Short: "Scan a container image",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := a.loadConfig(cmd, args); err != nil {
+			if err := a.loadConfig(); err != nil {
 				return err
 			}
-			return imageScanPipeline(cmd, a.flagDryRun, a.cfg.Artifacts, a.cfg.Image.ScanTarget)
+			return imageScanPipeline(cmdIO(cmd), *a.flagDryRun, a.cfg.Artifacts, a.cfg.Image.ScanTarget)
 		},
 	}
 
@@ -82,7 +84,7 @@ func (a *App) Init() {
 		Use:   "init",
 		Short: "Output the default configuration file to stdout",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return configInit(cmd)
+			return writeConfigExample(cmd.OutOrStdout())
 		},
 	}
 
@@ -91,7 +93,7 @@ func (a *App) Init() {
 		Short: "Render a configuration template and output to STDOUT",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return configRender(cmd, args[0])
+			return writeRenderedConfig(cmd.OutOrStdout(), args[0])
 		},
 	}
 
@@ -99,7 +101,7 @@ func (a *App) Init() {
 		Use:   "builtins",
 		Short: "List supported built-in template variables",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return configBuiltins(cmd)
+			return configBuiltins(cmd.OutOrStdout())
 		},
 	}
 
@@ -158,43 +160,43 @@ func (a *App) Init() {
 
 	// Image Build Bindings
 	//   Viper bind config keys to flag values and environment variables
-	viper.BindPFlag("buildDir", imagebuildCmd.Flags().Lookup("build-dir"))
-	viper.MustBindEnv("buildDir", "WFE_BUILD_DIR")
+	viper.BindPFlag("image.builddir", imagebuildCmd.Flags().Lookup("build-dir"))
+	viper.MustBindEnv("image.builddir", "WFE_BUILD_DIR")
 
-	viper.BindPFlag("buildDockerfile", imagebuildCmd.Flags().Lookup("dockerfile"))
-	viper.MustBindEnv("buildDockerfile", "WFE_BUILD_DOCKERFILE")
+	viper.BindPFlag("image.builddockerfile", imagebuildCmd.Flags().Lookup("dockerfile"))
+	viper.MustBindEnv("image.builddockerfile", "WFE_BUILD_DOCKERFILE")
 
-	viper.BindPFlag("buildTag", imagebuildCmd.Flags().Lookup("tag"))
-	viper.MustBindEnv("buildTag", "WFE_BUILD_TAG")
+	viper.BindPFlag("image.buildtag", imagebuildCmd.Flags().Lookup("tag"))
+	viper.MustBindEnv("image.buildtag", "WFE_BUILD_TAG")
 
-	viper.BindPFlag("buildPlatform", imagebuildCmd.Flags().Lookup("platform"))
-	viper.MustBindEnv("buildPlatform", "WFE_BUILD_PLATFORM")
+	viper.BindPFlag("image.buildplatform", imagebuildCmd.Flags().Lookup("platform"))
+	viper.MustBindEnv("image.buildplatform", "WFE_BUILD_PLATFORM")
 
-	viper.BindPFlag("buildTarget", imagebuildCmd.Flags().Lookup("target"))
-	viper.MustBindEnv("buildTarget", "WFE_BUILD_TARGET")
+	viper.BindPFlag("image.buildtarget", imagebuildCmd.Flags().Lookup("target"))
+	viper.MustBindEnv("image.buildtarget", "WFE_BUILD_TARGET")
 
-	viper.BindPFlag("buildCacheTo", imagebuildCmd.Flags().Lookup("cache-to"))
-	viper.MustBindEnv("buildCacheTo", "WFE_BUILD_CACHE_TO")
+	viper.BindPFlag("image.buildcacheto", imagebuildCmd.Flags().Lookup("cache-to"))
+	viper.MustBindEnv("image.buildcacheto", "WFE_BUILD_CACHE_TO")
 
-	viper.BindPFlag("buildCacheFrom", imagebuildCmd.Flags().Lookup("cache-from"))
-	viper.MustBindEnv("buildCacheFrom", "WFE_BUILD_CACHE_FROM")
+	viper.BindPFlag("image.buildcachefrom", imagebuildCmd.Flags().Lookup("cache-from"))
+	viper.MustBindEnv("image.buildcachefrom", "WFE_BUILD_CACHE_FROM")
 
-	viper.BindPFlag("buildSquashLayers", imagebuildCmd.Flags().Lookup("squash-layers"))
-	viper.MustBindEnv("buildSquashLayers", "WFE_BUILD_SQUASH_LAYERS")
+	viper.BindPFlag("image.buildsquashlayers", imagebuildCmd.Flags().Lookup("squash-layers"))
+	viper.MustBindEnv("image.buildsquashlayers", "WFE_BUILD_SQUASH_LAYERS")
 
 	// Image Scan Bindings
-	viper.BindPFlag("artifactDirectory", imageScanCmd.Flags().Lookup("artifact-directory"))
-	viper.MustBindEnv("artifactDirectory", "WFE_ARTIFACT_DIRECTORY")
+	viper.BindPFlag("artifacts.directory", imageScanCmd.Flags().Lookup("artifact-directory"))
+	viper.MustBindEnv("artifacts.directory", "WFE_ARTIFACT_DIRECTORY")
 
-	viper.BindPFlag("sbomFilename", imageScanCmd.Flags().Lookup("sbom-filename"))
-	viper.MustBindEnv("sbomFilename", "WFE_SBOM_FILENAME")
+	viper.BindPFlag("artifacts.sbomfilename", imageScanCmd.Flags().Lookup("sbom-filename"))
+	viper.MustBindEnv("artifacts.sbomfilename", "WFE_SBOM_FILENAME")
 
-	viper.BindPFlag("grypeFilename", imageScanCmd.Flags().Lookup("grype-filename"))
-	viper.MustBindEnv("grypeFilename", "WFE_GRYPE_FILENAME")
+	viper.BindPFlag("artifacts.grypefilename", imageScanCmd.Flags().Lookup("grype-filename"))
+	viper.MustBindEnv("artifacts.grypefilename", "WFE_GRYPE_FILENAME")
 
 	// TODO: need to consider the logic for overthe build tag here
-	viper.BindPFlag("scanImageTarget", imageScanCmd.Flags().Lookup("scan-image-target"))
-	viper.MustBindEnv("scanImageTarget", "WFE_SCAN_IMAGE_TARGET")
+	viper.BindPFlag("image.scantarget", imageScanCmd.Flags().Lookup("scan-image-target"))
+	viper.MustBindEnv("image.scantarget", "WFE_SCAN_IMAGE_TARGET")
 
 	a.cmd.AddCommand(runCmd, configCmd)
 }
@@ -204,14 +206,14 @@ func (a *App) Execute() error {
 	return a.cmd.Execute()
 }
 
-func (a *App) loadConfig(cmd *cobra.Command, args []string) error {
+func (a *App) loadConfig() error {
 	l := slog.Default().With("step", "load_config")
 
 	l.Debug("check config file flag value")
 	configFile, _ := a.cmd.PersistentFlags().GetString("config")
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
-		return nil
+		l.Debug("viper config file set", "config_file", configFile)
 	}
 
 	// viper reads in config values from all sources based on precedence
@@ -226,25 +228,32 @@ func (a *App) loadConfig(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	var sb strings.Builder
+	for _, key := range viper.AllKeys() {
+		slog.Debug("config", "key", key, "value", fmt.Sprintf("%v", viper.Get(key)))
+	}
+	slog.Debug(sb.String())
+
 	// viper will unmarshal the values into the cfg object
 	l.Debug("decode configuration file")
 	a.cfg = &pipelines.Config{
 		Image: pipelines.ImageConfig{
-			BuildDir:          viper.GetString("buildDir"),
-			BuildDockerfile:   viper.GetString("buildDockerfile"),
-			BuildTag:          viper.GetString("buildTag"),
-			BuildPlatform:     viper.GetString("buildPlatform"),
-			BuildTarget:       viper.GetString("buildTarget"),
-			BuildCacheTo:      viper.GetString("buildCacheTo"),
-			BuildCacheFrom:    viper.GetString("buildCacheFrom"),
-      BuildSquashLayers: viper.GetBool("buildSquashLayers"),
-			BuildArgs:         make([][2]string, 0),
-			ScanTarget:        viper.GetString("scanImageTarget"),
+
+			BuildDir:        viper.GetString("image.builddir"),
+			BuildDockerfile: viper.GetString("image.builddockerfile"),
+			BuildTag:        viper.GetString("image.buildtag"),
+			BuildPlatform:   viper.GetString("image.buildplatform"),
+			BuildTarget:     viper.GetString("image.buildtarget"),
+			BuildCacheTo:    viper.GetString("image.buildcacheto"),
+			BuildCacheFrom:  viper.GetString("image.buildcachefrom"),
+			BuildArgs:       make([][2]string, 0),
+			ScanTarget:      viper.GetString("image.scantarget"),
+
 		},
 		Artifacts: pipelines.ArtifactConfig{
-			Directory:     viper.GetString("artifactDirectory"),
-			SBOMFilename:  viper.GetString("sbomFilename"),
-			GrypeFilename: viper.GetString("grypeFilename"),
+			Directory:     viper.GetString("artifacts.directory"),
+			SBOMFilename:  viper.GetString("artifacts.sbomfilename"),
+			GrypeFilename: viper.GetString("artifacts.grypefilename"),
 		},
 	}
 
@@ -252,34 +261,49 @@ func (a *App) loadConfig(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func configInit(cmd *cobra.Command) error {
-	enc := json.NewEncoder(cmd.OutOrStdout())
+type customIO struct {
+	stdin  io.Reader
+	stdout io.Writer
+	stderr io.Writer
+}
+
+// cmdIO links the cobra command IO defaults to a customIO object
+func cmdIO(cmd *cobra.Command) customIO {
+	return customIO{
+		stdin:  cmd.InOrStdin(),
+		stdout: cmd.OutOrStdout(),
+		stderr: cmd.ErrOrStderr(),
+	}
+}
+
+func writeConfigExample(w io.Writer) error {
+	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(pipelines.NewDefaultConfig())
 }
 
-func configRender(cmd *cobra.Command, configTemplateFilename string) error {
+func writeRenderedConfig(w io.Writer, configTemplateFilename string) error {
 	f, err := os.Open(configTemplateFilename)
 	if err != nil {
 		return err
 	}
-	return pipelines.RenderTemplate(cmd.OutOrStdout(), f)
+	return pipelines.RenderTemplate(w, f)
 }
 
-func configBuiltins(cmd *cobra.Command) error {
+func configBuiltins(w io.Writer) error {
 	builtins, err := pipelines.BuiltIns()
 	if err != nil {
 		return err
 	}
 	for key, value := range builtins {
 		s := fmt.Sprintf("%-25s %s", key, value)
-		cmd.Println(s)
+		fmt.Fprintln(w, s)
 	}
 	return nil
 }
 
-func debugPipeline(cmd *cobra.Command, dryRun *bool) error {
-	pipeline := pipelines.NewDebug(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr())
+func debugPipeline(cio customIO, dryRun *bool) error {
+	pipeline := pipelines.NewDebug(cio.stdin, cio.stderr, cio.stdout)
 	pipeline.DryRunEnabled = *dryRun
 	return pipeline.Run()
 }
@@ -291,18 +315,18 @@ const (
 	cliPodman               = "podman"
 )
 
-func imageBuildPipeline(cmd *cobra.Command, dryRun *bool, cliCmd imageBuildCmd, config pipelines.ImageConfig) error {
-	pipeline := pipelines.NewImageBuild(cmd.OutOrStdout(), cmd.ErrOrStderr())
-	pipeline.DryRunEnabled = *dryRun
+func imageBuildPipeline(cio customIO, dryRunEnabled bool, cliCmd imageBuildCmd, config pipelines.ImageConfig) error {
+	pipeline := pipelines.NewImageBuild(cio.stdout, cio.stderr)
+	pipeline.DryRunEnabled = dryRunEnabled
 	if cliCmd == cliPodman {
 		pipeline = pipeline.WithPodman()
 	}
 	return pipeline.WithBuildConfig(config).Run()
 }
 
-func imageScanPipeline(cmd *cobra.Command, dryRun *bool, config pipelines.ArtifactConfig, imageName string) error {
-	pipeline := pipelines.NewImageScan(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr())
-	pipeline.DryRunEnabled = *dryRun
+func imageScanPipeline(cio customIO, dryRunEnabled bool, config pipelines.ArtifactConfig, imageName string) error {
+	pipeline := pipelines.NewImageScan(cio.stdin, cio.stdout, cio.stderr)
+	pipeline.DryRunEnabled = dryRunEnabled
 
 	return pipeline.WithArtifactConfig(config).WithImageName(imageName).Run()
 }
