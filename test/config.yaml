@@ -1,0 +1,16 @@
+image:
+    buildDir: .
+    buildDockerfile: Dockerfile
+    buildTag: ""
+    buildPlatform: ""
+    buildTarget: ""
+    buildCacheTo: ""
+    buildCacheFrom: ""
+    buildSquashLayers: false
+    buildArgs: []
+    scanTarget: ""
+artifacts:
+    directory: artifacts
+    sbomFilename: syft-sbom.json
+    grypeFilename: grype-report.json
+    gitleaksFilename: gitleaks-report.json
