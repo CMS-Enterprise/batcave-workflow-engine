@@ -42,6 +42,7 @@ func (d *Debug) Run() error {
 	errs := errors.Join(
 		shell.GrypeCommand(d.Stdin, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
 		shell.SyftCommand(d.Stdin, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
+		shell.GitleaksCommand(d.Stdin, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
 	)
 
 	// Just log errors for optional commands

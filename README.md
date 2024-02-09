@@ -43,11 +43,11 @@ workflow-engine run debug
 
 Configuration Options:
 
-* Configuration via CLI flags
-* Environment Variables
-* Config File in JSON
-* Config File in YAML
-* Config File in TOML
+- Configuration via CLI flags
+- Environment Variables
+- Config File in JSON
+- Config File in YAML
+- Config File in TOML
 
 Configuration Order-of-Precedence:
 
@@ -56,31 +56,30 @@ Configuration Order-of-Precedence:
 3. Config File Value
 4. Default Value
 
-
-
-| Variable Name             | Type   | Default | CLI Flag             | Config Field Name         | Description                                          |
-| ------------------------- | ------ | ------- | -------------------- | ------------------------- | ---------------------------------------------------- |
-| `WFE_BUILD_DIR`           | string |         | --build-dir          | `image.buildDir`          | The container build directory                        |
-| `WFE_BUILD_DOCKERFILE`    | string |         | --dockerfile         | `image.buildDockerfile`   | The name of the Dockerfile to build and scan         |
-| `WFE_BUILD_TAG`           | string |         | --tag                | `image.buildTag`          | The container build tag to use for building an image |
-| `WFE_BUILD_PLATFORM`      | string |         | --platform           | `image.buildPlatform`     | The container build platform                         |
-| `WFE_BUILD_TARGET`        | string |         | --target             | `image.buildTarget`       | The container build target                           |
-| `WFE_BUILD_CACHE_TO`      | string |         | --cache-to           | `image.buildCacheTo`      | The container cache to directory                     |
-| `WFE_BUILD_CACHE_FROM`    | string |         | --cache-from         | `image.buildCacheFrom`    | The container cache from directory                   |
-| `WFE_BUILD_SQUASH_LAYERS` | bool   |         | --squash-layers      | `image.buildSquashLayers` | Flag to squash layers                                |
-| `WFE_SCAN_IMAGE_TARGET`   | string |         | --scan-image-target  | `image.scanTarget`        | The scan image tag name                              |
-| `WFE_ARTIFACT_DIRECTORY`  | string |         | --artifact-directory | `artifacts.directory`     | The directory to store artifacts                     |
-| `WFE_SBOM_FILENAME`       | string |         | --sbom-filename      | `artifacts.sbomFilename`  | The SBOM file name                                   |
-| `WFE_GRYPE_FILENAME`      | string |         | --grype-filename     | `artifacts.grypeFilename` | The Grype file name                                  |
+| Variable Name             | Type   | Default | CLI Flag             | Config Field Name            | Description                                          |
+| ------------------------- | ------ | ------- | -------------------- | ---------------------------- | ---------------------------------------------------- |
+| `WFE_BUILD_DIR`           | string |         | --build-dir          | `image.buildDir`             | The container build directory                        |
+| `WFE_BUILD_DOCKERFILE`    | string |         | --dockerfile         | `image.buildDockerfile`      | The name of the Dockerfile to build and scan         |
+| `WFE_BUILD_TAG`           | string |         | --tag                | `image.buildTag`             | The container build tag to use for building an image |
+| `WFE_BUILD_PLATFORM`      | string |         | --platform           | `image.buildPlatform`        | The container build platform                         |
+| `WFE_BUILD_TARGET`        | string |         | --target             | `image.buildTarget`          | The container build target                           |
+| `WFE_BUILD_CACHE_TO`      | string |         | --cache-to           | `image.buildCacheTo`         | The container cache to directory                     |
+| `WFE_BUILD_CACHE_FROM`    | string |         | --cache-from         | `image.buildCacheFrom`       | The container cache from directory                   |
+| `WFE_BUILD_SQUASH_LAYERS` | bool   |         | --squash-layers      | `image.buildSquashLayers`    | Flag to squash layers                                |
+| `WFE_SCAN_IMAGE_TARGET`   | string |         | --scan-image-target  | `image.scanTarget`           | The scan image tag name                              |
+| `WFE_ARTIFACT_DIRECTORY`  | string |         | --artifact-directory | `artifacts.directory`        | The directory to store artifacts                     |
+| `WFE_SBOM_FILENAME`       | string |         | --sbom-filename      | `artifacts.sbomFilename`     | The SBOM file name                                   |
+| `WFE_GRYPE_FILENAME`      | string |         | --grype-filename     | `artifacts.grypeFilename`    | The Grype file name                                  |
+| `WFE_GITLEAKS_FILENAME`   | string |         | --gitleaks-filename  | `artifacts.gitleaksFilename` | The Gitleaks file name                               |
 
 ## Running in Docker
 
-When running workflow-engine in a docker container there are some pipelines that need to run docker commands. 
-In order for the docker CLI in the workflow-engine to connect to the docker daemon running on the host machine, 
-you must either mount the `/var/run/docker.sock` in the `workflow-engine` container, or provide configuration for 
+When running workflow-engine in a docker container there are some pipelines that need to run docker commands.
+In order for the docker CLI in the workflow-engine to connect to the docker daemon running on the host machine,
+you must either mount the `/var/run/docker.sock` in the `workflow-engine` container, or provide configuration for
 accessing the docker daemon remotely with the `DOCKER_HOST` environment variable.
 
-If you don't have access to Artifactory to pull in the Omnibus base image, you can build the image manually which is 
+If you don't have access to Artifactory to pull in the Omnibus base image, you can build the image manually which is
 in `images/omnibus/Dockerfile`.
 
 ### Using `/var/run/docker.sock`
@@ -101,8 +100,8 @@ docker run -it --rm \
 
 ### Using a Remote Daemon
 
-For more information see the 
-[Docker CLI](https://docs.docker.com/engine/reference/commandline/cli/#environment-variables) and 
+For more information see the
+[Docker CLI](https://docs.docker.com/engine/reference/commandline/cli/#environment-variables) and
 [Docker Daemon](https://docs.docker.com/config/daemon/remote-access/) documentation pages.
 
 ### Using Podman in Docker

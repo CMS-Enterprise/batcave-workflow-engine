@@ -22,9 +22,10 @@ type Config struct {
 }
 
 type ArtifactConfig struct {
-	Directory     string `json:"directory" yaml:"directory" toml:"directory"`
-	SBOMFilename  string `json:"sbomFilename" yaml:"sbomFilename" toml:"sbomFilename"`
-	GrypeFilename string `json:"grypeFilename" yaml:"grypeFilename" toml:"grypeFilename"`
+	Directory        string `json:"directory" yaml:"directory" toml:"directory"`
+	SBOMFilename     string `json:"sbomFilename" yaml:"sbomFilename" toml:"sbomFilename"`
+	GrypeFilename    string `json:"grypeFilename" yaml:"grypeFilename" toml:"grypeFilename"`
+	GitleaksFilename string `json:"gitleaksFilename" yaml:"gitleaksFilename" toml:"gitleaksFilename"`
 }
 
 // ImageConfig is a struct representation of the Image field in the Config file
@@ -52,9 +53,10 @@ func NewDefaultConfig() *Config {
 			BuildArgs:       make([][2]string, 0),
 		},
 		Artifacts: ArtifactConfig{
-			Directory:     "artifacts",
-			SBOMFilename:  "syft-sbom.json",
-			GrypeFilename: "grype-report.json",
+			Directory:        "artifacts",
+			SBOMFilename:     "syft-sbom.json",
+			GrypeFilename:    "grype-report.json",
+			GitleaksFilename: "gitleaks-report.json",
 		},
 	}
 }
