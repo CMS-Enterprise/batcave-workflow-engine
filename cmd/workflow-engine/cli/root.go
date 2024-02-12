@@ -45,7 +45,7 @@ func NewWorkflowEngineCommand(logLeveler *slog.LevelVar) *cobra.Command {
 	cmd.MarkFlagsMutuallyExclusive("verbose", "silent")
 
 	// Add Sub-commands
-	cmd.AddCommand(newConfigCommand())
+	cmd.AddCommand(newConfigCommand(), newRunCommand())
 
 	return cmd
 }

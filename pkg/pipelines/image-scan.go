@@ -10,8 +10,6 @@ import (
 	"workflow-engine/pkg/shell"
 )
 
-const mockSBOMFilename = "../../test/ubuntu_latest_20240125.syft_sbom.json"
-
 type ImageScan struct {
 	Stdin          io.Reader
 	Stdout         io.Writer
