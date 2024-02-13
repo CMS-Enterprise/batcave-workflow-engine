@@ -10,7 +10,8 @@ image:
     buildArgs: []
     scanTarget: ""
 artifacts:
-    directory: artifacts
+    directory: .artifacts
     sbomFilename: syft-sbom.json
     grypeFilename: grype-report.json
     gitleaksFilename: gitleaks-report.json
+    semgrepFilename: semgrep-sast-report.json
