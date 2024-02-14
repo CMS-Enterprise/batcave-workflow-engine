@@ -30,12 +30,6 @@ func NewWorkflowEngineCommand(logLeveler *slog.LevelVar) *cobra.Command {
 				logLeveler.Set(slog.LevelError)
 			}
 
-			viperKVs := []any{}
-			for _, key := range viper.AllKeys() {
-				viperKVs = append(viperKVs, key, viper.Get(key))
-			}
-			slog.Debug("config values", viperKVs...)
-
 		},
 	}
 
@@ -43,6 +37,9 @@ func NewWorkflowEngineCommand(logLeveler *slog.LevelVar) *cobra.Command {
 	cmd.PersistentFlags().BoolP("verbose", "v", false, "verbose logging output")
 	cmd.PersistentFlags().BoolP("silent", "q", false, "only log errors")
 	cmd.MarkFlagsMutuallyExclusive("verbose", "silent")
+
+	// Turn off usage after an error occurs which polutes the terminal
+	cmd.SilenceUsage = true
 
 	// Add Sub-commands
 	cmd.AddCommand(newConfigCommand(), newRunCommand())
@@ -117,12 +114,12 @@ func (a *AbstractEncoder) Encode(asFormat string) error {
 
 // ConfigFromViper sets the configuration values to a config object from env, flags, or config file
 func ConfigFromViper(v *viper.Viper) pipelines.Config {
-	viperKVs := []any{}
-	for _, key := range v.AllKeys() {
-		viperKVs = append(viperKVs, key, v.Get(key))
-	}
-	slog.Debug("viper config values", viperKVs...)
 
+	viperKVs := []any{}
+	for _, key := range viper.AllKeys() {
+		viperKVs = append(viperKVs, key, viper.Get(key))
+	}
+	slog.Debug("config values", viperKVs...)
 	return pipelines.Config{
 		Image: pipelines.ImageConfig{
 			BuildDir:        v.GetString("image.builddir"),
@@ -136,25 +133,28 @@ func ConfigFromViper(v *viper.Viper) pipelines.Config {
 			ScanTarget:      v.GetString("image.scantarget"),
 		},
 		Artifacts: pipelines.ArtifactConfig{
-			Directory:     v.GetString("artifacts.directory"),
-			SBOMFilename:  v.GetString("artifacts.sbomfilename"),
-			GrypeFilename: v.GetString("artifacts.grypefilename"),
+			Directory:        v.GetString("artifacts.directory"),
+			SBOMFilename:     v.GetString("artifacts.sbomfilename"),
+			GrypeFilename:    v.GetString("artifacts.grypefilename"),
+			GitleaksFilename: v.GetString("artifacts.gitleaksfilename"),
+			SemgrepFilename:  v.GetString("artifacts.semgrepfilename"),
 		},
 	}
 }
 
 // Config checks for the `--config` value and hands off to viper for parsing
-func Config(cmd *cobra.Command) (pipelines.Config, error) {
-	configFilename, _ := cmd.Flags().GetString("config")
-
+func Config(configFilename string) (pipelines.Config, error) {
 	if configFilename != "" {
 		slog.Debug("set configuration from flag value", "config_filename", configFilename)
 		viper.SetConfigFile(configFilename)
 	}
 
-	slog.Debug("attempt read configuration")
+	slog.Debug("read configuration from all sources", "config_file_used", viper.ConfigFileUsed())
 	if err := viper.ReadInConfig(); err != nil {
-		return pipelines.Config{}, err
+		// If the error is specifically something other than a "File Not Found" error
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok && configFilename != "" {
+			return pipelines.Config{}, err
+		}
 	}
 
 	config := ConfigFromViper(viper.GetViper())
