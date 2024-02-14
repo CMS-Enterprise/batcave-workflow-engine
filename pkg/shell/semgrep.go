@@ -30,19 +30,19 @@ func (s *semgrepCmd) ScanFile() *Command {
 }
 
 // Semgrep Command with custom stdout and stderr
-func SemgrepCommand(stdout io.Writer, stderr io.Writer) *semgrepCmd {
+func SemgrepCommand(stdin io.Reader, stdout io.Writer, stderr io.Writer) *semgrepCmd {
 	return &semgrepCmd{
 		InitCmd: func() *Executable {
-			return NewExecutable("semgrep").WithOutput(stdout).WithStderr(stderr)
+			return NewExecutable("semgrep").WithStdin(stdin).WithOutput(stdout).WithStderr(stderr)
 		},
 	}
 }
 
 // OSemgrep Command with custom stdout and stderr
-func OSemgrepCommand(stdout io.Writer, stderr io.Writer) *semgrepCmd {
+func OSemgrepCommand(stdin io.Reader, stdout io.Writer, stderr io.Writer) *semgrepCmd {
 	return &semgrepCmd{
 		InitCmd: func() *Executable {
-			return NewExecutable("osemgrep").WithOutput(stdout).WithStderr(stderr)
+			return NewExecutable("osemgrep").WithStdin(stdin).WithOutput(stdout).WithStderr(stderr)
 		},
 	}
 }

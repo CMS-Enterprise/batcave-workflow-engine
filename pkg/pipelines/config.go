@@ -26,6 +26,7 @@ type ArtifactConfig struct {
 	SBOMFilename     string `json:"sbomFilename" yaml:"sbomFilename" toml:"sbomFilename"`
 	GrypeFilename    string `json:"grypeFilename" yaml:"grypeFilename" toml:"grypeFilename"`
 	GitleaksFilename string `json:"gitleaksFilename" yaml:"gitleaksFilename" toml:"gitleaksFilename"`
+	SemgrepFilename  string `json:"semgrepFilename" yaml:"semgrepFilename" toml:"semgrepFilename"`
 }
 
 // ImageConfig is a struct representation of the Image field in the Config file
@@ -57,6 +58,7 @@ func NewDefaultConfig() *Config {
 			SBOMFilename:     "syft-sbom.json",
 			GrypeFilename:    "grype-report.json",
 			GitleaksFilename: "gitleaks-report.json",
+			SemgrepFilename:  "semgrep-sast-report.json",
 		},
 	}
 }
