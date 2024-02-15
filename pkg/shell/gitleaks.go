@@ -37,7 +37,7 @@ func (g *gitleaksCmd) DetectSecrets(sourceDirectory string, reportPath string) *
 func GitleaksCommand(stdin io.Reader, stdout io.Writer, stderr io.Writer) *gitleaksCmd {
 	return &gitleaksCmd{
 		InitCmd: func() *Executable {
-			return NewExecutable("gitleaks").WithStdin(stdin).WithOutput(stdout).WithStderr(stderr)
+			return NewExecutable("gitleaks").WithIO(stdin, stdout, stderr)
 		},
 	}
 }

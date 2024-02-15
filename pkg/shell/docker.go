@@ -149,19 +149,19 @@ func (p *dockerCLICmd) Info() *Command {
 }
 
 // PodmanCommand with custom stdout and stderr
-func PodmanCommand(stdout io.Writer, stderr io.Writer) *dockerCLICmd {
+func PodmanCommand(stdin io.Reader, stdout io.Writer, stderr io.Writer) *dockerCLICmd {
 	return &dockerCLICmd{
 		initCmd: func() *Executable {
-			return NewExecutable("podman").WithStdout(stdout).WithStderr(stderr)
+			return NewExecutable("podman").WithIO(stdin, stdout, stderr)
 		},
 	}
 }
 
 // DockerCommand with custom stdout and stderr
-func DockerCommand(stdout io.Writer, stderr io.Writer) *dockerCLICmd {
+func DockerCommand(stdin io.Reader, stdout io.Writer, stderr io.Writer) *dockerCLICmd {
 	return &dockerCLICmd{
 		initCmd: func() *Executable {
-			return NewExecutable("docker").WithStdout(stdout).WithStderr(stderr)
+			return NewExecutable("docker").WithIO(stdin, stdout, stderr)
 		},
 	}
 }
@@ -169,5 +169,5 @@ func DockerCommand(stdout io.Writer, stderr io.Writer) *dockerCLICmd {
 func ExampleDockerCommand() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})))
 	buildOpts := NewImageBuildOptions().WithBuildDir("./some-dir").WithBuildFile("Dockerfile-custom")
-	DockerCommand(os.Stdout, os.Stderr).Build(buildOpts).WithDryRun(true).RunLogError()
+	DockerCommand(nil, os.Stdout, os.Stderr).Build(buildOpts).WithDryRun(true).RunLogError()
 }

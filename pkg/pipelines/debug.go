@@ -40,14 +40,14 @@ func (d *Debug) Run() error {
 
 	// Collect errors for mandatory commands
 	errs := errors.Join(
-		shell.GrypeCommand(d.Stdin, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
-		shell.SyftCommand(d.Stdin, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
-		shell.GitleaksCommand(d.Stdin, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
+		shell.GrypeCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
+		shell.SyftCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
+		shell.GitleaksCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
 	)
 
 	// Just log errors for optional commands
-	shell.PodmanCommand(d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).RunLogErrorAsWarning()
-	shell.DockerCommand(d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).RunLogErrorAsWarning()
+	shell.PodmanCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).RunLogErrorAsWarning()
+	shell.DockerCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).RunLogErrorAsWarning()
 
 	l.Info("complete")
 	return errs

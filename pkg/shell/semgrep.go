@@ -33,7 +33,7 @@ func (s *semgrepCmd) ScanFile() *Command {
 func SemgrepCommand(stdin io.Reader, stdout io.Writer, stderr io.Writer) *semgrepCmd {
 	return &semgrepCmd{
 		InitCmd: func() *Executable {
-			return NewExecutable("semgrep").WithStdin(stdin).WithOutput(stdout).WithStderr(stderr)
+			return NewExecutable("semgrep").WithIO(stdin, stdout, stderr)
 		},
 	}
 }
@@ -42,7 +42,7 @@ func SemgrepCommand(stdin io.Reader, stdout io.Writer, stderr io.Writer) *semgre
 func OSemgrepCommand(stdin io.Reader, stdout io.Writer, stderr io.Writer) *semgrepCmd {
 	return &semgrepCmd{
 		InitCmd: func() *Executable {
-			return NewExecutable("osemgrep").WithStdin(stdin).WithOutput(stdout).WithStderr(stderr)
+			return NewExecutable("osemgrep").WithIO(stdin, stdout, stderr)
 		},
 	}
 }

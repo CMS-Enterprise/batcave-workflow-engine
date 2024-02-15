@@ -28,7 +28,7 @@ func (s *syftCmd) ScanImage(image string) *Command {
 func SyftCommand(stdin io.Reader, stdout io.Writer, stderr io.Writer) *syftCmd {
 	return &syftCmd{
 		InitCmd: func() *Executable {
-			return NewExecutable("syft").WithStdin(stdin).WithOutput(stdout).WithStderr(stderr)
+			return NewExecutable("syft").WithIO(stdin, stdout, stderr)
 		},
 	}
 }

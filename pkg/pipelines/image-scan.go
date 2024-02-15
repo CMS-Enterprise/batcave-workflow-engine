@@ -81,7 +81,7 @@ func (p *ImageScan) Run() error {
 		return err
 	}
 
-	err = shell.SyftCommand(p.Stdin, sbomFile, p.Stderr).
+	err = shell.SyftCommand(nil, sbomFile, p.Stderr).
 		ScanImage(p.imageName).
 		WithDryRun(p.DryRunEnabled).Run()
 
@@ -96,7 +96,7 @@ func (p *ImageScan) Run() error {
 	buf := new(bytes.Buffer)
 
 	// Do a grype scan on the SBOM, fail if the command fails
-	err = shell.GrypeCommand(p.Stdin, buf, p.Stderr).ScanSBOM(sbomFilename).WithDryRun(p.DryRunEnabled).Run()
+	err = shell.GrypeCommand(nil, buf, p.Stderr).ScanSBOM(sbomFilename).WithDryRun(p.DryRunEnabled).Run()
 	if err != nil {
 		return err
 	}

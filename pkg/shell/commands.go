@@ -23,27 +23,12 @@ type Executable struct {
 	exec.Cmd
 }
 
-// WithStdout attaches the command standard output to the given writer
-func (e *Executable) WithStdout(w io.Writer) *Executable {
-	e.Stdout = w
+// WithIO attaches all of the necessary IO to the command
+func (e *Executable) WithIO(stdin io.Reader, stdout io.Writer, stderr io.Writer) *Executable {
+	e.Stdin = stdin
+	e.Stdout = stdout
+	e.Stderr = stderr
 	return e
-}
-
-// WithStderr attaches the command standard error to the given writer
-func (e *Executable) WithStderr(w io.Writer) *Executable {
-	e.Stderr = w
-	return e
-}
-
-// WithStdin attaches the given reader to the commands standard input
-func (e *Executable) WithStdin(r io.Reader) *Executable {
-	e.Stdin = r
-	return e
-}
-
-// WithOutput attaches comand standard output and standard error to the given writer
-func (e *Executable) WithOutput(w io.Writer) *Executable {
-	return e.WithStdout(w).WithStderr(w)
 }
 
 // WithArgs attaches given arguments to a command
@@ -141,7 +126,7 @@ func (c *Command) String() string {
 
 func ExampleEcho() {
 	echo := NewExecutable("echo")
-	err := echo.WithStdout(os.Stdout).WithArgs("howdy world").Run()
+	err := echo.WithIO(nil, os.Stdout, os.Stderr).WithArgs("howdy world").Run()
 	if err != nil {
 		panic(err)
 	}

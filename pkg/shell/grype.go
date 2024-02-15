@@ -38,7 +38,7 @@ func (g *grypeCmd) ScanSBOM(filename string) *Command {
 func GrypeCommand(stdin io.Reader, stdout io.Writer, stderr io.Writer) *grypeCmd {
 	return &grypeCmd{
 		InitCmd: func() *Executable {
-			return NewExecutable("grype").WithStdin(stdin).WithOutput(stdout).WithStderr(stderr)
+			return NewExecutable("grype").WithIO(stdin, stdout, stderr)
 		},
 	}
 }
