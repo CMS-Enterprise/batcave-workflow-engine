@@ -30,14 +30,14 @@ func NewImageBuild(stdout io.Writer, stderr io.Writer) *ImageBuild {
 		logger:        slog.Default().With("pipeline", "image_build"),
 	}
 
-	pipeline.CLICmd = shell.DockerCommand(pipeline.Stdout, pipeline.Stderr)
+	pipeline.CLICmd = shell.DockerCommand(nil, pipeline.Stdout, pipeline.Stderr)
 
 	return pipeline
 }
 
 func (i *ImageBuild) WithPodman() *ImageBuild {
 	i.logger.Debug("use podman cli")
-	i.CLICmd = shell.PodmanCommand(i.Stdout, i.Stderr)
+	i.CLICmd = shell.PodmanCommand(nil, i.Stdout, i.Stderr)
 	return i
 }
 
