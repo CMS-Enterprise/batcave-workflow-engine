@@ -79,7 +79,12 @@ func newRunCommand() *cobra.Command {
 	_ = viper.BindPFlag("artifacts.semgrepfilename", codeScanCmd.Flags().Lookup("semgrep-filename"))
 	viper.MustBindEnv("artifacts.semgrepfilename", "WFE_SEMGREP_FILENAME")
 
-	codeScanCmd.Flags().Bool("experimental", false, "use the osemgrep statically compiled binary")
+	codeScanCmd.Flags().Bool("semgrep-experimental", false, "use the osemgrep statically compiled binary")
+	codeScanCmd.Flags().Bool("semgrep-error-on-findings", false, "exit code 1 if findings are detected by semgrep")
+
+	codeScanCmd.Flags().String("semgrep-rules", "p/default", "the rules semgrep will use for the scan")
+	_ = viper.BindPFlag("semgrep.rules", codeScanCmd.Flags().Lookup("semgrep-rules"))
+	viper.MustBindEnv("semgrep.rules", "SEMGREP_RULES")
 
 	// run
 	cmd := &cobra.Command{Use: "run", Short: "run a pipeline"}
@@ -95,9 +100,6 @@ func newRunCommand() *cobra.Command {
 
 	// Other settings
 	cmd.SilenceUsage = true
-
-	// TODO: Remove when the command is read
-	codeScanCmd.Hidden = true
 
 	// Add sub commands
 	cmd.AddCommand(debugCmd, imageBuildCmd, imageScanCmd, codeScanCmd)
@@ -128,6 +130,7 @@ func runImageBuild(cmd *cobra.Command, _ []string) error {
 func runImageScan(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
 	configFilename, _ := cmd.Flags().GetString("config")
+
 	config, err := Config(configFilename)
 	if err != nil {
 		return err
@@ -138,13 +141,17 @@ func runImageScan(cmd *cobra.Command, _ []string) error {
 func runCodeScan(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
 	configFilename, _ := cmd.Flags().GetString("config")
+	semgrepErrorOnFindings, _ := cmd.Flags().GetBool("semgrep-error-on-findings")
+	semgrepExperimental, _ := cmd.Flags().GetBool("semgrep-experimental")
+	semgrepRules, _ := cmd.Flags().GetString("semgrep-rules")
 
 	config, err := Config(configFilename)
 	if err != nil {
 		return err
 	}
 
-	return codeScanPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config.Artifacts, dryRunEnabled)
+	return codeScanPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config.Artifacts, dryRunEnabled,
+		semgrepErrorOnFindings, semgrepExperimental, semgrepRules)
 }
 
 // Execution functions - Logic for command execution
@@ -165,9 +172,14 @@ func imageScanPipeline(stdout io.Writer, stderr io.Writer, config pipelines.Arti
 	return pipeline.WithArtifactConfig(config).WithImageName(imageName).Run()
 }
 
-func codeScanPipeline(stdout io.Writer, stderr io.Writer, config pipelines.ArtifactConfig, dryRunEnabled bool) error {
+func codeScanPipeline(stdout io.Writer, stderr io.Writer, config pipelines.ArtifactConfig, dryRunEnabled bool,
+	semgrepErrorOnFindings bool, semgrepExperimental bool, semgrepRules string) error {
+
 	pipeline := pipelines.NewCodeScan(stdout, stderr)
 	pipeline.DryRunEnabled = dryRunEnabled
+	pipeline.SemgrepErrorOnFindingsEnabled = semgrepErrorOnFindings
+	pipeline.SemgrepExperimental = semgrepExperimental
+	pipeline.SemgrepRules = semgrepRules
 
 	return pipeline.WithArtifactConfig(config).Run()
 }

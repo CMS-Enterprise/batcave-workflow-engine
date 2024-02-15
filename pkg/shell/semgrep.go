@@ -21,10 +21,14 @@ func (s *semgrepCmd) Version() *Command {
 // ScanFile runs a Semgrep scan against target artifact dir from env vars
 //
 // shell: `semgrep ci --json`
-func (s *semgrepCmd) Scan() *Command {
-	exe := s.InitCmd().WithArgs("ci", "--json")
+func (s *semgrepCmd) Scan(rules string) *Command {
+	args := []string{"ci", "--json"}
+	if rules != "" {
+		args = append(args, "--config", rules)
+	}
+	exe := s.InitCmd().WithArgs(args...)
 	if s.experimental {
-		exe = s.InitCmd().WithArgs("ci", "--json", "--experimental")
+		exe = s.InitCmd().WithArgs(append(args, "--experimental")...)
 	}
 	return NewCommand(exe)
 }

@@ -17,11 +17,12 @@ type CodeScan struct {
 	DryRunEnabled                 bool
 	SemgrepExperimental           bool
 	SemgrepErrorOnFindingsEnabled bool
+	SemgrepRules                  string
 	artifactConfig                ArtifactConfig
 }
 
 type semgrepCLI interface {
-	Scan() *shell.Command
+	Scan(string) *shell.Command
 }
 
 func (s *CodeScan) WithArtifactConfig(config ArtifactConfig) *CodeScan {
@@ -85,23 +86,24 @@ func (p *CodeScan) Run() error {
 		semgrep = shell.SemgrepCommand(nil, semgrepReportFile, p.Stderr)
 	}
 
-	semgrepError = semgrep.Scan().WithDryRun(p.DryRunEnabled).Run()
-
 	// manually suppress errors for findings, convert to warnings
 	// https://semgrep.dev/docs/semgrep-ci/configuring-blocking-and-errors-in-ci/
+	semgrepError = semgrep.Scan(p.SemgrepRules).WithDryRun(p.DryRunEnabled).Run()
+	if semgrepError != nil {
+		// Note: Golang switch statements will only excute the first matching case
+		switch {
+		// error with suppression disabled
+		case semgrepError.Error() == "exit status 1" && p.SemgrepErrorOnFindingsEnabled:
+			return errors.Join(fmt.Errorf("Semgrep Findings: %w", semgrepError), gitleaksError)
+		// error with suppression enabled (default)
+		case semgrepError.Error() == "exit status 1":
+			slog.Warn("Semgrep findings detected. See log for details.")
+			semgrepError = nil
+		default:
+			// error code documentation: https://semgrep.dev/docs/cli-reference/
+			slog.Error("semgrep unexpected command failure. See log for details.", "error", semgrepError)
+		}
 
-	// Note: Golang switch statements will only excute the first matching case
-	switch {
-	// error with suppression disabled
-	case semgrepError.Error() == "exit status 1" && p.SemgrepErrorOnFindingsEnabled:
-		return errors.Join(fmt.Errorf("Semgrep Findings: %w", semgrepError), gitleaksError)
-	// error with suppression enabled (default)
-	case semgrepError.Error() == "exit status 1":
-		slog.Warn("Semgrep findings detected. See log for details.")
-		semgrepError = nil
-	case semgrepError != nil:
-		// error code documentation: https://semgrep.dev/docs/cli-reference/
-		slog.Error("semgrep unexpected command failure. See log for details.", "error", semgrepError)
 	}
 
 	return errors.Join(gitleaksError, semgrepError, semgrepFileError)
