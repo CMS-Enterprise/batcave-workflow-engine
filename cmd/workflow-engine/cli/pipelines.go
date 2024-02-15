@@ -79,6 +79,8 @@ func newRunCommand() *cobra.Command {
 	_ = viper.BindPFlag("artifacts.semgrepfilename", codeScanCmd.Flags().Lookup("semgrep-filename"))
 	viper.MustBindEnv("artifacts.semgrepfilename", "WFE_SEMGREP_FILENAME")
 
+	codeScanCmd.Flags().Bool("experimental", false, "use the osemgrep statically compiled binary")
+
 	// run
 	cmd := &cobra.Command{Use: "run", Short: "run a pipeline"}
 

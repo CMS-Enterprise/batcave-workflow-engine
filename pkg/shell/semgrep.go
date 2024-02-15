@@ -20,8 +20,8 @@ func (s *semgrepCmd) Version() *Command {
 
 // ScanFile runs a Semgrep scan against target artifact dir from env vars
 //
-// shell: `semgrep ci --json > ${ARTIFACT_FOLDER}/sast/semgrep-sast-report.json || true`
-func (s *semgrepCmd) ScanFile() *Command {
+// shell: `semgrep ci --json`
+func (s *semgrepCmd) Scan() *Command {
 	exe := s.InitCmd().WithArgs("ci", "--json")
 	if s.experimental {
 		exe = s.InitCmd().WithArgs("ci", "--json", "--experimental")
