@@ -7,7 +7,7 @@ image:
     buildCacheTo: ""
     buildCacheFrom: ""
     buildSquashLayers: false
-    buildArgs: []
+    buildArgs: {}
     scanTarget: ""
 artifacts:
     directory: .artifacts

@@ -31,16 +31,16 @@ type ArtifactConfig struct {
 
 // ImageConfig is a struct representation of the Image field in the Config file
 type ImageConfig struct {
-	BuildDir          string      `json:"buildDir" yaml:"buildDir" toml:"buildDir"`
-	BuildDockerfile   string      `json:"buildDockerfile" yaml:"buildDockerfile" toml:"buildDockerfile"`
-	BuildTag          string      `json:"buildTag" yaml:"buildTag" toml:"buildTag"`
-	BuildPlatform     string      `json:"buildPlatform" yaml:"buildPlatform" toml:"buildPlatform"`
-	BuildTarget       string      `json:"buildTarget" yaml:"buildTarget" toml:"buildTarget"`
-	BuildCacheTo      string      `json:"buildCacheTo" yaml:"buildCacheTo" toml:"buildCacheTo"`
-	BuildCacheFrom    string      `json:"buildCacheFrom" yaml:"buildCacheFrom" toml:"buildCacheFrom"`
-	BuildSquashLayers bool        `json:"buildSquashLayers" yaml:"buildSquashLayers" toml:"buildSquashLayers"`
-	BuildArgs         [][2]string `json:"buildArgs" yaml:"buildArgs" toml:"buildArgs"`
-	ScanTarget        string      `json:"scanTarget" yaml:"scanTarget" toml:"scanTarget"`
+	BuildDir          string            `json:"buildDir" yaml:"buildDir" toml:"buildDir"`
+	BuildDockerfile   string            `json:"buildDockerfile" yaml:"buildDockerfile" toml:"buildDockerfile"`
+	BuildTag          string            `json:"buildTag" yaml:"buildTag" toml:"buildTag"`
+	BuildPlatform     string            `json:"buildPlatform" yaml:"buildPlatform" toml:"buildPlatform"`
+	BuildTarget       string            `json:"buildTarget" yaml:"buildTarget" toml:"buildTarget"`
+	BuildCacheTo      string            `json:"buildCacheTo" yaml:"buildCacheTo" toml:"buildCacheTo"`
+	BuildCacheFrom    string            `json:"buildCacheFrom" yaml:"buildCacheFrom" toml:"buildCacheFrom"`
+	BuildSquashLayers bool              `json:"buildSquashLayers" yaml:"buildSquashLayers" toml:"buildSquashLayers"`
+	BuildArgs         map[string]string `json:"buildArgs" yaml:"buildArgs" toml:"buildArgs"`
+	ScanTarget        string            `json:"scanTarget" yaml:"scanTarget" toml:"scanTarget"`
 }
 
 // NewDefaultConfig creates a new "safe" config object.
@@ -51,7 +51,7 @@ func NewDefaultConfig() *Config {
 		Image: ImageConfig{
 			BuildDir:        ".",
 			BuildDockerfile: "Dockerfile",
-			BuildArgs:       make([][2]string, 0),
+			BuildArgs:       map[string]string {},
 		},
 		Artifacts: ArtifactConfig{
 			Directory:        "artifacts",

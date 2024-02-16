@@ -104,9 +104,9 @@ func (o *ImageBuildOptions) WithCache(cacheTo string, cacheFrom string) *ImageBu
 }
 
 // WithBuildArgs defines specific build arguments for build time
-func (o *ImageBuildOptions) WithBuildArgs(args [][2]string) *ImageBuildOptions {
-	for _, kv := range args {
-		arg := fmt.Sprintf("%s=%s", kv[0], kv[1])
+func (o *ImageBuildOptions) WithBuildArgs(args map[string]string) *ImageBuildOptions {
+	for key, val := range args {
+		arg := fmt.Sprintf("%s=%s", key, val)
 		o.args = append(o.args, "--build-arg", arg)
 	}
 	return o
