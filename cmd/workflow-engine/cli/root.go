@@ -1,13 +1,13 @@
 package cli
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
-	"os"
-	"regexp"
+	"path"
 	"strings"
 	"workflow-engine/pkg/pipelines"
 
@@ -144,43 +144,14 @@ func ConfigFromViper(v *viper.Viper) pipelines.Config {
 	}
 }
 
-var templateFileRegexp *regexp.Regexp = regexp.MustCompile(`.*\.(?P<format>yaml|json|toml)\.tm?pl$`)
-var formatGroupIx = templateFileRegexp.SubexpIndex("format")
-
 // Config checks for the `--config` value and hands off to viper for parsing
 func Config(configFilename string) (pipelines.Config, error) {
-	if configFilename != "" {
-		if strings.HasSuffix(configFilename, ".tmpl") || strings.HasSuffix(configFilename, ".tpl") {
-			// Render template to a temporary file
-			match := templateFileRegexp.FindStringSubmatch(configFilename)
-			file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("*.%s", match[formatGroupIx]))
-			if err != nil {
-				return pipelines.Config{}, err
-			}
+	ext := path.Ext(configFilename)
+	subExt := path.Ext(strings.TrimSuffix(configFilename, ext))
 
-			template, err := os.Open(configFilename)
-      if err != nil {
-      	return pipelines.Config{}, err
-      }
-			defer func() {
-				err := template.Close()
-				_ = file.Close()
-
-				if err != nil {
-					panic(err)
-				}
-			}()
-
-			err = pipelines.RenderTemplate(file, template)
-			if err != nil {
-				return pipelines.Config{}, err
-			}
-
-			slog.Debug("Rendered config file", "format", match[formatGroupIx], "config_filename", file.Name())
-			configFilename = file.Name()
-		}
-		slog.Debug("set configuration from flag value", "config_filename", configFilename)
-		viper.SetConfigFile(configFilename)
+	// Config file is a template
+	if ext == ".tmpl" || ext == ".tpl" {
+		return configFromTemplate(configFilename, strings.TrimPrefix(subExt, "."))
 	}
 
 	slog.Debug("read configuration from all sources", "config_file_used", viper.ConfigFileUsed())
@@ -191,6 +162,22 @@ func Config(configFilename string) (pipelines.Config, error) {
 		}
 	}
 
+	config := ConfigFromViper(viper.GetViper())
+	return config, nil
+}
+
+func configFromTemplate(configFilename string, fileType string) (pipelines.Config, error) {
+	buf := new(bytes.Buffer)
+	err := writeRenderedConfigTo(buf, configFilename)
+	if err != nil {
+		return pipelines.Config{}, err
+	}
+	slog.Debug("rendering config template", "template_filename", configFilename, "config_filetype", fileType)
+	viper.SetConfigType(fileType)
+
+	if err := viper.ReadConfig(buf); err != nil {
+		return pipelines.Config{}, err
+	}
 	config := ConfigFromViper(viper.GetViper())
 	return config, nil
 }

@@ -23,6 +23,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - Configuration init with the format option 
 - Semgrep, osemgrep, gitleaks shell commands
 - Code Scan Pipeline
+- Config Template auto rendering
 
 ### Fixed
 
