@@ -63,6 +63,7 @@ func (i *ImageBuild) Run() error {
 	buildOpts := shell.NewImageBuildOptions().
 		WithBuildDir(i.cfg.BuildDir).
 		WithBuildFile(i.cfg.BuildDockerfile).
+		WithBuildArgs(i.cfg.BuildArgs).
 		WithTag(i.cfg.BuildTag).
 		WithBuildPlatform(i.cfg.BuildPlatform).
 		WithBuildTarget(i.cfg.BuildTarget).

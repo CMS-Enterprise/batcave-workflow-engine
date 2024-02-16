@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
+	"regexp"
 	"strings"
 	"workflow-engine/pkg/pipelines"
 
@@ -129,7 +131,7 @@ func ConfigFromViper(v *viper.Viper) pipelines.Config {
 			BuildTarget:     v.GetString("image.buildtarget"),
 			BuildCacheTo:    v.GetString("image.buildcacheto"),
 			BuildCacheFrom:  v.GetString("image.buildcachefrom"),
-			BuildArgs:       make([][2]string, 0),
+			BuildArgs:       v.GetStringMapString("image.buildargs"),
 			ScanTarget:      v.GetString("image.scantarget"),
 		},
 		Artifacts: pipelines.ArtifactConfig{
@@ -142,9 +144,41 @@ func ConfigFromViper(v *viper.Viper) pipelines.Config {
 	}
 }
 
+var templateFileRegexp *regexp.Regexp = regexp.MustCompile(`.*\.(?P<format>yaml|json|toml)\.tm?pl$`)
+var formatGroupIx = templateFileRegexp.SubexpIndex("format")
+
 // Config checks for the `--config` value and hands off to viper for parsing
 func Config(configFilename string) (pipelines.Config, error) {
 	if configFilename != "" {
+		if strings.HasSuffix(configFilename, ".tmpl") || strings.HasSuffix(configFilename, ".tpl") {
+			// Render template to a temporary file
+			match := templateFileRegexp.FindStringSubmatch(configFilename)
+			file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("*.%s", match[formatGroupIx]))
+			if err != nil {
+				return pipelines.Config{}, err
+			}
+
+			template, err := os.Open(configFilename)
+      if err != nil {
+      	return pipelines.Config{}, err
+      }
+			defer func() {
+				err := template.Close()
+				_ = file.Close()
+
+				if err != nil {
+					panic(err)
+				}
+			}()
+
+			err = pipelines.RenderTemplate(file, template)
+			if err != nil {
+				return pipelines.Config{}, err
+			}
+
+			slog.Debug("Rendered config file", "format", match[formatGroupIx], "config_filename", file.Name())
+			configFilename = file.Name()
+		}
 		slog.Debug("set configuration from flag value", "config_filename", configFilename)
 		viper.SetConfigFile(configFilename)
 	}

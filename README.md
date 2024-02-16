@@ -56,21 +56,22 @@ Configuration Order-of-Precedence:
 3. Config File Value
 4. Default Value
 
-| Variable Name             | Type   | Default | CLI Flag             | Config Field Name            | Description                                          |
-| ------------------------- | ------ | ------- | -------------------- | ---------------------------- | ---------------------------------------------------- |
-| `WFE_BUILD_DIR`           | string |         | --build-dir          | `image.buildDir`             | The container build directory                        |
-| `WFE_BUILD_DOCKERFILE`    | string |         | --dockerfile         | `image.buildDockerfile`      | The name of the Dockerfile to build and scan         |
-| `WFE_BUILD_TAG`           | string |         | --tag                | `image.buildTag`             | The container build tag to use for building an image |
-| `WFE_BUILD_PLATFORM`      | string |         | --platform           | `image.buildPlatform`        | The container build platform                         |
-| `WFE_BUILD_TARGET`        | string |         | --target             | `image.buildTarget`          | The container build target                           |
-| `WFE_BUILD_CACHE_TO`      | string |         | --cache-to           | `image.buildCacheTo`         | The container cache to directory                     |
-| `WFE_BUILD_CACHE_FROM`    | string |         | --cache-from         | `image.buildCacheFrom`       | The container cache from directory                   |
-| `WFE_BUILD_SQUASH_LAYERS` | bool   |         | --squash-layers      | `image.buildSquashLayers`    | Flag to squash layers                                |
-| `WFE_SCAN_IMAGE_TARGET`   | string |         | --scan-image-target  | `image.scanTarget`           | The scan image tag name                              |
-| `WFE_ARTIFACT_DIRECTORY`  | string |         | --artifact-directory | `artifacts.directory`        | The directory to store artifacts                     |
-| `WFE_SBOM_FILENAME`       | string |         | --sbom-filename      | `artifacts.sbomFilename`     | The SBOM file name                                   |
-| `WFE_GRYPE_FILENAME`      | string |         | --grype-filename     | `artifacts.grypeFilename`    | The Grype file name                                  |
-| `WFE_GITLEAKS_FILENAME`   | string |         | --gitleaks-filename  | `artifacts.gitleaksFilename` | The Gitleaks file name                               |
+| Variable Name             | Type               | Default              | CLI Flag             | Config Field Name            | Description                                           |
+|---------------------------|--------------------|----------------------|----------------------|------------------------------|-------------------------------------------------------|
+| `WFE_BUILD_DIR`           | string             | .                    | --build-dir          | `image.buildDir`             | The container build directory                         |
+| `WFE_BUILD_DOCKERFILE`    | string             | Dockerfile           | --dockerfile         | `image.buildDockerfile`      | The name of the Dockerfile to build and scan          |
+| `WFE_BUILD_ARGS`          | map\[string]string |                      | --build-arg          | `image.buildArgs`            | Build arguments passed to the container build command |
+| `WFE_BUILD_TAG`           | string             |                      | --tag                | `image.buildTag`             | The container build tag to use for building an image  |
+| `WFE_BUILD_PLATFORM`      | string             |                      | --platform           | `image.buildPlatform`        | The container build platform                          |
+| `WFE_BUILD_TARGET`        | string             |                      | --target             | `image.buildTarget`          | The container build target                            |
+| `WFE_BUILD_CACHE_TO`      | string             |                      | --cache-to           | `image.buildCacheTo`         | The container cache to directory                      |
+| `WFE_BUILD_CACHE_FROM`    | string             |                      | --cache-from         | `image.buildCacheFrom`       | The container cache from directory                    |
+| `WFE_BUILD_SQUASH_LAYERS` | bool               |                      | --squash-layers      | `image.buildSquashLayers`    | Flag to squash layers                                 |
+| `WFE_SCAN_IMAGE_TARGET`   | string             |                      | --scan-image-target  | `image.scanTarget`           | The scan image tag name                               |
+| `WFE_ARTIFACT_DIRECTORY`  | string             |                      | --artifact-directory | `artifacts.directory`        | The directory to store artifacts                      |
+| `WFE_SBOM_FILENAME`       | string             | syft-sbom.json       | --sbom-filename      | `artifacts.sbomFilename`     | The SBOM file name                                    |
+| `WFE_GRYPE_FILENAME`      | string             | grype-report.json    | --grype-filename     | `artifacts.grypeFilename`    | The Grype file name                                   |
+| `WFE_GITLEAKS_FILENAME`   | string             | gitleaks-report.json | --gitleaks-filename  | `artifacts.gitleaksFilename` | The Gitleaks file name                                |
 
 ## Running in Docker
 
