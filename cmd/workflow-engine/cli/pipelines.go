@@ -13,7 +13,7 @@ func newRunCommand() *cobra.Command {
 	debugCmd := newBasicCommand("debug", "pipeline for smoke testing this application", runDebug)
 
 	// run image-build
-	imageBuildCmd := newBasicCommand("image-build", "", runImageBuild)
+	imageBuildCmd := newBasicCommand("image-build", "builds an image", runImageBuild)
 
 	imageBuildCmd.Flags().StringP("cli-interface", "i", "docker", "[docker|podman] CLI interface to use for image building")
 
@@ -72,6 +72,17 @@ func newRunCommand() *cobra.Command {
 	_ = viper.BindPFlag("image.scantarget", imageScanCmd.Flags().Lookup("scan-image-target"))
 	viper.MustBindEnv("image.scantarget", "WFE_SCAN_IMAGE_TARGET")
 
+	// run image-publish
+	imagePublishCmd := newBasicCommand("image-publish", "publishes an image", runimagePublish)
+
+	imagePublishCmd.Flags().String("artifact-directory", "", "the output directory for all artifacts generated in the pipeline")
+	_ = viper.BindPFlag("artifacts.directory", imagePublishCmd.Flags().Lookup("artifact-directory"))
+	viper.MustBindEnv("artifacts.directory", "WFE_ARTIFACT_DIRECTORY")
+
+	imagePublishCmd.Flags().String("bundle-filename", "", "the output filename for the gatecheck bundle")
+	_ = viper.BindPFlag("artifacts.bundlefilename", imageScanCmd.Flags().Lookup("bundle-filename"))
+	viper.MustBindEnv("artifacts.bundlefilename", "WFE_GATECHECK_BUNDLE_FILENAME")
+
 	// run code-scan
 	codeScanCmd := newBasicCommand("code-scan", "run Static Application Security Tests (SAST) scans", runCodeScan)
 
@@ -106,7 +117,7 @@ func newRunCommand() *cobra.Command {
 	cmd.SilenceUsage = true
 
 	// Add sub commands
-	cmd.AddCommand(debugCmd, imageBuildCmd, imageScanCmd, codeScanCmd)
+	cmd.AddCommand(debugCmd, imageBuildCmd, imageScanCmd, imagePublishCmd, codeScanCmd)
 
 	return cmd
 }
@@ -142,6 +153,17 @@ func runImageScan(cmd *cobra.Command, _ []string) error {
 	return imageScanPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config.Artifacts, dryRunEnabled, config.Image.ScanTarget)
 }
 
+func runimagePublish(cmd *cobra.Command, _ []string) error {
+	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
+	configFilename, _ := cmd.Flags().GetString("config")
+
+	config, err := Config(configFilename)
+	if err != nil {
+		return err
+	}
+	return imagePublishPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config.Artifacts, dryRunEnabled, config.Image.ScanTarget)
+}
+
 func runCodeScan(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
 	configFilename, _ := cmd.Flags().GetString("config")
@@ -174,6 +196,13 @@ func imageScanPipeline(stdout io.Writer, stderr io.Writer, config pipelines.Arti
 	pipeline.DryRunEnabled = dryRunEnabled
 
 	return pipeline.WithArtifactConfig(config).WithImageName(imageName).Run()
+}
+
+func imagePublishPipeline(stdout io.Writer, stderr io.Writer, config pipelines.ArtifactConfig, dryRunEnabled bool, imageName string) error {
+	pipeline := pipelines.NewimagePublish(stdout, stderr)
+	pipeline.DryRunEnabled = dryRunEnabled
+
+	return pipeline.WithArtifactConfig(config).Run()
 }
 
 func codeScanPipeline(stdout io.Writer, stderr io.Writer, config pipelines.ArtifactConfig, dryRunEnabled bool,

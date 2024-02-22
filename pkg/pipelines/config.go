@@ -22,11 +22,17 @@ type Config struct {
 }
 
 type ArtifactConfig struct {
-	Directory        string `json:"directory" yaml:"directory" toml:"directory"`
-	SBOMFilename     string `json:"sbomFilename" yaml:"sbomFilename" toml:"sbomFilename"`
-	GrypeFilename    string `json:"grypeFilename" yaml:"grypeFilename" toml:"grypeFilename"`
-	GitleaksFilename string `json:"gitleaksFilename" yaml:"gitleaksFilename" toml:"gitleaksFilename"`
-	SemgrepFilename  string `json:"semgrepFilename" yaml:"semgrepFilename" toml:"semgrepFilename"`
+	Directory                   string `json:"directory" yaml:"directory" toml:"directory"`
+	AntivirusFilename           string `json:"antivirusFilename" yaml:"antivirusFilename" toml:"antivirusFilename"`
+	SBOMFilename                string `json:"sbomFilename" yaml:"sbomFilename" toml:"sbomFilename"`
+	GrypeFilename               string `json:"grypeFilename" yaml:"grypeFilename" toml:"grypeFilename"`
+	GrypeConfigFilename			    string `json:"grypeConfigFilename" yaml:"grypeConfigFilename" toml:"grypeConfigFilename"`
+	GrypeActiveFindingsFilename	string `json:"grypeActiveFindingsFilename" yaml:"grypeActiveFindingsFilename" toml:"grypeActiveFindingsFilename"`
+	GrypeAllFindingsFilename	  string `json:"grypeAllFindingsFilename" yaml:"grypeAllFindingsFilename" toml:"grypeAllFindingsFilename"`
+	GitleaksFilename            string `json:"gitleaksFilename" yaml:"gitleaksFilename" toml:"gitleaksFilename"`
+	SemgrepFilename  		        string `json:"semgrepFilename" yaml:"semgrepFilename" toml:"semgrepFilename"`
+	GatecheckBundleFilename     string `json:"gatecheckBundleFilename" yaml:"gatecheckBundleFilename" toml:"gatecheckBundleFilename"`
+	GatecheckConfigFilename     string `json:"gatecheckConfigFilename" yaml:"gatecheckConfigFilename" toml:"gatecheckConfigFilename"`
 }
 
 // ImageConfig is a struct representation of the Image field in the Config file
@@ -54,11 +60,17 @@ func NewDefaultConfig() *Config {
 			BuildArgs:       map[string]string {},
 		},
 		Artifacts: ArtifactConfig{
-			Directory:        "artifacts",
-			SBOMFilename:     "syft-sbom.json",
-			GrypeFilename:    "grype-report.json",
-			GitleaksFilename: "gitleaks-report.json",
-			SemgrepFilename:  "semgrep-sast-report.json",
+			Directory:                   ".artifacts",
+			AntivirusFilename:					 "clamav-report.txt",
+			SBOMFilename:                "syft-sbom.json",
+			GrypeFilename:               "grype-report.json",
+			GrypeConfigFilename:         ".grype.yaml",
+			GrypeActiveFindingsFilename: "active-findings-grype-scan.json",
+			GrypeAllFindingsFilename:    "all-findings-grype-scan.json",
+			GitleaksFilename:            "gitleaks-report.json",
+			SemgrepFilename:             "semgrep-sast-report.json",
+			GatecheckBundleFilename:     "gatecheck-bundle.tar.gz",
+			GatecheckConfigFilename:     "gatecheck.yaml",
 		},
 	}
 }
