@@ -44,8 +44,7 @@ func NewImageScan(stdout io.Writer, stderr io.Writer) *ImageScan {
 		Stdout: stdout,
 		Stderr: stderr,
 		artifactConfig: ArtifactConfig{
-			// Directory:     os.TempDir(),
-			Directory:     ".artifacts",
+			Directory:     os.TempDir(),
 			// TODO: these defaults get specified in multiple places, and it isn't
 			// consistent nor clear which one takes precedence
 			SBOMFilename:  "image-sbom.json",
