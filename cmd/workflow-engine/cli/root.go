@@ -122,7 +122,7 @@ func ConfigFromViper(v *viper.Viper) pipelines.Config {
 		viperKVs = append(viperKVs, key, viper.Get(key))
 	}
 	slog.Debug("config values", viperKVs...)
-		return pipelines.Config{
+	return pipelines.Config{
 		Image: pipelines.ImageConfig{
 			BuildDir:        v.GetString("image.builddir"),
 			BuildDockerfile: v.GetString("image.builddockerfile"),
@@ -164,7 +164,7 @@ func Config(configFilename string) (pipelines.Config, error) {
 	}
 
 	config := ConfigFromViper(viper.GetViper())
-		return config, nil
+	return config, nil
 }
 
 func configFromTemplate(configFilename string, fileType string) (pipelines.Config, error) {

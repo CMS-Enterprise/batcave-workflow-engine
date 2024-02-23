@@ -57,7 +57,7 @@ func newRunCommand() *cobra.Command {
 	imageScanCmd := newBasicCommand("image-scan", "run security scans on an image", runImageScan)
 
 	imageScanCmd.Flags().String("artifact-directory", "", "the output directory for all artifacts generated in the pipeline")
-		_ = viper.BindPFlag("artifacts.directory", imageScanCmd.Flags().Lookup("artifact-directory"))
+	_ = viper.BindPFlag("artifacts.directory", imageScanCmd.Flags().Lookup("artifact-directory"))
 	viper.MustBindEnv("artifacts.directory", "WFE_ARTIFACT_DIRECTORY")
 
 	imageScanCmd.Flags().String("sbom-filename", "", "the output filename for the syft SBOM")
