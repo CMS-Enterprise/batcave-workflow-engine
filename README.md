@@ -72,6 +72,8 @@ Configuration Order-of-Precedence:
 | `WFE_SBOM_FILENAME`       | string             | syft-sbom.json       | --sbom-filename      | `artifacts.sbomFilename`     | The SBOM file name                                    |
 | `WFE_GRYPE_FILENAME`      | string             | grype-report.json    | --grype-filename     | `artifacts.grypeFilename`    | The Grype file name                                   |
 | `WFE_GITLEAKS_FILENAME`   | string             | gitleaks-report.json | --gitleaks-filename  | `artifacts.gitleaksFilename` | The Gitleaks file name                                |
+| `WFE_BUNDLE_DIRECTORY`    | string             |                      | --bundle-directory   | `artifacts.bundleDirectory`  | The Gatecheck bundle directory                        |
+| `WFE_BUNDLE_FILENAME`     | string             |                      | --bundle-filename    | `artifacts.bundleFilename`   | The Gatecheck bundle filename                         |
 
 ## Running in Docker
 

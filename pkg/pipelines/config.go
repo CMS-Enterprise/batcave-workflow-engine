@@ -23,6 +23,7 @@ type Config struct {
 
 type ArtifactConfig struct {
 	Directory                   string `json:"directory" yaml:"directory" toml:"directory"`
+	BundleDirectory             string `json:"bundleDirectory" yaml:"bundleDirectory" toml:"bundleDirectory"`
 	AntivirusFilename           string `json:"antivirusFilename" yaml:"antivirusFilename" toml:"antivirusFilename"`
 	SBOMFilename                string `json:"sbomFilename" yaml:"sbomFilename" toml:"sbomFilename"`
 	GrypeFilename               string `json:"grypeFilename" yaml:"grypeFilename" toml:"grypeFilename"`
@@ -61,6 +62,7 @@ func NewDefaultConfig() *Config {
 		},
 		Artifacts: ArtifactConfig{
 			Directory:                   ".artifacts",
+			BundleDirectory:             ".artifacts",
 			AntivirusFilename:					 "clamav-report.txt",
 			SBOMFilename:                "syft-sbom.json",
 			GrypeFilename:               "grype-report.json",

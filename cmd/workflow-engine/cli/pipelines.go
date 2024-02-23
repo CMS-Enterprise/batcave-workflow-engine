@@ -57,7 +57,7 @@ func newRunCommand() *cobra.Command {
 	imageScanCmd := newBasicCommand("image-scan", "run security scans on an image", runImageScan)
 
 	imageScanCmd.Flags().String("artifact-directory", "", "the output directory for all artifacts generated in the pipeline")
-	_ = viper.BindPFlag("artifacts.directory", imageScanCmd.Flags().Lookup("artifact-directory"))
+		_ = viper.BindPFlag("artifacts.directory", imageScanCmd.Flags().Lookup("artifact-directory"))
 	viper.MustBindEnv("artifacts.directory", "WFE_ARTIFACT_DIRECTORY")
 
 	imageScanCmd.Flags().String("sbom-filename", "", "the output filename for the syft SBOM")
@@ -75,12 +75,12 @@ func newRunCommand() *cobra.Command {
 	// run image-publish
 	imagePublishCmd := newBasicCommand("image-publish", "publishes an image", runimagePublish)
 
-	imagePublishCmd.Flags().String("artifact-directory", "", "the output directory for all artifacts generated in the pipeline")
-	_ = viper.BindPFlag("artifacts.directory", imagePublishCmd.Flags().Lookup("artifact-directory"))
-	viper.MustBindEnv("artifacts.directory", "WFE_ARTIFACT_DIRECTORY")
+	imagePublishCmd.Flags().String("bundle-directory", "", "the directory for all artifacts to be bundled")
+	_ = viper.BindPFlag("artifacts.bundledirectory", imagePublishCmd.Flags().Lookup("bundle-directory"))
+	viper.MustBindEnv("artifacts.bundledirectory", "WFE_BUNDLE_DIRECTORY")
 
 	imagePublishCmd.Flags().String("bundle-filename", "", "the output filename for the gatecheck bundle")
-	_ = viper.BindPFlag("artifacts.bundlefilename", imageScanCmd.Flags().Lookup("bundle-filename"))
+	_ = viper.BindPFlag("artifacts.bundlefilename", imagePublishCmd.Flags().Lookup("bundle-filename"))
 	viper.MustBindEnv("artifacts.bundlefilename", "WFE_GATECHECK_BUNDLE_FILENAME")
 
 	// run code-scan
