@@ -61,8 +61,8 @@ func NewDefaultConfig() *Config {
 			BuildArgs:       map[string]string {},
 		},
 		Artifacts: ArtifactConfig{
-			Directory:                   ".artifacts",
-			BundleDirectory:             ".artifacts",
+			Directory:                   "artifacts",
+			BundleDirectory:             "artifacts",
 			AntivirusFilename:					 "clamav-report.txt",
 			SBOMFilename:                "syft-sbom.json",
 			GrypeFilename:               "grype-report.json",
