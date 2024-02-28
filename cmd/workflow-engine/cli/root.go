@@ -136,6 +136,7 @@ func ConfigFromViper(v *viper.Viper) pipelines.Config {
 		},
 		Artifacts: pipelines.ArtifactConfig{
 			Directory:        v.GetString("artifacts.directory"),
+			BundleDirectory:  v.GetString("artifacts.bundledirectory"),
 			SBOMFilename:     v.GetString("artifacts.sbomfilename"),
 			GrypeFilename:    v.GetString("artifacts.grypefilename"),
 			GitleaksFilename: v.GetString("artifacts.gitleaksfilename"),
