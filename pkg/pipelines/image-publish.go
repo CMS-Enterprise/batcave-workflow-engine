@@ -95,6 +95,9 @@ func (p *imagePublish) WithArtifactConfig(config ArtifactConfig) *imagePublish {
 	if config.SemgrepFilename != "" {
 		p.artifactConfig.SemgrepFilename = config.SemgrepFilename
 	}
+	if config.ClamavFilename != "" {
+		p.artifactConfig.ClamavFilename = config.ClamavFilename
+	}
 	return p
 }
 
@@ -119,6 +122,7 @@ func NewimagePublish(stdout io.Writer, stderr io.Writer) *imagePublish {
 			GitleaksFilename:            "gitleaks-secrets-scan-report.json",
 			SBOMFilename:                "syft-sbom.json",
 			SemgrepFilename:             "semgrep-sast-report.json",
+			ClamavFilename: 						 "clamav-report.txt",
 		},
 	}
 
@@ -139,6 +143,7 @@ func (i *imagePublish) Run() error {
 	var grypeAllFindingsFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.GrypeAllFindingsFilename)
 	var sbomFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.SBOMFilename)
 	var semgrepFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.SemgrepFilename)
+	var clamavFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.ClamavFilename)
 	var dockerFilename = i.imageConfig.BuildDockerfile
 
 	l := slog.Default()
@@ -152,7 +157,7 @@ func (i *imagePublish) Run() error {
 
 	// Run gatecheck bundle
 	gatecheck := shell.GatecheckCommand(nil, i.Stdout, i.Stderr)
-	gatecheckBundleError = gatecheck.Bundle(gatecheckBundleFilename, gitleaksFilename, grypeFilename, grypeConfigFilename, grypeActiveFindingsFilename, grypeAllFindingsFilename, sbomFilename, semgrepFilename, gatecheckConfigFilename, dockerFilename, antivirusFilename).WithDryRun(i.DryRunEnabled).Run()
+	gatecheckBundleError = gatecheck.Bundle(gatecheckBundleFilename, gitleaksFilename, grypeFilename, grypeConfigFilename, grypeActiveFindingsFilename, grypeAllFindingsFilename, sbomFilename, semgrepFilename, clamavFilename, gatecheckConfigFilename, dockerFilename, antivirusFilename).WithDryRun(i.DryRunEnabled).Run()
 	
 	// Run gatecheck summary
 	gatecheckSummaryError = gatecheck.Summary(gatecheckBundleFilename).WithDryRun(i.DryRunEnabled).Run()

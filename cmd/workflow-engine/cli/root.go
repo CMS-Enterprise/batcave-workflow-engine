@@ -140,6 +140,7 @@ func ConfigFromViper(v *viper.Viper) pipelines.Config {
 			GrypeFilename:    v.GetString("artifacts.grypefilename"),
 			GitleaksFilename: v.GetString("artifacts.gitleaksfilename"),
 			SemgrepFilename:  v.GetString("artifacts.semgrepfilename"),
+			ClamavFilename:   v.GetString("artifacts.clamavfilename"),
 		},
 	}
 }

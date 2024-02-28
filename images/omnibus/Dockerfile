@@ -1,4 +1,4 @@
-# TODO: clamAV, semgrep
+# TODO: semgrep
 
 FROM golang:alpine as build
 
@@ -63,7 +63,7 @@ RUN cargo install just
 
 FROM alpine:latest as final-base
 
-RUN apk --no-cache add curl jq sqlite-libs git ca-certificates tzdata
+RUN apk --no-cache add curl jq sqlite-libs git ca-certificates tzdata clamav
 
 WORKDIR /app
 
@@ -88,6 +88,9 @@ COPY ./bin/s3upload /usr/local/bin/s3upload
 COPY ./bin/just /usr/local/bin/just
 COPY ./bin/oras /usr/local/bin/oras
 
+RUN cp /usr/bin/freshclam /usr/local/bin/freshclam
+RUN cp /usr/bin/clamscan /usr/local/bin/clamscan
+
 USER omnibus
 
 # Final image if building locally and build dependencies are needed
@@ -105,3 +108,5 @@ COPY --from=build /usr/local/bin/gatecheck /usr/local/bin/gatecheck
 COPY --from=build /usr/local/bin/s3upload /usr/local/bin/s3upload
 COPY --from=build /usr/local/bin/oras /usr/local/bin/oras
 
+RUN cp /usr/bin/freshclam /usr/local/bin/freshclam
+RUN cp /usr/bin/clamscan /usr/local/bin/clamscan

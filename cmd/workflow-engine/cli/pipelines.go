@@ -72,6 +72,10 @@ func newRunCommand() *cobra.Command {
 	_ = viper.BindPFlag("image.scantarget", imageScanCmd.Flags().Lookup("scan-image-target"))
 	viper.MustBindEnv("image.scantarget", "WFE_SCAN_IMAGE_TARGET")
 
+	imageScanCmd.Flags().String("clamav-filename", "", "the output filename for the ClamAV scan report")
+	_ = viper.BindPFlag("artifacts.clamavfilename", imageScanCmd.Flags().Lookup("clamav-filename"))
+	viper.MustBindEnv("artifacts.clamavfilename", "WFE_CLAMAV_FILENAME")
+
 	// run image-publish
 	imagePublishCmd := newBasicCommand("image-publish", "publishes an image", runimagePublish)
 

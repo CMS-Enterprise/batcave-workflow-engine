@@ -117,5 +117,34 @@ func (p *ImageScan) Run() error {
 		return err
 	}
 
+	// Holds the ClamAV scan output TODO: multi writer to the artifact directory and gatecheck
+	clamavBuf := new(bytes.Buffer)
+
+	// Do a ClamAV (freshclam) update on the CVD database
+	err = shell.FreshClamCommand(nil, p.Stdout, p.Stderr).Run().WithDryRun(p.DryRunEnabled).Run()
+	if err != nil {
+		return err
+	}
+
+	// Do a ClamAV scan on the target directory, fail if the command fails
+	err = shell.ClamScanCommand(nil, clamavBuf, p.Stderr).Scan(".").WithDryRun(p.DryRunEnabled).Run()
+	if err != nil {
+		return err
+	}
+
+	// Save the ClamAV file to the artifact directory
+	clamavFilename := path.Join(p.artifactConfig.Directory, p.artifactConfig.ClamavFilename)
+	p.logger.Debug("open clamav artifact", "dest", clamavFilename)
+	clamavFile, err := os.OpenFile(clamavFilename, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer clamavFile.Close()
+
+	p.logger.Debug("save clamav artifact", "dest", clamavFilename)
+	if _, err := io.Copy(clamavFile, buf); err != nil {
+		return err
+	}
+	
 	return nil
 }

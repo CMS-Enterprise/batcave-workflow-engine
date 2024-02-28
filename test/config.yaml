@@ -15,4 +15,5 @@ artifacts:
     grypeFilename: grype-report.json
     gitleaksFilename: gitleaks-report.json
     semgrepFilename: semgrep-sast-report.json
+		clamavFilename: clamav-scan-report.json
 		gatecheckBundleFilename: gatecheck-bundle.tar.gz

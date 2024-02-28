@@ -31,6 +31,7 @@ type ArtifactConfig struct {
 	GrypeAllFindingsFilename	  string `json:"grypeAllFindingsFilename" yaml:"grypeAllFindingsFilename" toml:"grypeAllFindingsFilename"`
 	GitleaksFilename            string `json:"gitleaksFilename" yaml:"gitleaksFilename" toml:"gitleaksFilename"`
 	SemgrepFilename  		        string `json:"semgrepFilename" yaml:"semgrepFilename" toml:"semgrepFilename"`
+	ClamavFilename  		        string `json:"clamavFilename" yaml:"clamavFilename" toml:"clamavFilename"`
 	GatecheckBundleFilename     string `json:"gatecheckBundleFilename" yaml:"gatecheckBundleFilename" toml:"gatecheckBundleFilename"`
 	GatecheckConfigFilename     string `json:"gatecheckConfigFilename" yaml:"gatecheckConfigFilename" toml:"gatecheckConfigFilename"`
 }
@@ -69,6 +70,7 @@ func NewDefaultConfig() *Config {
 			GrypeAllFindingsFilename:    "all-findings-grype-scan.json",
 			GitleaksFilename:            "gitleaks-report.json",
 			SemgrepFilename:             "semgrep-sast-report.json",
+			ClamavFilename:							 "clamav-report.txt",
 			GatecheckBundleFilename:     "gatecheck-bundle.tar.gz",
 			GatecheckConfigFilename:     "gatecheck.yaml",
 		},
