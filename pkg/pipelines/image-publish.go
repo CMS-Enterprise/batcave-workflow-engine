@@ -108,7 +108,7 @@ func NewimagePublish(stdout io.Writer, stderr io.Writer) *imagePublish {
 			BuildDockerfile: "Dockerfile",
 		},
 		artifactConfig: ArtifactConfig{
-			Directory:                   ".artifacts",
+			Directory:                   "artifacts",
 			AntivirusFilename:           "clamav-report.txt",
 			GatecheckBundleFilename:     "gatecheck-bundle.tar.gz",
 			GatecheckConfigFilename:     "gatecheck.yaml",

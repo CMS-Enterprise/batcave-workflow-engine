@@ -44,17 +44,12 @@ func (s *CodeScan) WithArtifactConfig(config ArtifactConfig) *CodeScan {
 
 func NewCodeScan(stdout io.Writer, stderr io.Writer) *CodeScan {
 	return &CodeScan{
-		Stdin:  os.Stdin, // Default to OS stdin
-		Stdout: stdout,
-		Stderr: stderr,
-		artifactConfig: ArtifactConfig{
-			Directory:               ".artifacts",
-			GitleaksFilename:        "gitleaks-secrets-scan-report.json",
-			SemgrepFilename:         "semgrep-sast-report.json",
-			GatecheckBundleFilename: "gatecheck-bundle.tar.gz",
-		},
-		DryRunEnabled: false,
-		logger:        slog.Default().With("pipeline", "code_scan"),
+		Stdin:          os.Stdin, // Default to OS stdin TODO: possible vulnerability, config injection
+		Stdout:         stdout,
+		Stderr:         stderr,
+		artifactConfig: NewDefaultConfig().Artifacts,
+		DryRunEnabled:  false,
+		logger:         slog.Default().With("pipeline", "code_scan"),
 	}
 }
 
@@ -71,6 +66,13 @@ func (p *CodeScan) Run() error {
 		"artifact_config.gitleaks_filename", p.artifactConfig.GitleaksFilename,
 		"artifact_config.semgrep_filename", p.artifactConfig.SemgrepFilename,
 	)
+
+	gitleaksFile, err := os.Create(gitleaksFilename)
+	if err != nil {
+		slog.Error("failed to create gitleaks artifact file", "filename", gitleaksFilename)
+	}
+	gitleaksFile.Close()
+
 	gitleaks := shell.GitleaksCommand(nil, p.Stdout, p.Stderr)
 	gitleaksError = gitleaks.DetectSecrets(".", gitleaksFilename).WithDryRun(p.DryRunEnabled).Run()
 

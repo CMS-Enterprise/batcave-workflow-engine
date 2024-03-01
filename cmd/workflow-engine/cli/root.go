@@ -7,23 +7,14 @@ import (
 )
 
 var AppMetadata ApplicationMetadata
+var AppLogLever *slog.LevelVar
 
-func NewWorkflowEngineCommand(logLeveler *slog.LevelVar) *cobra.Command {
+func NewWorkflowEngineCommand() *cobra.Command {
 	versionCmd := newBasicCommand("version", "print version information", runVersion)
 	cmd := &cobra.Command{
-		Use:   "workflow-engine",
-		Short: "A portable, opinionate security pipeline",
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			verboseFlag, _ := cmd.Flags().GetBool("verbose")
-			silentFlag, _ := cmd.Flags().GetBool("silent")
-
-			switch {
-			case verboseFlag:
-				logLeveler.Set(slog.LevelDebug)
-			case silentFlag:
-				logLeveler.Set(slog.LevelError)
-			}
-		},
+		Use:              "workflow-engine",
+		Short:            "A portable, opinionate security pipeline",
+		PersistentPreRun: runCheckLoggingFlags,
 	}
 
 	// Create log leveling flags
@@ -38,6 +29,19 @@ func NewWorkflowEngineCommand(logLeveler *slog.LevelVar) *cobra.Command {
 	cmd.AddCommand(newConfigCommand(), newRunCommand(), versionCmd)
 
 	return cmd
+}
+
+func runCheckLoggingFlags(cmd *cobra.Command, _ []string) {
+	verboseFlag, _ := cmd.Flags().GetBool("verbose")
+	silentFlag, _ := cmd.Flags().GetBool("silent")
+
+	switch {
+	case verboseFlag:
+		AppLogLever.Set(slog.LevelDebug)
+	case silentFlag:
+		AppLogLever.Set(slog.LevelError)
+	}
+
 }
 
 // workflow-engine version

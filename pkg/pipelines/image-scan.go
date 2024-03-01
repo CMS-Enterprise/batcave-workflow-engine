@@ -40,18 +40,12 @@ func (p *ImageScan) WithImageName(imageName string) *ImageScan {
 
 func NewImageScan(stdout io.Writer, stderr io.Writer) *ImageScan {
 	return &ImageScan{
-		Stdin:  os.Stdin, // Default to OS stdin
-		Stdout: stdout,
-		Stderr: stderr,
-		artifactConfig: ArtifactConfig{
-			Directory: os.TempDir(),
-			// TODO: these defaults get specified in multiple places, and it isn't
-			// consistent nor clear which one takes precedence
-			SBOMFilename:  "image-sbom.json",
-			GrypeFilename: "image-scan-report.json",
-		},
-		DryRunEnabled: false,
-		logger:        slog.Default().With("pipeline", "image_scan"),
+		Stdin:          os.Stdin, // Default to OS stdin
+		Stdout:         stdout,
+		Stderr:         stderr,
+		artifactConfig: NewDefaultConfig().Artifacts,
+		DryRunEnabled:  false,
+		logger:         slog.Default().With("pipeline", "image_scan"),
 	}
 }
 

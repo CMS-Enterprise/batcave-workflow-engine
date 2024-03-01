@@ -35,7 +35,7 @@ func runCLI() int {
 		Level:      lvler,
 		TimeFormat: time.TimeOnly,
 	})))
-
+	cli.AppLogLever = lvler
 	cli.AppMetadata = cli.ApplicationMetadata{
 		CLIVersion:     cliVersion,
 		GitCommit:      gitCommit,
@@ -46,7 +46,7 @@ func runCLI() int {
 		Compiler:       runtime.Compiler,
 	}
 
-	cmd := cli.NewWorkflowEngineCommand(lvler)
+	cmd := cli.NewWorkflowEngineCommand()
 	if err := cmd.Execute(); err != nil {
 		slog.Error("command execution failure. See log for details")
 		return exitCommandFailure
