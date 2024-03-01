@@ -27,11 +27,11 @@ type ArtifactConfig struct {
 	AntivirusFilename           string `json:"antivirusFilename"           toml:"antivirusFilename"           yaml:"antivirusFilename"`
 	SBOMFilename                string `json:"sbomFilename"                toml:"sbomFilename"                yaml:"sbomFilename"`
 	GrypeFilename               string `json:"grypeFilename"               toml:"grypeFilename"               yaml:"grypeFilename"`
-	GrypeConfigFilename         string `json:"grypeConfigFilename" yaml:"grypeConfigFilename" toml:"grypeConfigFilename"`
-	GrypeActiveFindingsFilename string `json:"grypeActiveFindingsFilename" yaml:"grypeActiveFindingsFilename" toml:"grypeActiveFindingsFilename"`
-	GrypeAllFindingsFilename    string `json:"grypeAllFindingsFilename" yaml:"grypeAllFindingsFilename" toml:"grypeAllFindingsFilename"`
+	GrypeConfigFilename         string `json:"grypeConfigFilename"         toml:"grypeConfigFilename"         yaml:"grypeConfigFilename"`
+	GrypeActiveFindingsFilename string `json:"grypeActiveFindingsFilename" toml:"grypeActiveFindingsFilename" yaml:"grypeActiveFindingsFilename"`
+	GrypeAllFindingsFilename    string `json:"grypeAllFindingsFilename"    toml:"grypeAllFindingsFilename"    yaml:"grypeAllFindingsFilename"`
 	GitleaksFilename            string `json:"gitleaksFilename"            toml:"gitleaksFilename"            yaml:"gitleaksFilename"`
-	SemgrepFilename             string `json:"semgrepFilename" yaml:"semgrepFilename" toml:"semgrepFilename"`
+	SemgrepFilename             string `json:"semgrepFilename"             toml:"semgrepFilename"             yaml:"semgrepFilename"`
 	GatecheckBundleFilename     string `json:"gatecheckBundleFilename"     toml:"gatecheckBundleFilename"     yaml:"gatecheckBundleFilename"`
 	GatecheckConfigFilename     string `json:"gatecheckConfigFilename"     toml:"gatecheckConfigFilename"     yaml:"gatecheckConfigFilename"`
 }
@@ -69,7 +69,7 @@ func NewDefaultConfig() *Config {
 			GrypeConfigFilename:         ".grype.yaml",
 			GrypeActiveFindingsFilename: "active-findings-grype-scan.json",
 			GrypeAllFindingsFilename:    "all-findings-grype-scan.json",
-			GitleaksFilename:            "gitleaks-report.json",
+			GitleaksFilename:            "gitleaks-secrets-report.json",
 			SemgrepFilename:             "semgrep-sast-report.json",
 			GatecheckBundleFilename:     "gatecheck-bundle.tar.gz",
 			GatecheckConfigFilename:     "gatecheck.yaml",
