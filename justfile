@@ -9,6 +9,14 @@ build:
 # build and install binary
 install: build
     cp ./bin/workflow-engine {{ INSTALL_DIR }}/workflow-engine
+
+# golangci-lint view only
+lint:
+    golangci-lint run --fast
+
+# golangci-lint fix linting errors and format if possible
+fix:
+    golangci-lint run --fast --fix
 	
 # Locally serve documentation
 serve-docs:
