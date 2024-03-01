@@ -44,7 +44,7 @@ func NewImageScan(stdout io.Writer, stderr io.Writer) *ImageScan {
 		Stdout: stdout,
 		Stderr: stderr,
 		artifactConfig: ArtifactConfig{
-			Directory:     os.TempDir(),
+			Directory: os.TempDir(),
 			// TODO: these defaults get specified in multiple places, and it isn't
 			// consistent nor clear which one takes precedence
 			SBOMFilename:  "image-sbom.json",
@@ -65,7 +65,7 @@ func (p *ImageScan) Run() error {
 
 	dir, err := os.Stat(p.artifactConfig.Directory)
 	if err != nil && os.IsNotExist(err) {
-		err := os.MkdirAll(p.artifactConfig.Directory, 0755 /* rwxr-xr-x */)
+		err := os.MkdirAll(p.artifactConfig.Directory, 0o755 /* rwxr-xr-x */)
 		if err != nil {
 			return err
 		}
@@ -77,8 +77,7 @@ func (p *ImageScan) Run() error {
 	sbomFilename := path.Join(p.artifactConfig.Directory, p.artifactConfig.SBOMFilename)
 	p.logger.Info("open sbom dest file for write", "dest", sbomFilename)
 
-	sbomFile, err := os.OpenFile(sbomFilename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-
+	sbomFile, err := os.OpenFile(sbomFilename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
 	if err != nil {
 		return err
 	}
@@ -106,7 +105,7 @@ func (p *ImageScan) Run() error {
 	// Save the grype file to the artifact directory
 	grypeFilename := path.Join(p.artifactConfig.Directory, p.artifactConfig.GrypeFilename)
 	p.logger.Debug("open grype artifact", "dest", grypeFilename)
-	grypeFile, err := os.OpenFile(grypeFilename, os.O_CREATE|os.O_WRONLY, 0644)
+	grypeFile, err := os.OpenFile(grypeFilename, os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
 	}

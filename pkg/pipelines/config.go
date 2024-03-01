@@ -17,37 +17,37 @@ import (
 // config file. When it's passed to the image build pipeline, additional logic is used to build
 // the image build commands.
 type Config struct {
-	Image     ImageConfig    `json:"image" yaml:"image" toml:"image"`
-	Artifacts ArtifactConfig `json:"artifacts" yaml:"artifacts" toml:"artifacts"`
+	Image     ImageConfig    `json:"image"     toml:"image"     yaml:"image"`
+	Artifacts ArtifactConfig `json:"artifacts" toml:"artifacts" yaml:"artifacts"`
 }
 
 type ArtifactConfig struct {
-	Directory                   string `json:"directory" yaml:"directory" toml:"directory"`
-	BundleDirectory             string `json:"bundleDirectory" yaml:"bundleDirectory" toml:"bundleDirectory"`
-	AntivirusFilename           string `json:"antivirusFilename" yaml:"antivirusFilename" toml:"antivirusFilename"`
-	SBOMFilename                string `json:"sbomFilename" yaml:"sbomFilename" toml:"sbomFilename"`
-	GrypeFilename               string `json:"grypeFilename" yaml:"grypeFilename" toml:"grypeFilename"`
-	GrypeConfigFilename			    string `json:"grypeConfigFilename" yaml:"grypeConfigFilename" toml:"grypeConfigFilename"`
-	GrypeActiveFindingsFilename	string `json:"grypeActiveFindingsFilename" yaml:"grypeActiveFindingsFilename" toml:"grypeActiveFindingsFilename"`
-	GrypeAllFindingsFilename	  string `json:"grypeAllFindingsFilename" yaml:"grypeAllFindingsFilename" toml:"grypeAllFindingsFilename"`
-	GitleaksFilename            string `json:"gitleaksFilename" yaml:"gitleaksFilename" toml:"gitleaksFilename"`
-	SemgrepFilename  		        string `json:"semgrepFilename" yaml:"semgrepFilename" toml:"semgrepFilename"`
-	GatecheckBundleFilename     string `json:"gatecheckBundleFilename" yaml:"gatecheckBundleFilename" toml:"gatecheckBundleFilename"`
-	GatecheckConfigFilename     string `json:"gatecheckConfigFilename" yaml:"gatecheckConfigFilename" toml:"gatecheckConfigFilename"`
+	Directory                   string `json:"directory"                   toml:"directory"                   yaml:"directory"`
+	BundleDirectory             string `json:"bundleDirectory"             toml:"bundleDirectory"             yaml:"bundleDirectory"`
+	AntivirusFilename           string `json:"antivirusFilename"           toml:"antivirusFilename"           yaml:"antivirusFilename"`
+	SBOMFilename                string `json:"sbomFilename"                toml:"sbomFilename"                yaml:"sbomFilename"`
+	GrypeFilename               string `json:"grypeFilename"               toml:"grypeFilename"               yaml:"grypeFilename"`
+	GrypeConfigFilename         string `json:"grypeConfigFilename" yaml:"grypeConfigFilename" toml:"grypeConfigFilename"`
+	GrypeActiveFindingsFilename string `json:"grypeActiveFindingsFilename" yaml:"grypeActiveFindingsFilename" toml:"grypeActiveFindingsFilename"`
+	GrypeAllFindingsFilename    string `json:"grypeAllFindingsFilename" yaml:"grypeAllFindingsFilename" toml:"grypeAllFindingsFilename"`
+	GitleaksFilename            string `json:"gitleaksFilename"            toml:"gitleaksFilename"            yaml:"gitleaksFilename"`
+	SemgrepFilename             string `json:"semgrepFilename" yaml:"semgrepFilename" toml:"semgrepFilename"`
+	GatecheckBundleFilename     string `json:"gatecheckBundleFilename"     toml:"gatecheckBundleFilename"     yaml:"gatecheckBundleFilename"`
+	GatecheckConfigFilename     string `json:"gatecheckConfigFilename"     toml:"gatecheckConfigFilename"     yaml:"gatecheckConfigFilename"`
 }
 
 // ImageConfig is a struct representation of the Image field in the Config file
 type ImageConfig struct {
-	BuildDir          string            `json:"buildDir" yaml:"buildDir" toml:"buildDir"`
-	BuildDockerfile   string            `json:"buildDockerfile" yaml:"buildDockerfile" toml:"buildDockerfile"`
-	BuildTag          string            `json:"buildTag" yaml:"buildTag" toml:"buildTag"`
-	BuildPlatform     string            `json:"buildPlatform" yaml:"buildPlatform" toml:"buildPlatform"`
-	BuildTarget       string            `json:"buildTarget" yaml:"buildTarget" toml:"buildTarget"`
-	BuildCacheTo      string            `json:"buildCacheTo" yaml:"buildCacheTo" toml:"buildCacheTo"`
-	BuildCacheFrom    string            `json:"buildCacheFrom" yaml:"buildCacheFrom" toml:"buildCacheFrom"`
-	BuildSquashLayers bool              `json:"buildSquashLayers" yaml:"buildSquashLayers" toml:"buildSquashLayers"`
-	BuildArgs         map[string]string `json:"buildArgs" yaml:"buildArgs" toml:"buildArgs"`
-	ScanTarget        string            `json:"scanTarget" yaml:"scanTarget" toml:"scanTarget"`
+	BuildDir          string            `json:"buildDir"          toml:"buildDir"          yaml:"buildDir"`
+	BuildDockerfile   string            `json:"buildDockerfile"   toml:"buildDockerfile"   yaml:"buildDockerfile"`
+	BuildTag          string            `json:"buildTag"          toml:"buildTag"          yaml:"buildTag"`
+	BuildPlatform     string            `json:"buildPlatform"     toml:"buildPlatform"     yaml:"buildPlatform"`
+	BuildTarget       string            `json:"buildTarget"       toml:"buildTarget"       yaml:"buildTarget"`
+	BuildCacheTo      string            `json:"buildCacheTo"      toml:"buildCacheTo"      yaml:"buildCacheTo"`
+	BuildCacheFrom    string            `json:"buildCacheFrom"    toml:"buildCacheFrom"    yaml:"buildCacheFrom"`
+	BuildSquashLayers bool              `json:"buildSquashLayers" toml:"buildSquashLayers" yaml:"buildSquashLayers"`
+	BuildArgs         map[string]string `json:"buildArgs"         toml:"buildArgs"         yaml:"buildArgs"`
+	ScanTarget        string            `json:"scanTarget"        toml:"scanTarget"        yaml:"scanTarget"`
 }
 
 // NewDefaultConfig creates a new "safe" config object.
@@ -58,12 +58,12 @@ func NewDefaultConfig() *Config {
 		Image: ImageConfig{
 			BuildDir:        ".",
 			BuildDockerfile: "Dockerfile",
-			BuildArgs:       map[string]string {},
+			BuildArgs:       map[string]string{},
 		},
 		Artifacts: ArtifactConfig{
 			Directory:                   "artifacts",
 			BundleDirectory:             "artifacts",
-			AntivirusFilename:					 "clamav-report.txt",
+			AntivirusFilename:           "clamav-report.txt",
 			SBOMFilename:                "syft-sbom.json",
 			GrypeFilename:               "grype-report.json",
 			GrypeConfigFilename:         ".grype.yaml",

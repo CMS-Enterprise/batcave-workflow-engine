@@ -11,8 +11,10 @@ import (
 	"github.com/lmittmann/tint"
 )
 
-const exitOK = 0
-const exitCommandFailure = 1
+const (
+	exitOK             = 0
+	exitCommandFailure = 1
+)
 
 var (
 	cliVersion     = "[Not Provided]"
@@ -22,7 +24,6 @@ var (
 )
 
 func main() {
-
 	os.Exit(runCLI())
 }
 

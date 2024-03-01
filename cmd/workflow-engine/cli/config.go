@@ -13,7 +13,6 @@ import (
 )
 
 func newConfigCommand() *cobra.Command {
-
 	// config init
 	initCmd := newBasicCommand("init", "write the default configuration file", runConfigInit)
 	initCmd.Flags().StringP("output", "o", "yaml", "config output format (<format>=<file>) empty will write to STDOUT, formats=[json yaml yml toml]")
@@ -58,7 +57,7 @@ func runConfigInit(cmd *cobra.Command, _ []string) error {
 		targetWriter = cmd.OutOrStdout()
 	default:
 		slog.Debug("open", "filename", filename)
-		f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
+		f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0o644)
 		if err != nil {
 			return err
 		}
@@ -129,7 +128,7 @@ func runConfigConvert(cmd *cobra.Command, _ []string) error {
 	var outputWriter io.Writer
 	switch {
 	case filename != "":
-		f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
+		f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0o644)
 		if err != nil {
 			return fmt.Errorf("failed to open output file: %w", err)
 		}

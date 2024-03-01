@@ -70,5 +70,4 @@ func (i *ImageBuild) Run() error {
 		WithCache(i.cfg.BuildCacheTo, i.cfg.BuildCacheFrom)
 
 	return i.CLICmd.Build(buildOpts).WithDryRun(i.DryRunEnabled).Run()
-
 }

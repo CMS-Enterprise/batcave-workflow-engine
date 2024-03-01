@@ -106,14 +106,12 @@ func (a *AbstractEncoder) Encode(asFormat string) error {
 	default:
 		return fmt.Errorf("unsupported format: '%s'", asFormat)
 	}
-
 }
 
 // Helper Functions
 
 // ConfigFromViper sets the configuration values to a config object from env, flags, or config file
 func ConfigFromViper(v *viper.Viper) pipelines.Config {
-
 	viperKVs := []any{}
 	for _, key := range viper.AllKeys() {
 		viperKVs = append(viperKVs, key, viper.Get(key))

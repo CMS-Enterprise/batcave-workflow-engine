@@ -10,10 +10,10 @@ import (
 )
 
 // TODO: pipeline-triggers currently does a curl to a gatecheck repo in GitLab to get the gatecheck.yaml file.
-//       For now, this gatecheck.yaml file is hardcoded as follows, but it should be changed to point
-//       to a gatecheck.yaml specific to the version that is used in omnibus.
-var gatecheckYaml =
-`cyclonedx:
+//
+//	For now, this gatecheck.yaml file is hardcoded as follows, but it should be changed to point
+//	to a gatecheck.yaml specific to the version that is used in omnibus.
+var gatecheckYaml = `cyclonedx:
     allowList:
         - id: example allow id
           reason: example reason
@@ -104,12 +104,12 @@ func NewimagePublish(stdout io.Writer, stderr io.Writer) *imagePublish {
 		Stderr:        stderr,
 		DryRunEnabled: false,
 		logger:        slog.Default().With("pipeline", "image_package"),
-		imageConfig:   ImageConfig{
+		imageConfig: ImageConfig{
 			BuildDockerfile: "Dockerfile",
 		},
 		artifactConfig: ArtifactConfig{
-			Directory:        			     ".artifacts",
-			AntivirusFilename:					 "clamav-report.txt",
+			Directory:                   ".artifacts",
+			AntivirusFilename:           "clamav-report.txt",
 			GatecheckBundleFilename:     "gatecheck-bundle.tar.gz",
 			GatecheckConfigFilename:     "gatecheck.yaml",
 			GrypeFilename:               "grype-image-scan.json",
@@ -129,17 +129,17 @@ func NewimagePublish(stdout io.Writer, stderr io.Writer) *imagePublish {
 
 func (i *imagePublish) Run() error {
 	var gatecheckBundleError, gatecheckSummaryError error
-	var antivirusFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.AntivirusFilename)
-	var gatecheckBundleFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.GatecheckBundleFilename)
-	var gatecheckConfigFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.GatecheckConfigFilename)
-	var gitleaksFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.GitleaksFilename)
-	var grypeFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.GrypeFilename)
-	var grypeConfigFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.GrypeConfigFilename)
-	var grypeActiveFindingsFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.GrypeActiveFindingsFilename)
-	var grypeAllFindingsFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.GrypeAllFindingsFilename)
-	var sbomFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.SBOMFilename)
-	var semgrepFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.SemgrepFilename)
-	var dockerFilename = i.imageConfig.BuildDockerfile
+	antivirusFilename := path.Join(i.artifactConfig.Directory, i.artifactConfig.AntivirusFilename)
+	gatecheckBundleFilename := path.Join(i.artifactConfig.Directory, i.artifactConfig.GatecheckBundleFilename)
+	gatecheckConfigFilename := path.Join(i.artifactConfig.Directory, i.artifactConfig.GatecheckConfigFilename)
+	gitleaksFilename := path.Join(i.artifactConfig.Directory, i.artifactConfig.GitleaksFilename)
+	grypeFilename := path.Join(i.artifactConfig.Directory, i.artifactConfig.GrypeFilename)
+	grypeConfigFilename := path.Join(i.artifactConfig.Directory, i.artifactConfig.GrypeConfigFilename)
+	grypeActiveFindingsFilename := path.Join(i.artifactConfig.Directory, i.artifactConfig.GrypeActiveFindingsFilename)
+	grypeAllFindingsFilename := path.Join(i.artifactConfig.Directory, i.artifactConfig.GrypeAllFindingsFilename)
+	sbomFilename := path.Join(i.artifactConfig.Directory, i.artifactConfig.SBOMFilename)
+	semgrepFilename := path.Join(i.artifactConfig.Directory, i.artifactConfig.SemgrepFilename)
+	dockerFilename := i.imageConfig.BuildDockerfile
 
 	l := slog.Default()
 
@@ -148,14 +148,14 @@ func (i *imagePublish) Run() error {
 
 	// Create gatecheck.yaml file
 	gatecheckConfigFile := []byte(gatecheckYaml)
-  gatecheckConfigError := os.WriteFile(gatecheckConfigFilename, gatecheckConfigFile, 0644)
+	gatecheckConfigError := os.WriteFile(gatecheckConfigFilename, gatecheckConfigFile, 0o644)
 
 	// Run gatecheck bundle
 	gatecheck := shell.GatecheckCommand(nil, i.Stdout, i.Stderr)
 	gatecheckBundleError = gatecheck.Bundle(gatecheckBundleFilename, gitleaksFilename, grypeFilename, grypeConfigFilename, grypeActiveFindingsFilename, grypeAllFindingsFilename, sbomFilename, semgrepFilename, gatecheckConfigFilename, dockerFilename, antivirusFilename).WithDryRun(i.DryRunEnabled).Run()
-	
+
 	// Run gatecheck summary
 	gatecheckSummaryError = gatecheck.Summary(gatecheckBundleFilename).WithDryRun(i.DryRunEnabled).Run()
-	
+
 	return errors.Join(gatecheckConfigError, gatecheckBundleError, gatecheckSummaryError)
 }

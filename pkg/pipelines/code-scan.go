@@ -48,7 +48,7 @@ func NewCodeScan(stdout io.Writer, stderr io.Writer) *CodeScan {
 		Stdout: stdout,
 		Stderr: stderr,
 		artifactConfig: ArtifactConfig{
-			Directory:        			 ".artifacts",
+			Directory:               ".artifacts",
 			GitleaksFilename:        "gitleaks-secrets-scan-report.json",
 			SemgrepFilename:         "semgrep-sast-report.json",
 			GatecheckBundleFilename: "gatecheck-bundle.tar.gz",
@@ -61,9 +61,9 @@ func NewCodeScan(stdout io.Writer, stderr io.Writer) *CodeScan {
 func (p *CodeScan) Run() error {
 	var semgrepFileError, gitleaksError, semgrepError, gatecheckBundleError, gatecheckSummaryError error
 	var semgrepReportFile *os.File
-	var semgrepFilename = path.Join(p.artifactConfig.Directory, p.artifactConfig.SemgrepFilename)
-	var gitleaksFilename = path.Join(p.artifactConfig.Directory, p.artifactConfig.GitleaksFilename)
-	var gatecheckBundleFilename = path.Join(p.artifactConfig.Directory, p.artifactConfig.GatecheckBundleFilename)
+	semgrepFilename := path.Join(p.artifactConfig.Directory, p.artifactConfig.SemgrepFilename)
+	gitleaksFilename := path.Join(p.artifactConfig.Directory, p.artifactConfig.GitleaksFilename)
+	gatecheckBundleFilename := path.Join(p.artifactConfig.Directory, p.artifactConfig.GatecheckBundleFilename)
 
 	p.logger = p.logger.With("dry_run_enabled", p.DryRunEnabled)
 	p.logger = p.logger.With(
@@ -81,7 +81,7 @@ func (p *CodeScan) Run() error {
 	var semgrep semgrepCLI
 
 	slog.Debug("open semgrep file for output", "filename", semgrepFilename)
-	semgrepReportFile, semgrepFileError = os.OpenFile(semgrepFilename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	semgrepReportFile, semgrepFileError = os.OpenFile(semgrepFilename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
 	if semgrepFileError != nil {
 		return errors.Join(gitleaksError, semgrepError)
 	}
@@ -111,7 +111,6 @@ func (p *CodeScan) Run() error {
 			// error code documentation: https://semgrep.dev/docs/cli-reference/
 			slog.Error("semgrep unexpected command failure. See log for details.", "error", semgrepError)
 		}
-
 	}
 
 	// Run gatecheck bundle

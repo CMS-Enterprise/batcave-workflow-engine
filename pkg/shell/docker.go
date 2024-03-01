@@ -91,7 +91,6 @@ func (o *ImageBuildOptions) WithSquashLayers(enabled bool) *ImageBuildOptions {
 
 // WithCache sets caching to a registry
 func (o *ImageBuildOptions) WithCache(cacheTo string, cacheFrom string) *ImageBuildOptions {
-
 	if cacheTo != "" {
 		o.args = append(o.args, "--cache-to", cacheTo)
 	}

@@ -23,7 +23,6 @@ func NewWorkflowEngineCommand(logLeveler *slog.LevelVar) *cobra.Command {
 			case silentFlag:
 				logLeveler.Set(slog.LevelError)
 			}
-
 		},
 	}
 
@@ -52,5 +51,4 @@ func runVersion(cmd *cobra.Command, args []string) error {
 		_, err := AppMetadata.WriteTo(cmd.OutOrStdout())
 		return err
 	}
-
 }

@@ -206,8 +206,8 @@ func imagePublishPipeline(stdout io.Writer, stderr io.Writer, config pipelines.A
 }
 
 func codeScanPipeline(stdout io.Writer, stderr io.Writer, config pipelines.ArtifactConfig, dryRunEnabled bool,
-	semgrepErrorOnFindings bool, semgrepExperimental bool, semgrepRules string) error {
-
+	semgrepErrorOnFindings bool, semgrepExperimental bool, semgrepRules string,
+) error {
 	pipeline := pipelines.NewCodeScan(stdout, stderr)
 	pipeline.DryRunEnabled = dryRunEnabled
 	pipeline.SemgrepErrorOnFindingsEnabled = semgrepErrorOnFindings
