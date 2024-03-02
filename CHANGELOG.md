@@ -15,6 +15,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - upgraded to go 1.22.0
 - New Executable will default inputs and outputs to OS
 - WithStdin, WithStdout, WithStderr all merged to WithIO
+- Config syntax to correlated with pipelines
 
 ### Added
 

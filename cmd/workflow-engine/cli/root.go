@@ -2,8 +2,10 @@ package cli
 
 import (
 	"log/slog"
+	"workflow-engine/pkg/pipelines"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -12,6 +14,9 @@ var (
 )
 
 func NewWorkflowEngineCommand() *cobra.Command {
+	viper.SetConfigName("workflow-engine")
+	pipelines.SetDefaults(viper.GetViper())
+
 	versionCmd := newBasicCommand("version", "print version information", runVersion)
 	cmd := &cobra.Command{
 		Use:              "workflow-engine",

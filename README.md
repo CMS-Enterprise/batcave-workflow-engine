@@ -56,24 +56,31 @@ Configuration Order-of-Precedence:
 3. Config File Value
 4. Default Value
 
-| Variable Name             | Type               | Default              | CLI Flag             | Config Field Name            | Description                                           |
-|---------------------------|--------------------|----------------------|----------------------|------------------------------|-------------------------------------------------------|
-| `WFE_BUILD_DIR`           | string             | .                    | --build-dir          | `image.buildDir`             | The container build directory                         |
-| `WFE_BUILD_DOCKERFILE`    | string             | Dockerfile           | --dockerfile         | `image.buildDockerfile`      | The name of the Dockerfile to build and scan          |
-| `WFE_BUILD_ARGS`          | map\[string]string |                      | --build-arg          | `image.buildArgs`            | Build arguments passed to the container build command |
-| `WFE_BUILD_TAG`           | string             |                      | --tag                | `image.buildTag`             | The container build tag to use for building an image  |
-| `WFE_BUILD_PLATFORM`      | string             |                      | --platform           | `image.buildPlatform`        | The container build platform                          |
-| `WFE_BUILD_TARGET`        | string             |                      | --target             | `image.buildTarget`          | The container build target                            |
-| `WFE_BUILD_CACHE_TO`      | string             |                      | --cache-to           | `image.buildCacheTo`         | The container cache to directory                      |
-| `WFE_BUILD_CACHE_FROM`    | string             |                      | --cache-from         | `image.buildCacheFrom`       | The container cache from directory                    |
-| `WFE_BUILD_SQUASH_LAYERS` | bool               |                      | --squash-layers      | `image.buildSquashLayers`    | Flag to squash layers                                 |
-| `WFE_SCAN_IMAGE_TARGET`   | string             |                      | --scan-image-target  | `image.scanTarget`           | The scan image tag name                               |
-| `WFE_ARTIFACT_DIRECTORY`  | string             |                      | --artifact-directory | `artifacts.directory`        | The directory to store artifacts                      |
-| `WFE_SBOM_FILENAME`       | string             | syft-sbom.json       | --sbom-filename      | `artifacts.sbomFilename`     | The SBOM file name                                    |
-| `WFE_GRYPE_FILENAME`      | string             | grype-report.json    | --grype-filename     | `artifacts.grypeFilename`    | The Grype file name                                   |
-| `WFE_GITLEAKS_FILENAME`   | string             | gitleaks-report.json | --gitleaks-filename  | `artifacts.gitleaksFilename` | The Gitleaks file name                                |
-| `WFE_BUNDLE_DIRECTORY`    | string             |                      | --bundle-directory   | `artifacts.bundleDirectory`  | The Gatecheck bundle directory                        |
-| `WFE_BUNDLE_FILENAME`     | string             |                      | --bundle-filename    | `artifacts.bundleFilename`   | The Gatecheck bundle filename                         |
+Note: `(none)` means unset, left blank
+
+| Env Variable                                  | Viper Key                             | Default Value                            | Description                                      |
+| --------------------------------------------- | ------------------------------------- | ---------------------------------------- | ------------------------------------------------ |
+| WFE_IMAGE_BUILD_ENABLED                       | imagebuild.enabled                    | 1                                        | Enables or disables the image build process.     |
+| WFE_IMAGE_BUILD_DIR                           | imagebuild.builddir                   | "."                                      | The directory where the image build takes place. |
+| WFE_IMAGE_BUILD_DOCKERFILE                    | imagebuild.dockerfile                 | "Dockerfile"                             | The name/path of the Dockerfile.                 |
+| WFE_IMAGE_BUILD_TAG                           | imagebuild.tag                        | (none)                                   | The tag to be applied to the built image.        |
+| WFE_BUILD_IMAGE_PLATFORM                      | imagebuild.platform                   | (none)                                   | The platform for the image build.                |
+| WFE_IMAGE_BUILD_TARGET                        | imagebuild.target                     | (none)                                   | The target build stage in the Dockerfile.        |
+| WFE_IMAGE_BUILD_CACHE_TO                      | imagebuild.cacheto                    | (none)                                   | Specifies where to store build cache.            |
+| WFE_IMAGE_BUILD_CACHE_FROM                    | imagebuild.cachefrom                  | (none)                                   | Specifies where to load build cache from.        |
+| WFE_IMAGE_BUILD_SQUASH_LAYERS                 | imagebuild.squashlayers               | (none)                                   | Enable or disable squashing of build layers.     |
+| WFE_IMAGE_BUILD_SCAN_TARGET                   | imagebuild.scantarget                 | (none)                                   | The target for image scanning.                   |
+| WFE_IMAGE_SCAN_ENABLED                        | imagescan.enabled                     | 1                                        | Enables or disables the image scanning process.  |
+| WFE_IMAGE_SCAN_CLAMAV_FILENAME                | imagescan.clamavFilename              | "clamav-virus-report.txt"                | Filename for ClamAV scan report.                 |
+| WFE_IMAGE_SCAN_SYFT_FILENAME                  | imagescan.syftFilename                | "syft-sbom-report.json"                  | Filename for Syft SBOM report.                   |
+| WFE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME          | imagescan.grypeConfigFilename         | (none)                                   | Configuration file for Grype.                    |
+| WFE_IMAGE_SCAN_GRYPE_ACTIVE_FINDINGS_FILENAME | imagescan.grypeActiveFindingsFilename | "grype-vulnerability-report-active.json" | Filename for Grype active findings report.       |
+| WFE_IMAGE_SCAN_GRYPE_ALL_FINDINGS_FILENAME    | imagescan.grypeAllFindingsFilename    | "grype-vulnerability-report-full.json"   | Filename for Grype full findings report.         |
+| WFE_CODE_SCAN_ENABLED                         | codescan.enabled                      | 1                                        | Enables or disables the code scanning process.   |
+| WFE_CODE_SCAN_GITLEAKS_FILENAME               | codescan.gitleaksFilename             | "gitleaks-secrets-report.json"           | Filename for Gitleaks secrets report.            |
+| WFE_CODE_SCAN_GITLEAKS_SRC_DIR                | codescan.gitleaksSrcDir               | "."                                      | Source directory for Gitleaks scan.              |
+| WFE_CODE_SCAN_SEMGREP_FILENAME                | codescan.semgrepFilename              | "semgrep-sast-report.json"               | Filename for Semgrep SAST report.                |
+| WFE_CODE_SCAN_SEMGREP_RULES                   | codescan.semgrepRules                 | "p/default"                              | Rule set for Semgrep scan.                       |
 
 ## Running in Docker
 

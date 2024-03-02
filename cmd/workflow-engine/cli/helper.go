@@ -1,13 +1,11 @@
 package cli
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
-	"path"
 	"strings"
 	"workflow-engine/pkg/pipelines"
 
@@ -110,75 +108,50 @@ func (a *AbstractEncoder) Encode(asFormat string) error {
 
 // Helper Functions
 
-// ConfigFromViper sets the configuration values to a config object from env, flags, or config file
-func ConfigFromViper(v *viper.Viper) pipelines.Config {
-	viperKVs := []any{}
+func ListConfig(w io.Writer, v *viper.Viper) error {
 	for _, key := range viper.AllKeys() {
-		viperKVs = append(viperKVs, key, viper.Get(key))
-	}
-	return pipelines.Config{
-		Image: pipelines.ConfigImage{
-			BuildDir:        v.GetString("image.builddir"),
-			BuildDockerfile: v.GetString("image.builddockerfile"),
-			BuildTag:        v.GetString("image.buildtag"),
-			BuildPlatform:   v.GetString("image.buildplatform"),
-			BuildTarget:     v.GetString("image.buildtarget"),
-			BuildCacheTo:    v.GetString("image.buildcacheto"),
-			BuildCacheFrom:  v.GetString("image.buildcachefrom"),
-			BuildArgs:       v.GetStringMapString("image.buildargs"),
-			ScanTarget:      v.GetString("image.scantarget"),
-		},
-		Artifacts: pipelines.ConfigArtifacts{
-			Directory:        v.GetString("artifacts.directory"),
-			SBOMFilename:     v.GetString("artifacts.sbomfilename"),
-			GrypeFilename:    v.GetString("artifacts.grypefilename"),
-			GitleaksFilename: v.GetString("artifacts.gitleaksfilename"),
-			SemgrepFilename:  v.GetString("artifacts.semgrepfilename"),
-		},
-	}
-}
-
-// Config checks for the `--config` value and hands off to viper for parsing
-func Config(configFilename string) (pipelines.Config, error) {
-	ext := path.Ext(configFilename)
-	subExt := path.Ext(strings.TrimSuffix(configFilename, ext))
-
-	// Config file is a template
-	if ext == ".tmpl" || ext == ".tpl" {
-		return configFromTemplate(configFilename, strings.TrimPrefix(subExt, "."))
-	}
-
-	slog.Debug("read configuration from all sources", "config_file_used", viper.ConfigFileUsed())
-	if err := viper.ReadInConfig(); err != nil {
-		// If the error is specifically something other than a "File Not Found" error
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok && configFilename != "" {
-			return pipelines.Config{}, err
+		_, err := fmt.Fprintf(w, "%-45s %s\n", key, fmt.Sprintf("%v", viper.Get(key)))
+		if err != nil {
+			return err
 		}
 	}
-
-	config := ConfigFromViper(viper.GetViper())
-	return config, nil
+	return nil
 }
 
-func configFromTemplate(configFilename string, fileType string) (pipelines.Config, error) {
-	buf := new(bytes.Buffer)
-	err := writeRenderedConfigTo(buf, configFilename)
-	if err != nil {
-		return pipelines.Config{}, err
+// LoadConfig will do a viper.ReadIn and unmarshal the values into a new config object
+//
+// This function assumes the caller already did v.SetFilename(configFilename)
+// If the config file does not exist, this function will return an error.
+// If the possibility of a non-existent configuration is expected, you don't need to
+// use this function. you can call unmarshal directly to load default values
+func LoadConfig(config *pipelines.Config, v *viper.Viper) error {
+	if err := v.ReadInConfig(); err != nil {
+		return err
 	}
-	slog.Debug("rendering config template", "template_filename", configFilename, "config_filetype", fileType)
-	viper.SetConfigType(fileType)
+	if err := v.Unmarshal(config); err != nil {
+		return err
+	}
+	return nil
+}
 
-	if err := viper.ReadConfig(buf); err != nil {
-		return pipelines.Config{}, err
+// LoadOrDefault will use the default config if filename is blank
+//
+// Caller should pass in a new config object
+func LoadOrDefault(filename string, config *pipelines.Config, v *viper.Viper) error {
+	viper.SetConfigFile(filename)
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			return err
+		}
+		slog.Warn("no configuration file provided with --config flag, using default configuration")
+		_ = viper.Unmarshal(config)
 	}
-	config := ConfigFromViper(viper.GetViper())
-	return config, nil
+	return nil
 }
 
 // ParsedOutput splits the format and filename
 //
-// expects the `--output` argument in the <format>=<filename> format
+// expects the `--output` argument format (<format>=<file>)
 func ParsedOutput(output string) (format, filename string) {
 	switch {
 	case strings.Contains(output, "="):

@@ -11,104 +11,77 @@ import (
 )
 
 type ImageScan struct {
-	Stdin          io.Reader
-	Stdout         io.Writer
-	Stderr         io.Writer
-	logger         *slog.Logger
-	DryRunEnabled  bool
-	artifactConfig ConfigArtifacts
-	imageName      string
+	Stdout        io.Writer
+	Stderr        io.Writer
+	DryRunEnabled bool
+	config        *Config
 }
 
-func (p *ImageScan) WithArtifactConfig(config ConfigArtifacts) *ImageScan {
-	if config.Directory != "" {
-		p.artifactConfig.Directory = config.Directory
-	}
-	if config.SBOMFilename != "" {
-		p.artifactConfig.SBOMFilename = config.SBOMFilename
-	}
-	if config.GrypeFilename != "" {
-		p.artifactConfig.GrypeFilename = config.GrypeFilename
-	}
-	return p
-}
-
-func (p *ImageScan) WithImageName(imageName string) *ImageScan {
-	p.imageName = imageName
+func (p *ImageScan) WithConfig(config *Config) *ImageScan {
+	p.config = config
 	return p
 }
 
 func NewImageScan(stdout io.Writer, stderr io.Writer) *ImageScan {
 	return &ImageScan{
-		Stdin:          os.Stdin, // Default to OS stdin
-		Stdout:         stdout,
-		Stderr:         stderr,
-		artifactConfig: NewDefaultConfig().Artifacts,
-		DryRunEnabled:  false,
-		logger:         slog.Default().With("pipeline", "image_scan"),
+		Stdout:        stdout,
+		Stderr:        stderr,
+		DryRunEnabled: false,
+		config:        new(Config),
 	}
 }
 
 func (p *ImageScan) Run() error {
-	p.logger = p.logger.With("dry_run_enabled", p.DryRunEnabled)
-	p.logger = p.logger.With(
-		"artifact_config.directory", p.artifactConfig.Directory,
-		"artifact_config.sbom_filename", p.artifactConfig.SBOMFilename,
-		"artifact_config.grype_filename", p.artifactConfig.GrypeFilename,
-	)
+	slog.Info("run image scan pipeline", "dry_run_enabled", p.DryRunEnabled, "artifact_directory", p.config.ArtifactsDir)
 
-	dir, err := os.Stat(p.artifactConfig.Directory)
-	if err != nil && os.IsNotExist(err) {
-		err := os.MkdirAll(p.artifactConfig.Directory, 0o755 /* rwxr-xr-x */)
-		if err != nil {
-			return err
-		}
-	} else if !dir.IsDir() {
-		return errors.New("ArtifactConfig.Directory must be a directory, but it is a file")
+	slog.Debug("ensure artifact directory exists")
+	if err := os.MkdirAll(p.config.ArtifactsDir, 0o755); err != nil {
+		slog.Error("failed to create artifact directory", "directory", p.config.ArtifactsDir)
+		return errors.New("Code Scan Pipeline failed to run. See log for details.")
 	}
 
-	// TODO: need syft SBOM output filename, it'll have to be saved in the artifact directory
-	sbomFilename := path.Join(p.artifactConfig.Directory, p.artifactConfig.SBOMFilename)
-	p.logger.Info("open sbom dest file for write", "dest", sbomFilename)
+	sbomFilename := path.Join(p.config.ArtifactsDir, p.config.ImageScan.TargetImage)
+	slog.Info("open sbom dest file for write", "dest", sbomFilename)
 
 	sbomFile, err := os.OpenFile(sbomFilename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
 	if err != nil {
+		slog.Error("failed to open syft sbom file", "filename", sbomFilename, "error", err)
 		return err
 	}
 
-	err = shell.SyftCommand(nil, sbomFile, p.Stderr).
-		ScanImage(p.imageName).
-		WithDryRun(p.DryRunEnabled).Run()
+	grypeFilename := path.Join(p.config.ArtifactsDir, p.config.ImageScan.GrypeFullFilename)
+	slog.Info("open grype dest file for write", "dest", grypeFilename)
 
+	grypeFile, err := os.OpenFile(grypeFilename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
 	if err != nil {
-		sbomFile.Close()
+		slog.Error("failed to open grype file", "filename", grypeFilename, "error", err)
+		return errors.New("image Scan Pipeline failed. See log for details")
+	}
+
+	syftReportBuf := new(bytes.Buffer)
+	syftMW := io.MultiWriter(sbomFile, syftReportBuf)
+
+	if err = runSyft(syftMW, p.Stderr, p.config, p.DryRunEnabled); err != nil {
+		slog.Error("syft sbom generation failed")
+		return errors.New("image Scan Pipeline failed. See log for details")
+	}
+
+	grypeReportBuf := new(bytes.Buffer)
+	grypeMW := io.MultiWriter(grypeFile, grypeReportBuf)
+
+	if err := runGrype(grypeMW, syftReportBuf, p.Stderr, p.config, p.DryRunEnabled); err != nil {
 		return err
 	}
 
-	sbomFile.Close()
-
-	// Holds the grype scan output TODO: multi writer to the artifact directory and gatecheck
-	buf := new(bytes.Buffer)
-
-	// Do a grype scan on the SBOM, fail if the command fails
-	err = shell.GrypeCommand(nil, buf, p.Stderr).ScanSBOM(sbomFilename).WithDryRun(p.DryRunEnabled).Run()
-	if err != nil {
-		return err
-	}
-
-	// Save the grype file to the artifact directory
-	grypeFilename := path.Join(p.artifactConfig.Directory, p.artifactConfig.GrypeFilename)
-	p.logger.Debug("open grype artifact", "dest", grypeFilename)
-	grypeFile, err := os.OpenFile(grypeFilename, os.O_CREATE|os.O_WRONLY, 0o644)
-	if err != nil {
-		return err
-	}
-	defer grypeFile.Close()
-
-	p.logger.Debug("save grype artifact", "dest", grypeFilename)
-	if _, err := io.Copy(grypeFile, buf); err != nil {
-		return err
-	}
+	// TODO: use the buffers for gatecheck sumamry and bundle
 
 	return nil
+}
+
+func runSyft(reportDst io.Writer, stdErr io.Writer, config *Config, dryRunEnabled bool) error {
+	return shell.SyftCommand(nil, reportDst, stdErr).ScanImage(config.ImageScan.TargetImage).WithDryRun(dryRunEnabled).Run()
+}
+
+func runGrype(reportDst io.Writer, syftSrc io.Reader, stdErr io.Writer, config *Config, dryRunEnabled bool) error {
+	return shell.GrypeCommand(syftSrc, reportDst, stdErr).ScanSBOM().WithDryRun(dryRunEnabled).Run()
 }

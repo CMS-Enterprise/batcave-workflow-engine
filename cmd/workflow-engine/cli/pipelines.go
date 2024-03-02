@@ -18,89 +18,63 @@ func newRunCommand() *cobra.Command {
 	imageBuildCmd.Flags().StringP("cli-interface", "i", "docker", "[docker|podman] CLI interface to use for image building")
 
 	imageBuildCmd.Flags().String("build-dir", ".", "image build context directory")
-	_ = viper.BindPFlag("image.builddir", imageBuildCmd.Flags().Lookup("build-dir"))
-	viper.MustBindEnv("image.builddir", "WFE_BUILD_DIR")
+	_ = viper.BindPFlag("imagebuild.buildDir", imageBuildCmd.Flags().Lookup("build-dir"))
 
 	imageBuildCmd.Flags().String("dockerfile", "Dockerfile", "image build custom Dockerfile")
-	_ = viper.BindPFlag("image.builddockerfile", imageBuildCmd.Flags().Lookup("dockerfile"))
-	viper.MustBindEnv("image.builddockerfile", "WFE_BUILD_DOCKERFILE")
+	_ = viper.BindPFlag("image.dockerfile", imageBuildCmd.Flags().Lookup("dockerfile"))
 
 	imageBuildCmd.Flags().StringToString("build-arg", map[string]string{}, "A build argument passed to the container build command")
-	_ = viper.BindPFlag("image.buildargs", imageBuildCmd.Flags().Lookup("build-arg"))
-	viper.MustBindEnv("image.buildargs", "WFE_BUILD_ARGS")
+	_ = viper.BindPFlag("imagebuild.args", imageBuildCmd.Flags().Lookup("build-arg"))
 
 	imageBuildCmd.Flags().String("tag", "", "image build custom tag")
-	_ = viper.BindPFlag("image.buildtag", imageBuildCmd.Flags().Lookup("tag"))
-	viper.MustBindEnv("image.buildtag", "WFE_BUILD_TAG")
+	_ = viper.BindPFlag("imagebuild.tag", imageBuildCmd.Flags().Lookup("tag"))
 
 	imageBuildCmd.Flags().String("platform", "", "image build custom platform option")
-	_ = viper.BindPFlag("image.buildplatform", imageBuildCmd.Flags().Lookup("platform"))
-	viper.MustBindEnv("image.buildplatform", "WFE_BUILD_PLATFORM")
+	_ = viper.BindPFlag("imagebuild.platform", imageBuildCmd.Flags().Lookup("platform"))
 
 	imageBuildCmd.Flags().String("target", "", "image build custom target option")
-	_ = viper.BindPFlag("image.buildtarget", imageBuildCmd.Flags().Lookup("target"))
-	viper.MustBindEnv("image.buildtarget", "WFE_BUILD_TARGET")
+	_ = viper.BindPFlag("imagebuild.target", imageBuildCmd.Flags().Lookup("target"))
 
 	imageBuildCmd.Flags().String("cache-to", "", "image build custom cache-to option")
-	_ = viper.BindPFlag("image.buildcacheto", imageBuildCmd.Flags().Lookup("cache-to"))
-	viper.MustBindEnv("image.buildcacheto", "WFE_BUILD_CACHE_TO")
+	_ = viper.BindPFlag("imagebuild.cacheto", imageBuildCmd.Flags().Lookup("cache-to"))
 
 	imageBuildCmd.Flags().String("cache-from", "", "image build custom cache-from option")
-	_ = viper.BindPFlag("image.buildcachefrom", imageBuildCmd.Flags().Lookup("cache-from"))
-	viper.MustBindEnv("image.buildcachefrom", "WFE_BUILD_CACHE_FROM")
+	_ = viper.BindPFlag("imagebuild.cachefrom", imageBuildCmd.Flags().Lookup("cache-from"))
 
 	imageBuildCmd.Flags().Bool("squash-layers", true, "image build squash all layers into one option")
-	_ = viper.BindPFlag("image.buildsquashlayers", imageBuildCmd.Flags().Lookup("squash-layers"))
-	viper.MustBindEnv("image.buildsquashlayers", "WFE_BUILD_SQUASH_LAYERS")
+	_ = viper.BindPFlag("imagebuild.squashlayers", imageBuildCmd.Flags().Lookup("squash-layers"))
 
 	// run image-scan
 	imageScanCmd := newBasicCommand("image-scan", "run security scans on an image", runImageScan)
 
 	imageScanCmd.Flags().String("artifact-directory", "", "the output directory for all artifacts generated in the pipeline")
-	_ = viper.BindPFlag("artifacts.directory", imageScanCmd.Flags().Lookup("artifact-directory"))
-	viper.MustBindEnv("artifacts.directory", "WFE_ARTIFACT_DIRECTORY")
+	_ = viper.BindPFlag("artifactsdir", imageScanCmd.Flags().Lookup("artifact-directory"))
 
 	imageScanCmd.Flags().String("sbom-filename", "", "the output filename for the syft SBOM")
-	_ = viper.BindPFlag("artifacts.sbomfilename", imageScanCmd.Flags().Lookup("sbom-filename"))
-	viper.MustBindEnv("artifacts.sbomfilename", "WFE_SBOM_FILENAME")
+	_ = viper.BindPFlag("imagescan.syftfilename", imageScanCmd.Flags().Lookup("sbom-filename"))
 
 	imageScanCmd.Flags().String("grype-filename", "", "the output filename for the grype vulnerability report")
-	_ = viper.BindPFlag("artifacts.grypefilename", imageScanCmd.Flags().Lookup("grype-filename"))
-	viper.MustBindEnv("artifacts.grypefilename", "WFE_GRYPE_FILENAME")
+	_ = viper.BindPFlag("imagescan.grypefilename", imageScanCmd.Flags().Lookup("grype-filename"))
 
 	imageScanCmd.Flags().String("scan-image-target", "", "scan a specific image")
-	_ = viper.BindPFlag("image.scantarget", imageScanCmd.Flags().Lookup("scan-image-target"))
-	viper.MustBindEnv("image.scantarget", "WFE_SCAN_IMAGE_TARGET")
+	_ = viper.BindPFlag("imagescan.targetimage", imageScanCmd.Flags().Lookup("scan-image-target"))
 
 	// run image-publish
 	imagePublishCmd := newBasicCommand("image-publish", "publishes an image", runimagePublish)
-
-	imagePublishCmd.Flags().String("bundle-directory", "", "the directory for all artifacts to be bundled")
-	_ = viper.BindPFlag("artifacts.bundledirectory", imagePublishCmd.Flags().Lookup("bundle-directory"))
-	viper.MustBindEnv("artifacts.bundledirectory", "WFE_BUNDLE_DIRECTORY")
-
-	imagePublishCmd.Flags().String("bundle-filename", "", "the output filename for the gatecheck bundle")
-	_ = viper.BindPFlag("artifacts.bundlefilename", imagePublishCmd.Flags().Lookup("bundle-filename"))
-	viper.MustBindEnv("artifacts.bundlefilename", "WFE_GATECHECK_BUNDLE_FILENAME")
 
 	// run code-scan
 	codeScanCmd := newBasicCommand("code-scan", "run Static Application Security Tests (SAST) scans", runCodeScan)
 
 	codeScanCmd.Flags().String("gitleaks-filename", "", "the output filename for the gitleaks vulnerability report")
-	_ = viper.BindPFlag("artifacts.gitleaksfilename", codeScanCmd.Flags().Lookup("gitleaks-filename"))
-	viper.MustBindEnv("artifacts.gitleaksfilename", "WFE_GITLEAKS_FILENAME")
+	_ = viper.BindPFlag("codescan.gitleaksfilename", codeScanCmd.Flags().Lookup("gitleaks-filename"))
 
 	codeScanCmd.Flags().String("semgrep-filename", "", "the output filename for the semgrep vulnerability report")
-	_ = viper.BindPFlag("artifacts.semgrepfilename", codeScanCmd.Flags().Lookup("semgrep-filename"))
-	viper.MustBindEnv("artifacts.semgrepfilename", "WFE_SEMGREP_FILENAME")
+	_ = viper.BindPFlag("codescan.semgrepfilename", codeScanCmd.Flags().Lookup("semgrep-filename"))
+
+	codeScanCmd.Flags().String("semgrep-rules", "", "the rules semgrep will use for the scan")
+	_ = viper.BindPFlag("codescan.semgreprules", codeScanCmd.Flags().Lookup("semgrep-rules"))
 
 	codeScanCmd.Flags().Bool("semgrep-experimental", false, "use the osemgrep statically compiled binary")
-	codeScanCmd.Flags().Bool("semgrep-error-on-findings", false, "exit code 1 if findings are detected by semgrep")
-
-	codeScanCmd.Flags().String("semgrep-rules", "p/default", "the rules semgrep will use for the scan")
-	_ = viper.BindPFlag("semgrep.rules", codeScanCmd.Flags().Lookup("semgrep-rules"))
-	viper.MustBindEnv("semgrep.rules", "SEMGREP_RULES")
-
 	// run
 	cmd := &cobra.Command{Use: "run", Short: "run a pipeline"}
 
@@ -134,55 +108,53 @@ func runImageBuild(cmd *cobra.Command, _ []string) error {
 	cliInterface, _ := cmd.Flags().GetString("cli-interface")
 	configFilename, _ := cmd.Flags().GetString("config")
 
-	config, err := Config(configFilename)
-	if err != nil {
+	config := new(pipelines.Config)
+	if err := LoadOrDefault(configFilename, config, viper.GetViper()); err != nil {
 		return err
 	}
 
-	return imageBuildPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config.Image, dryRunEnabled, cliInterface)
+	return imageBuildPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled, cliInterface)
 }
 
 func runImageScan(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
 	configFilename, _ := cmd.Flags().GetString("config")
 
-	config, err := Config(configFilename)
-	if err != nil {
+	config := new(pipelines.Config)
+	if err := LoadOrDefault(configFilename, config, viper.GetViper()); err != nil {
 		return err
 	}
-	return imageScanPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config.Artifacts, dryRunEnabled, config.Image.ScanTarget)
+
+	return imageScanPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled)
 }
 
 func runimagePublish(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
 	configFilename, _ := cmd.Flags().GetString("config")
 
-	config, err := Config(configFilename)
-	if err != nil {
+	config := new(pipelines.Config)
+	if err := LoadOrDefault(configFilename, config, viper.GetViper()); err != nil {
 		return err
 	}
-	return imagePublishPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config.Artifacts, dryRunEnabled, config.Image.ScanTarget)
+	return imagePublishPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled)
 }
 
 func runCodeScan(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
 	configFilename, _ := cmd.Flags().GetString("config")
-	semgrepErrorOnFindings, _ := cmd.Flags().GetBool("semgrep-error-on-findings")
 	semgrepExperimental, _ := cmd.Flags().GetBool("semgrep-experimental")
-	semgrepRules, _ := cmd.Flags().GetString("semgrep-rules")
 
-	config, err := Config(configFilename)
-	if err != nil {
+	config := new(pipelines.Config)
+	if err := LoadOrDefault(configFilename, config, viper.GetViper()); err != nil {
 		return err
 	}
 
-	return codeScanPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config.Artifacts, dryRunEnabled,
-		semgrepErrorOnFindings, semgrepExperimental, semgrepRules)
+	return codeScanPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled, semgrepExperimental)
 }
 
 // Execution functions - Logic for command execution
 
-func imageBuildPipeline(stdout io.Writer, stderr io.Writer, config pipelines.ConfigImage, dryRunEnabled bool, cliInterface string) error {
+func imageBuildPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Config, dryRunEnabled bool, cliInterface string) error {
 	pipeline := pipelines.NewImageBuild(stdout, stderr)
 	pipeline.DryRunEnabled = dryRunEnabled
 	if cliInterface == "podman" {
@@ -191,28 +163,24 @@ func imageBuildPipeline(stdout io.Writer, stderr io.Writer, config pipelines.Con
 	return pipeline.WithBuildConfig(config).Run()
 }
 
-func imageScanPipeline(stdout io.Writer, stderr io.Writer, config pipelines.ConfigArtifacts, dryRunEnabled bool, imageName string) error {
+func imageScanPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Config, dryRunEnabled bool) error {
 	pipeline := pipelines.NewImageScan(stdout, stderr)
 	pipeline.DryRunEnabled = dryRunEnabled
 
-	return pipeline.WithArtifactConfig(config).WithImageName(imageName).Run()
+	return pipeline.WithConfig(config).Run()
 }
 
-func imagePublishPipeline(stdout io.Writer, stderr io.Writer, config pipelines.ConfigArtifacts, dryRunEnabled bool, imageName string) error {
+func imagePublishPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Config, dryRunEnabled bool) error {
 	pipeline := pipelines.NewimagePublish(stdout, stderr)
 	pipeline.DryRunEnabled = dryRunEnabled
 
-	return pipeline.WithArtifactConfig(config).Run()
+	return pipeline.WithConfig(config).Run()
 }
 
-func codeScanPipeline(stdout io.Writer, stderr io.Writer, config pipelines.ConfigArtifacts, dryRunEnabled bool,
-	semgrepErrorOnFindings bool, semgrepExperimental bool, semgrepRules string,
-) error {
+func codeScanPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Config, dryRunEnabled bool, semgrepExperimental bool) error {
 	pipeline := pipelines.NewCodeScan(stdout, stderr)
 	pipeline.DryRunEnabled = dryRunEnabled
-	pipeline.SemgrepErrorOnFindingsEnabled = semgrepErrorOnFindings
 	pipeline.SemgrepExperimental = semgrepExperimental
-	pipeline.SemgrepRules = semgrepRules
 
 	return pipeline.WithConfig(config).Run()
 }

@@ -1,0 +1,28 @@
+version: ""
+imageBuild:
+    enabled: true
+    buildDir: .
+    dockerfile: Dockerfile
+    tag: latest
+    platform: ""
+    target: ""
+    cacheTo: ""
+    cacheFrom: ""
+    squashLayers: true
+    args: {}
+    scanTarget: ""
+imageScan:
+    enabled: true
+    antivirusFilename: ""
+    syftFilename: syft-sbom-report.json
+    grypeConfigFilename: ""
+    grypeActiveFilename: grype-vulnerability-report-active.json
+    grypeFullFilename: grype-vulnerability-report-full.json
+    targetImage: ""
+codeScan:
+    enabled: true
+    gitleaksFilename: gitleaks-secrets-report.json
+    gitleaksSrcDir: .
+    semgrepFilename: semgrep-sast-report.json
+    semgrepRules: p/default
+artifactDir: artifacts
