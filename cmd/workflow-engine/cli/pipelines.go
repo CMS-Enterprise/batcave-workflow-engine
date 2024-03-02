@@ -61,6 +61,7 @@ func newRunCommand() *cobra.Command {
 
 	// run image-publish
 	imagePublishCmd := newBasicCommand("image-publish", "publishes an image", runimagePublish)
+	imagePublishCmd.Flags().Bool("no-push", false, "disable pushing the images to the repository, intended for local developement")
 
 	// run code-scan
 	codeScanCmd := newBasicCommand("code-scan", "run Static Application Security Tests (SAST) scans", runCodeScan)
@@ -131,12 +132,13 @@ func runImageScan(cmd *cobra.Command, _ []string) error {
 func runimagePublish(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
 	configFilename, _ := cmd.Flags().GetString("config")
+	nopush, _ := cmd.Flags().GetBool("no-push")
 
 	config := new(pipelines.Config)
 	if err := LoadOrDefault(configFilename, config, viper.GetViper()); err != nil {
 		return err
 	}
-	return imagePublishPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled)
+	return imagePublishPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled, nopush)
 }
 
 func runCodeScan(cmd *cobra.Command, _ []string) error {
@@ -170,9 +172,10 @@ func imageScanPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Con
 	return pipeline.WithConfig(config).Run()
 }
 
-func imagePublishPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Config, dryRunEnabled bool) error {
+func imagePublishPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Config, dryRunEnabled bool, noPush bool) error {
 	pipeline := pipelines.NewimagePublish(stdout, stderr)
 	pipeline.DryRunEnabled = dryRunEnabled
+	pipeline.NoPush = noPush
 
 	return pipeline.WithConfig(config).Run()
 }

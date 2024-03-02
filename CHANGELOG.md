@@ -26,6 +26,8 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - Code Scan Pipeline
 - Config Template auto rendering
 - Version Command
+- All commands will defer to viper for arguments and defaults
+- no push flag to image publish
 
 ### Fixed
 

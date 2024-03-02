@@ -136,7 +136,7 @@ func (p *dockerCLICmd) Build(opts *ImageBuildOptions) *Command {
 //
 // shell: [docker|podman] push <image>
 func (p *dockerCLICmd) Push(imageName string) *Command {
-	e := p.initCmd().WithArgs("push").WithArgs(imageName)
+	e := p.initCmd().WithArgs("push", imageName)
 	return NewCommand(e)
 }
 
