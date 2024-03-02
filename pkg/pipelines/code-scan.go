@@ -2,7 +2,6 @@ package pipelines
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -14,19 +13,14 @@ type CodeScan struct {
 	Stdin                         io.Reader
 	Stdout                        io.Writer
 	Stderr                        io.Writer
-	logger                        *slog.Logger
 	DryRunEnabled                 bool
 	SemgrepExperimental           bool
 	SemgrepErrorOnFindingsEnabled bool
 	SemgrepRules                  string
-	artifactConfig                ArtifactConfig
+	artifactConfig                ConfigArtifacts
 }
 
-type semgrepCLI interface {
-	Scan(string) *shell.Command
-}
-
-func (s *CodeScan) WithArtifactConfig(config ArtifactConfig) *CodeScan {
+func (s *CodeScan) WithConfig(config ConfigArtifacts) *CodeScan {
 	if config.Directory != "" {
 		s.artifactConfig.Directory = config.Directory
 	}
@@ -49,78 +43,103 @@ func NewCodeScan(stdout io.Writer, stderr io.Writer) *CodeScan {
 		Stderr:         stderr,
 		artifactConfig: NewDefaultConfig().Artifacts,
 		DryRunEnabled:  false,
-		logger:         slog.Default().With("pipeline", "code_scan"),
 	}
 }
 
 func (p *CodeScan) Run() error {
-	var semgrepFileError, gitleaksError, semgrepError, gatecheckBundleError, gatecheckSummaryError error
-	var semgrepReportFile *os.File
+	var gitleaksError, semgrepError error
+
 	semgrepFilename := path.Join(p.artifactConfig.Directory, p.artifactConfig.SemgrepFilename)
 	gitleaksFilename := path.Join(p.artifactConfig.Directory, p.artifactConfig.GitleaksFilename)
-	gatecheckBundleFilename := path.Join(p.artifactConfig.Directory, p.artifactConfig.GatecheckBundleFilename)
-
-	p.logger = p.logger.With("dry_run_enabled", p.DryRunEnabled)
-	p.logger = p.logger.With(
+	slog.Info("run image scan pipeline",
+		"dry_run_enabled", p.DryRunEnabled,
 		"artifact_config.directory", p.artifactConfig.Directory,
 		"artifact_config.gitleaks_filename", p.artifactConfig.GitleaksFilename,
 		"artifact_config.semgrep_filename", p.artifactConfig.SemgrepFilename,
 	)
 
-	gitleaksFile, err := os.Create(gitleaksFilename)
+	if err := os.MkdirAll(p.artifactConfig.Directory, 0o755); err != nil {
+		slog.Error("failed to create artifact directory", "directory", p.artifactConfig.Directory)
+		return errors.New("Code Scan Pipeline failed to run. See log for details.")
+	}
+
+	gitleaksFile, err := os.OpenFile(gitleaksFilename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
 	if err != nil {
-		slog.Error("failed to create gitleaks artifact file", "filename", gitleaksFilename)
+		slog.Error("cannot open gitleaks report file", "filename", gitleaksFilename, "error", err)
+		return errors.New("Code Scan Pipeline failed, Gitleaks did not run. See log for details.")
 	}
-	gitleaksFile.Close()
+	defer gitleaksFile.Close()
 
-	gitleaks := shell.GitleaksCommand(nil, p.Stdout, p.Stderr)
-	gitleaksError = gitleaks.DetectSecrets(".", gitleaksFilename).WithDryRun(p.DryRunEnabled).Run()
-
+	gitleaksError = runGitleaks(gitleaksFile, p.Stderr, p.artifactConfig, p.DryRunEnabled)
 	if gitleaksError != nil {
-		slog.Error("gitleaks detect", "error", gitleaksError)
+		slog.Error("gitleaks scan failed. continue pipeline")
 	}
-
-	var semgrep semgrepCLI
 
 	slog.Debug("open semgrep file for output", "filename", semgrepFilename)
-	semgrepReportFile, semgrepFileError = os.OpenFile(semgrepFilename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
-	if semgrepFileError != nil {
-		return errors.Join(gitleaksError, semgrepError)
+	semgrepFile, err := os.OpenFile(semgrepFilename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	if err != nil {
+		slog.Error("failed to create semgrep scan report file")
+		return errors.New("Code Scan Pipeline failed, Semgrep did not run. See log for details.")
 	}
 
-	defer semgrepReportFile.Close()
+	semgrepError = runSemgrep(semgrepFile, p.Stderr, p.DryRunEnabled, p.SemgrepExperimental, p.SemgrepRules, p.SemgrepErrorOnFindingsEnabled)
+	if semgrepError != nil {
+		return errors.New("Code Scan Pipeline failed")
+	}
 
-	if p.SemgrepExperimental {
-		semgrep = shell.OSemgrepCommand(nil, semgrepReportFile, p.Stderr)
+	return errors.Join(gitleaksError, semgrepError)
+}
+
+// runGitleaks the report will be written to stdout
+func runGitleaks(reportDst io.Writer, stdErr io.Writer, config ConfigArtifacts, dryRunEnabled bool) error {
+	slog.Debug("create temp gitleaks report", "dir", os.TempDir())
+	reportFile, err := os.CreateTemp(os.TempDir(), "*-gitleaks-report.json")
+	if err != nil {
+		return err
+	}
+
+	tempReportFilename := reportFile.Name()
+
+	cmd := shell.GitleaksCommand(nil, nil, stdErr).DetectSecrets(config.GitleaksSrcDir, tempReportFilename)
+	err = cmd.WithDryRun(dryRunEnabled).Run()
+	if err != nil {
+		return err
+	}
+
+	// Seek errors are really unlikely, just join with the copy error in the rare case that it occurs
+	_, seekErr := reportFile.Seek(0, io.SeekStart)
+
+	_, copyErr := io.Copy(reportDst, reportFile)
+	return errors.Join(seekErr, copyErr)
+}
+
+func runSemgrep(reportDst io.Writer, stdErr io.Writer, dryRunEnabled bool, experimental bool, rules string, errOnFindings bool) error {
+	var semgrep interface {
+		Scan(string) *shell.Command
+	}
+
+	if experimental {
+		semgrep = shell.OSemgrepCommand(nil, reportDst, stdErr)
 	} else {
-		semgrep = shell.SemgrepCommand(nil, semgrepReportFile, p.Stderr)
+		semgrep = shell.SemgrepCommand(nil, reportDst, stdErr)
 	}
 
 	// manually suppress errors for findings, convert to warnings
 	// https://semgrep.dev/docs/semgrep-ci/configuring-blocking-and-errors-in-ci/
-	semgrepError = semgrep.Scan(p.SemgrepRules).WithDryRun(p.DryRunEnabled).Run()
-	if semgrepError != nil {
-		// Note: Golang switch statements will only excute the first matching case
-		switch {
-		// error with suppression disabled
-		case semgrepError.Error() == "exit status 1" && p.SemgrepErrorOnFindingsEnabled:
-			return errors.Join(fmt.Errorf("Semgrep Findings: %w", semgrepError), gitleaksError)
-		// error with suppression enabled (default)
-		case semgrepError.Error() == "exit status 1":
-			slog.Warn("Semgrep findings detected. See log for details.")
-			semgrepError = nil
-		default:
-			// error code documentation: https://semgrep.dev/docs/cli-reference/
-			slog.Error("semgrep unexpected command failure. See log for details.", "error", semgrepError)
-		}
+	// error code documentation: https://semgrep.dev/docs/cli-reference/
+	semgrepError := semgrep.Scan(rules).WithDryRun(dryRunEnabled).Run()
+
+	// Note: Golang switch statements will only excute the first matching case
+	switch {
+	case semgrepError == nil:
+		break
+	// error with suppression disabled
+	case semgrepError.Error() == "exit status 1" && errOnFindings:
+		return errors.New("Code Scan Pipeline failed. See log for details.")
+	// error with suppression enabled (default)
+	case semgrepError.Error() == "exit status 1":
+		slog.Warn("Semgrep findings detected. See log for details.")
 	}
 
-	// Run gatecheck bundle
-	gatecheck := shell.GatecheckCommand(nil, p.Stdout, p.Stderr)
-	gatecheckBundleError = gatecheck.Bundle(gatecheckBundleFilename, gitleaksFilename, semgrepFilename).WithDryRun(p.DryRunEnabled).Run()
-
-	// Run gatecheck summary
-	gatecheckSummaryError = gatecheck.Summary(gatecheckBundleFilename).WithDryRun(p.DryRunEnabled).Run()
-
-	return errors.Join(gitleaksError, semgrepError, semgrepFileError, gatecheckBundleError, gatecheckSummaryError)
+	return nil
 }

@@ -16,11 +16,11 @@ type ImageScan struct {
 	Stderr         io.Writer
 	logger         *slog.Logger
 	DryRunEnabled  bool
-	artifactConfig ArtifactConfig
+	artifactConfig ConfigArtifacts
 	imageName      string
 }
 
-func (p *ImageScan) WithArtifactConfig(config ArtifactConfig) *ImageScan {
+func (p *ImageScan) WithArtifactConfig(config ConfigArtifacts) *ImageScan {
 	if config.Directory != "" {
 		p.artifactConfig.Directory = config.Directory
 	}

@@ -116,9 +116,8 @@ func ConfigFromViper(v *viper.Viper) pipelines.Config {
 	for _, key := range viper.AllKeys() {
 		viperKVs = append(viperKVs, key, viper.Get(key))
 	}
-	slog.Debug("config values", viperKVs...)
 	return pipelines.Config{
-		Image: pipelines.ImageConfig{
+		Image: pipelines.ConfigImage{
 			BuildDir:        v.GetString("image.builddir"),
 			BuildDockerfile: v.GetString("image.builddockerfile"),
 			BuildTag:        v.GetString("image.buildtag"),
@@ -129,7 +128,7 @@ func ConfigFromViper(v *viper.Viper) pipelines.Config {
 			BuildArgs:       v.GetStringMapString("image.buildargs"),
 			ScanTarget:      v.GetString("image.scantarget"),
 		},
-		Artifacts: pipelines.ArtifactConfig{
+		Artifacts: pipelines.ConfigArtifacts{
 			Directory:        v.GetString("artifacts.directory"),
 			SBOMFilename:     v.GetString("artifacts.sbomfilename"),
 			GrypeFilename:    v.GetString("artifacts.grypefilename"),

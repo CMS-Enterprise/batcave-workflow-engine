@@ -17,11 +17,11 @@ import (
 // config file. When it's passed to the image build pipeline, additional logic is used to build
 // the image build commands.
 type Config struct {
-	Image     ImageConfig    `json:"image"     toml:"image"     yaml:"image"`
-	Artifacts ArtifactConfig `json:"artifacts" toml:"artifacts" yaml:"artifacts"`
+	Image     ConfigImage     `json:"image"     toml:"image"     yaml:"image"`
+	Artifacts ConfigArtifacts `json:"artifacts" toml:"artifacts" yaml:"artifacts"`
 }
 
-type ArtifactConfig struct {
+type ConfigArtifacts struct {
 	Directory                   string `json:"directory"                   toml:"directory"                   yaml:"directory"`
 	BundleDirectory             string `json:"bundleDirectory"             toml:"bundleDirectory"             yaml:"bundleDirectory"`
 	AntivirusFilename           string `json:"antivirusFilename"           toml:"antivirusFilename"           yaml:"antivirusFilename"`
@@ -31,13 +31,15 @@ type ArtifactConfig struct {
 	GrypeActiveFindingsFilename string `json:"grypeActiveFindingsFilename" toml:"grypeActiveFindingsFilename" yaml:"grypeActiveFindingsFilename"`
 	GrypeAllFindingsFilename    string `json:"grypeAllFindingsFilename"    toml:"grypeAllFindingsFilename"    yaml:"grypeAllFindingsFilename"`
 	GitleaksFilename            string `json:"gitleaksFilename"            toml:"gitleaksFilename"            yaml:"gitleaksFilename"`
+	GitleaksSrcDir              string `json:"gitleaksSrcDir"              toml:"gitleaksSrcDir"              yaml:"gitleaksSrcDir"`
 	SemgrepFilename             string `json:"semgrepFilename"             toml:"semgrepFilename"             yaml:"semgrepFilename"`
+	SemgrepRules                string `json:"semgrepRules" toml:"semgrepRules" yaml:"semgrepRules"`
 	GatecheckBundleFilename     string `json:"gatecheckBundleFilename"     toml:"gatecheckBundleFilename"     yaml:"gatecheckBundleFilename"`
 	GatecheckConfigFilename     string `json:"gatecheckConfigFilename"     toml:"gatecheckConfigFilename"     yaml:"gatecheckConfigFilename"`
 }
 
-// ImageConfig is a struct representation of the Image field in the Config file
-type ImageConfig struct {
+// ConfigImage is a struct representation of the Image field in the Config file
+type ConfigImage struct {
 	BuildDir          string            `json:"buildDir"          toml:"buildDir"          yaml:"buildDir"`
 	BuildDockerfile   string            `json:"buildDockerfile"   toml:"buildDockerfile"   yaml:"buildDockerfile"`
 	BuildTag          string            `json:"buildTag"          toml:"buildTag"          yaml:"buildTag"`
@@ -55,12 +57,12 @@ type ImageConfig struct {
 func NewDefaultConfig() *Config {
 	// Only fields that are slices need to be inited, the default string value is ""
 	return &Config{
-		Image: ImageConfig{
+		Image: ConfigImage{
 			BuildDir:        ".",
 			BuildDockerfile: "Dockerfile",
 			BuildArgs:       map[string]string{},
 		},
-		Artifacts: ArtifactConfig{
+		Artifacts: ConfigArtifacts{
 			Directory:                   "artifacts",
 			BundleDirectory:             "artifacts",
 			AntivirusFilename:           "clamav-report.txt",
@@ -70,7 +72,9 @@ func NewDefaultConfig() *Config {
 			GrypeActiveFindingsFilename: "active-findings-grype-scan.json",
 			GrypeAllFindingsFilename:    "all-findings-grype-scan.json",
 			GitleaksFilename:            "gitleaks-secrets-report.json",
+			GitleaksSrcDir:              ".",
 			SemgrepFilename:             "semgrep-sast-report.json",
+			SemgrepRules:                "p/default",
 			GatecheckBundleFilename:     "gatecheck-bundle.tar.gz",
 			GatecheckConfigFilename:     "gatecheck.yaml",
 		},

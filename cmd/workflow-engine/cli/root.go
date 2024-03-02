@@ -6,8 +6,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var AppMetadata ApplicationMetadata
-var AppLogLever *slog.LevelVar
+var (
+	AppMetadata ApplicationMetadata
+	AppLogLever *slog.LevelVar
+)
 
 func NewWorkflowEngineCommand() *cobra.Command {
 	versionCmd := newBasicCommand("version", "print version information", runVersion)
@@ -41,7 +43,6 @@ func runCheckLoggingFlags(cmd *cobra.Command, _ []string) {
 	case silentFlag:
 		AppLogLever.Set(slog.LevelError)
 	}
-
 }
 
 // workflow-engine version

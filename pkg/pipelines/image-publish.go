@@ -57,11 +57,11 @@ type imagePublish struct {
 	DryRunEnabled  bool
 	CLICmd         cliCmd
 	logger         *slog.Logger
-	imageConfig    ImageConfig
-	artifactConfig ArtifactConfig
+	imageConfig    ConfigImage
+	artifactConfig ConfigArtifacts
 }
 
-func (p *imagePublish) WithArtifactConfig(config ArtifactConfig) *imagePublish {
+func (p *imagePublish) WithArtifactConfig(config ConfigArtifacts) *imagePublish {
 	if config.Directory != "" {
 		p.artifactConfig.Directory = config.Directory
 	}
@@ -104,10 +104,10 @@ func NewimagePublish(stdout io.Writer, stderr io.Writer) *imagePublish {
 		Stderr:        stderr,
 		DryRunEnabled: false,
 		logger:        slog.Default().With("pipeline", "image_package"),
-		imageConfig: ImageConfig{
+		imageConfig: ConfigImage{
 			BuildDockerfile: "Dockerfile",
 		},
-		artifactConfig: ArtifactConfig{
+		artifactConfig: ConfigArtifacts{
 			Directory:                   "artifacts",
 			AntivirusFilename:           "clamav-report.txt",
 			GatecheckBundleFilename:     "gatecheck-bundle.tar.gz",

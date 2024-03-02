@@ -21,7 +21,7 @@ func (g *gitleaksCmd) Version() *Command {
 func (g *gitleaksCmd) DetectSecrets(sourceDirectory string, reportPath string) *Command {
 	exe := g.InitCmd().WithArgs(
 		"detect",
-		"exit-code",
+		"--exit-code",
 		"0",
 		"--verbose",
 		"--source",

@@ -182,7 +182,7 @@ func runCodeScan(cmd *cobra.Command, _ []string) error {
 
 // Execution functions - Logic for command execution
 
-func imageBuildPipeline(stdout io.Writer, stderr io.Writer, config pipelines.ImageConfig, dryRunEnabled bool, cliInterface string) error {
+func imageBuildPipeline(stdout io.Writer, stderr io.Writer, config pipelines.ConfigImage, dryRunEnabled bool, cliInterface string) error {
 	pipeline := pipelines.NewImageBuild(stdout, stderr)
 	pipeline.DryRunEnabled = dryRunEnabled
 	if cliInterface == "podman" {
@@ -191,21 +191,21 @@ func imageBuildPipeline(stdout io.Writer, stderr io.Writer, config pipelines.Ima
 	return pipeline.WithBuildConfig(config).Run()
 }
 
-func imageScanPipeline(stdout io.Writer, stderr io.Writer, config pipelines.ArtifactConfig, dryRunEnabled bool, imageName string) error {
+func imageScanPipeline(stdout io.Writer, stderr io.Writer, config pipelines.ConfigArtifacts, dryRunEnabled bool, imageName string) error {
 	pipeline := pipelines.NewImageScan(stdout, stderr)
 	pipeline.DryRunEnabled = dryRunEnabled
 
 	return pipeline.WithArtifactConfig(config).WithImageName(imageName).Run()
 }
 
-func imagePublishPipeline(stdout io.Writer, stderr io.Writer, config pipelines.ArtifactConfig, dryRunEnabled bool, imageName string) error {
+func imagePublishPipeline(stdout io.Writer, stderr io.Writer, config pipelines.ConfigArtifacts, dryRunEnabled bool, imageName string) error {
 	pipeline := pipelines.NewimagePublish(stdout, stderr)
 	pipeline.DryRunEnabled = dryRunEnabled
 
 	return pipeline.WithArtifactConfig(config).Run()
 }
 
-func codeScanPipeline(stdout io.Writer, stderr io.Writer, config pipelines.ArtifactConfig, dryRunEnabled bool,
+func codeScanPipeline(stdout io.Writer, stderr io.Writer, config pipelines.ConfigArtifacts, dryRunEnabled bool,
 	semgrepErrorOnFindings bool, semgrepExperimental bool, semgrepRules string,
 ) error {
 	pipeline := pipelines.NewCodeScan(stdout, stderr)
@@ -214,7 +214,7 @@ func codeScanPipeline(stdout io.Writer, stderr io.Writer, config pipelines.Artif
 	pipeline.SemgrepExperimental = semgrepExperimental
 	pipeline.SemgrepRules = semgrepRules
 
-	return pipeline.WithArtifactConfig(config).Run()
+	return pipeline.WithConfig(config).Run()
 }
 
 func debugPipeline(stdout io.Writer, stderr io.Writer, dryRunEnabled bool) error {

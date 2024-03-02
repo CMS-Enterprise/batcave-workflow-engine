@@ -48,7 +48,6 @@ func runCLI() int {
 
 	cmd := cli.NewWorkflowEngineCommand()
 	if err := cmd.Execute(); err != nil {
-		slog.Error("command execution failure. See log for details")
 		return exitCommandFailure
 	}
 	return exitOK
