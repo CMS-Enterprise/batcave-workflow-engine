@@ -45,6 +45,7 @@ func SemgrepCommand(stdin io.Reader, stdout io.Writer, stderr io.Writer) *semgre
 // OSemgrep Command with custom stdout and stderr
 func OSemgrepCommand(stdin io.Reader, stdout io.Writer, stderr io.Writer) *semgrepCmd {
 	return &semgrepCmd{
+		experimental: true,
 		InitCmd: func() *Executable {
 			return NewExecutable("osemgrep").WithIO(stdin, stdout, stderr)
 		},

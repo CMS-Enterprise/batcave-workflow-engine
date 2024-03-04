@@ -15,6 +15,9 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - upgraded to go 1.22.0
 - New Executable will default inputs and outputs to OS
 - WithStdin, WithStdout, WithStderr all merged to WithIO
+- Config syntax to correlated with pipelines
+- Code Scan Run organization to use functions for simplicity
+- Add multi writer for Gatecheck list
 
 ### Added
 
@@ -24,6 +27,11 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - Semgrep, osemgrep, gitleaks shell commands
 - Code Scan Pipeline
 - Config Template auto rendering
+- Version Command
+- All commands will defer to viper for arguments and defaults
+- no push flag to image publish
+- Gatecheck Shell Command
+- pipeline helper functions for common file operations
 
 ### Fixed
 
