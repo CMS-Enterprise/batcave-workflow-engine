@@ -47,8 +47,13 @@ func runCLI() int {
 	}
 
 	cmd := cli.NewWorkflowEngineCommand()
+	start := time.Now()
 	if err := cmd.Execute(); err != nil {
+		fmt.Println("------------")
+		slog.Error(fmt.Sprintf("%v", err), "elapsed", time.Since(start))
 		return exitCommandFailure
 	}
+	fmt.Println("------------")
+	slog.Info("done", "elapsed", time.Since(start))
 	return exitOK
 }

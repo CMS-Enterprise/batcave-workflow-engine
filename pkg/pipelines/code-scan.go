@@ -25,6 +25,7 @@ type CodeScan struct {
 		bundleFilename   string
 		gitleaksFilename string
 		semgrepFilename  string
+		gatecheckListBuf *bytes.Buffer
 	}
 }
 
@@ -70,65 +71,70 @@ func (p *CodeScan) preRun() error {
 		return err
 	}
 
+	p.runtime.gatecheckListBuf = new(bytes.Buffer)
 	p.runtime.bundleFilename = path.Join(p.config.ArtifactsDir, p.config.GatecheckBundleFilename)
 
 	return nil
-}
-
-func (p *CodeScan) Cleanup() {
-	err := errors.Join(
-		p.runtime.gitleaksFile.Close(),
-		p.runtime.semgrepFile.Close(),
-	)
-	if err != nil {
-		slog.Warn("code scan cleanup failure", "errors", err)
-	}
 }
 
 func (p *CodeScan) Run() error {
 	if err := p.preRun(); err != nil {
 		return errors.New("Code Scan Pipeline Pre-Run Failed. See log for details.")
 	}
-	defer p.Cleanup()
+
+	defer func() {
+		_ = p.runtime.gitleaksFile.Close()
+		_ = p.runtime.semgrepFile.Close()
+	}()
 
 	slog.Info("run image scan pipeline", "dry_run_enabled", p.DryRunEnabled, "artifact_directory", p.config.ArtifactsDir)
 
 	slog.Debug("open gatecheck bundle file for output", "filename")
 
 	// All of the gatcheck summaries should print at the end
-	summaryBuf := new(bytes.Buffer)
 	buf := new(bytes.Buffer)
 	// MultiWriter will write to the gitleaks file and to the buf so gatecheck can parse it
 	mw := io.MultiWriter(p.runtime.gitleaksFile, buf)
 	gitleaksError := RunGitleaksDetect(mw, p.Stderr, p.config, p.DryRunEnabled)
 
 	slog.Debug("summarize gitleaks report")
-	if err := RunGatecheckList(summaryBuf, buf, p.Stderr, "gitleaks", p.DryRunEnabled); err != nil {
+	if err := RunGatecheckList(p.runtime.gatecheckListBuf, buf, p.Stderr, "gitleaks", p.DryRunEnabled); err != nil {
 		slog.Error("cannot run gatecheck list on gitleaks report")
 	}
 
 	// Add a new line to separate the reports
-	fmt.Fprintln(summaryBuf, "")
+	fmt.Fprintln(p.runtime.gatecheckListBuf, "")
 
 	buf = new(bytes.Buffer)
 	mw = io.MultiWriter(p.runtime.semgrepFile, buf)
 
 	semgrepError := RunSemgrep(mw, p.Stderr, p.config, p.DryRunEnabled, p.SemgrepExperimental)
 	slog.Debug("summarize semgrep report")
-	if err := RunGatecheckList(summaryBuf, buf, p.Stderr, "semgrep", p.DryRunEnabled); err != nil {
+	if err := RunGatecheckList(p.runtime.gatecheckListBuf, buf, p.Stderr, "semgrep", p.DryRunEnabled); err != nil {
 		slog.Error("cannot run gatecheck list on semgrep report")
 	}
 
-	// print the summaries
-	_, _ = summaryBuf.WriteTo(p.Stdout)
+	var postRunError error
 
-	files := []string{p.runtime.gitleaksFilename, p.runtime.semgrepFilename}
-	bundleError := RunGatecheckBundleAdd(p.runtime.bundleFilename, p.Stderr, p.DryRunEnabled, files...)
-	if bundleError != nil {
-		slog.Error("cannot run gatecheck bundle add", "error", bundleError)
+	if err := p.postRun(); err != nil {
+		postRunError = errors.New("Code Scan Pipeline Post-Run Failed. See log for details.")
 	}
 
-	return errors.Join(gitleaksError, semgrepError, bundleError)
+	return errors.Join(gitleaksError, semgrepError, postRunError)
+}
+
+func (p *CodeScan) postRun() error {
+
+	files := []string{p.runtime.gitleaksFilename, p.runtime.semgrepFilename}
+	err := RunGatecheckBundleAdd(p.runtime.bundleFilename, p.Stderr, p.DryRunEnabled, files...)
+	if err != nil {
+		slog.Error("cannot run gatecheck bundle add", "error", err)
+	}
+
+	// print the Gatecheck List Content
+	_, _ = p.runtime.gatecheckListBuf.WriteTo(p.Stdout)
+
+	return err
 }
 
 // RunGitleaksDetect the report will be written to stdout
