@@ -12,12 +12,12 @@ import (
 
 // Config contains all parameters for the various pipelines
 type Config struct {
-	Version                 string           `json:"version"     toml:"version"     yaml:"version"`
-	ImageBuild              configImageBuild `json:"imageBuild"  toml:"imageBuild"  yaml:"imageBuild"`
-	ImageScan               configImageScan  `json:"imageScan"   toml:"imageScan"   yaml:"imageScan"`
-	CodeScan                configCodeScan   `json:"codeScan"    toml:"codeScan"    yaml:"codeScan"`
-	ArtifactsDir            string           `json:"artifactDir" toml:"artifactDir" yaml:"artifactDir"`
-	GatecheckBundleFilename string           `json:"gatecheckBundleFilename toml:"gatecheckBundleFilename yaml:"gatecheckBundleFilename`
+	Version                 string           `json:"version"                 toml:"version"                 yaml:"version"`
+	ImageBuild              configImageBuild `json:"imageBuild"              toml:"imageBuild"              yaml:"imageBuild"`
+	ImageScan               configImageScan  `json:"imageScan"               toml:"imageScan"               yaml:"imageScan"`
+	CodeScan                configCodeScan   `json:"codeScan"                toml:"codeScan"                yaml:"codeScan"`
+	ArtifactsDir            string           `json:"artifactDir"             toml:"artifactDir"             yaml:"artifactDir"`
+	GatecheckBundleFilename string           `json:"gatecheckBundleFilename" toml:"gatecheckBundleFilename" yaml:"gatecheckBundleFilename"`
 }
 
 type configImageBuild struct {
@@ -53,9 +53,9 @@ type configCodeScan struct {
 }
 
 type configImagePublish struct {
-	Enabled        bool   `json:"enabled"          toml:"enabled"          yaml:"enabled"`
+	Enabled        bool   `json:"enabled"        toml:"enabled"        yaml:"enabled"`
 	ArtifactsImage string `json:"artifactsImage" toml:"artifactsImage" yaml:"artifactsImage"`
-	PushLatest     bool   `json:"pushLatest"          toml:"pushLatest"          yaml:"pushLatest"`
+	PushLatest     bool   `json:"pushLatest"     toml:"pushLatest"     yaml:"pushLatest"`
 }
 
 func SetDefaults(v *viper.Viper) {

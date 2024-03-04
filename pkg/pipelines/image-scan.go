@@ -114,7 +114,6 @@ func (p *ImageScan) Run() error {
 }
 
 func (p *ImageScan) postRun() error {
-
 	files := []string{p.runtime.sbomFilename, p.runtime.grypeFilename}
 	err := RunGatecheckBundleAdd(p.runtime.bundleFilename, p.Stderr, p.DryRunEnabled, files...)
 	if err != nil {

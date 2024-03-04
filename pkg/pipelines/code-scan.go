@@ -89,7 +89,7 @@ func (p *CodeScan) Run() error {
 
 	slog.Info("run image scan pipeline", "dry_run_enabled", p.DryRunEnabled, "artifact_directory", p.config.ArtifactsDir)
 
-	slog.Debug("open gatecheck bundle file for output", "filename")
+	slog.Debug("open gatecheck bundle file for output", "filename", p.runtime.bundleFilename)
 
 	// All of the gatcheck summaries should print at the end
 	buf := new(bytes.Buffer)
@@ -124,7 +124,6 @@ func (p *CodeScan) Run() error {
 }
 
 func (p *CodeScan) postRun() error {
-
 	files := []string{p.runtime.gitleaksFilename, p.runtime.semgrepFilename}
 	err := RunGatecheckBundleAdd(p.runtime.bundleFilename, p.Stderr, p.DryRunEnabled, files...)
 	if err != nil {

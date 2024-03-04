@@ -10,8 +10,10 @@ import (
 	"workflow-engine/pkg/shell"
 )
 
-const DefaultDirMode = 0o755
-const DefaultFileMode = 0o644
+const (
+	DefaultDirMode  = 0o755
+	DefaultFileMode = 0o644
+)
 
 // OpenOverwrite is a file mode that will:
 // 1. Create the file if it doesn't exist
@@ -85,5 +87,4 @@ func InitGatecheckBundle(config *Config, stdErr io.Writer, dryRunEnabled bool) e
 	}
 
 	return gatecheck.BundleAdd(bundleFilename, tempConfigFilename).WithDryRun(dryRunEnabled).Run()
-
 }
