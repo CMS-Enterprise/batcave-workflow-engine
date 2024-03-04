@@ -2,10 +2,8 @@ package pipelines
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
-	"path"
 	"workflow-engine/pkg/shell"
 )
 
@@ -42,16 +40,6 @@ func NewimagePublish(stdout io.Writer, stderr io.Writer) *imagePublish {
 }
 
 func (p *imagePublish) Run() error {
-	dockerFilename := p.config.ImageBuild.Dockerfile
-	gitleaksFilename := path.Join(p.config.ArtifactsDir, p.config.CodeScan.GitleaksFilename)
-	semgrepFilename := path.Join(p.config.ArtifactsDir, p.config.CodeScan.SemgrepFilename)
-	antivirusFilename := path.Join(p.config.ArtifactsDir, p.config.ImageScan.AntivirusFilename)
-	grypeFilename := path.Join(p.config.ArtifactsDir, p.config.ImageScan.GrypeFullFilename)
-	grypeConfigFilename := path.Join(p.config.ArtifactsDir, p.config.ImageScan.GrypeConfigFilename)
-	sbomFilename := path.Join(p.config.ArtifactsDir, p.config.ImageScan.SyftFilename)
-
-	fmt.Fprintln(p.Stderr, dockerFilename, gitleaksFilename, semgrepFilename, antivirusFilename, grypeFilename, grypeConfigFilename, sbomFilename)
-
 	if p.NoPush {
 		slog.Warn("pushing is disabled, skip.")
 		return nil

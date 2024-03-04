@@ -2,4 +2,5 @@ book
 bin
 .vscode
 test/.artifacts
+artifacts
 
