@@ -52,6 +52,12 @@ type configCodeScan struct {
 	SemgrepRules     string `json:"semgrepRules"     toml:"semgrepRules"     yaml:"semgrepRules"`
 }
 
+type configImagePublish struct {
+	Enabled       bool   `json:"enabled"          toml:"enabled"          yaml:"enabled"`
+	ArtifactImage string `json:"artifactImage" toml:"artifactImage" yaml:"artifactImage"`
+	PushLatest    bool   `json:"pushLatest"          toml:"pushLatest"          yaml:"pushLatest"`
+}
+
 func SetDefaults(v *viper.Viper) {
 	v.MustBindEnv("artifactsdir", "WFE_ARTIFACTS_DIR")
 	v.SetDefault("artifactsdir", "artifacts")
@@ -73,7 +79,7 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault("imagebuild.enabled", "1")
 	v.SetDefault("imagebuild.builddir", ".")
 	v.SetDefault("imagebuild.dockerfile", "Dockerfile")
-	v.SetDefault("imagebuild.tag", "latest")
+	v.SetDefault("imagebuild.tag", "my-app:latest")
 
 	v.MustBindEnv("imagescan.enabled", "WFE_IMAGE_SCAN_ENABLED")
 	v.MustBindEnv("imagescan.clamavFilename", "WFE_IMAGE_SCAN_CLAMAV_FILENAME")
@@ -99,6 +105,14 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault("codescan.gitleaksSrcDir", ".")
 	v.SetDefault("codescan.semgrepFilename", "semgrep-sast-report.json")
 	v.SetDefault("codescan.semgrepRules", "p/default")
+
+	v.MustBindEnv("imagepublish.enabled", "WFE_IMAGE_PUBLISH_ENABLED")
+	v.MustBindEnv("imagepublish.artifactimage", "WFE_IMAGE_PUBLISH_ARTIFACT_IMAGE")
+	v.MustBindEnv("imagepublish.pushlatest", "WFE_IMAGE_PUSH_LATEST")
+
+	v.SetDefault("imagepublish.enabled", "1")
+	v.SetDefault("imagepublish.pushlatest", "1")
+	v.SetDefault("iamgepublish.artifactimage", "my-app/artifacts:latest")
 }
 
 func RenderTemplate(dst io.Writer, templateSrc io.Reader) error {
