@@ -53,9 +53,9 @@ type configCodeScan struct {
 }
 
 type configImagePublish struct {
-	Enabled       bool   `json:"enabled"          toml:"enabled"          yaml:"enabled"`
-	ArtifactImage string `json:"artifactImage" toml:"artifactImage" yaml:"artifactImage"`
-	PushLatest    bool   `json:"pushLatest"          toml:"pushLatest"          yaml:"pushLatest"`
+	Enabled        bool   `json:"enabled"          toml:"enabled"          yaml:"enabled"`
+	ArtifactsImage string `json:"artifactsImage" toml:"artifactsImage" yaml:"artifactsImage"`
+	PushLatest     bool   `json:"pushLatest"          toml:"pushLatest"          yaml:"pushLatest"`
 }
 
 func SetDefaults(v *viper.Viper) {
@@ -112,7 +112,7 @@ func SetDefaults(v *viper.Viper) {
 
 	v.SetDefault("imagepublish.enabled", "1")
 	v.SetDefault("imagepublish.pushlatest", "1")
-	v.SetDefault("iamgepublish.artifactimage", "my-app/artifacts:latest")
+	v.SetDefault("iamgepublish.artifactsimage", "my-app/artifacts:latest")
 }
 
 func RenderTemplate(dst io.Writer, templateSrc io.Reader) error {
