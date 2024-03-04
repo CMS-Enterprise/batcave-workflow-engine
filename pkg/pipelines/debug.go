@@ -25,30 +25,27 @@ func NewDebug(stdoutW io.Writer, stderrW io.Writer) *Debug {
 //
 // All commands will run in sequence, stopping if one of the commands fail
 func (d *Debug) Run() error {
-	l := slog.Default().With("pipeline", "debug", "dry_run", d.DryRunEnabled)
-	l.Info("start")
-
-	ld := slog.Default()
+	slog.Info("start debug pipeline", "dry_run", d.DryRunEnabled)
 
 	// Get current directory
-	pwd, err := os.Getwd()
+	wd, err := os.Getwd()
 	if err != nil {
-		ld.Error(fmt.Sprintln(err))
-		os.Exit(1)
+		slog.Error("cannot get current working directory", "error", err)
+		return errors.New("Debug Pipeline failed to Run. See log for details.")
 	}
-	ld.Info(fmt.Sprintf("Current directory: %s", pwd))
+	slog.Info(fmt.Sprintf("Current directory: %s", wd))
 
 	// Collect errors for mandatory commands
 	errs := errors.Join(
 		shell.GrypeCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
 		shell.SyftCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
 		shell.GitleaksCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
+		shell.GatecheckCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
 	)
 
 	// Just log errors for optional commands
 	shell.PodmanCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).RunLogErrorAsWarning()
 	shell.DockerCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).RunLogErrorAsWarning()
 
-	l.Info("complete")
 	return errs
 }

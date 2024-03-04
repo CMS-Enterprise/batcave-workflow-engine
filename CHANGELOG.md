@@ -16,6 +16,8 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - New Executable will default inputs and outputs to OS
 - WithStdin, WithStdout, WithStderr all merged to WithIO
 - Config syntax to correlated with pipelines
+- Code Scan Run organization to use functions for simplicity
+- Add multi writer for Gatecheck list
 
 ### Added
 
@@ -28,6 +30,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - Version Command
 - All commands will defer to viper for arguments and defaults
 - no push flag to image publish
+- Gatecheck Shell Command
 
 ### Fixed
 

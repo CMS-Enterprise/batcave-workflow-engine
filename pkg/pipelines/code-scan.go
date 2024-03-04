@@ -1,7 +1,9 @@
 package pipelines
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -36,8 +38,8 @@ func NewCodeScan(stdout io.Writer, stderr io.Writer) *CodeScan {
 func (p *CodeScan) Run() error {
 	var gitleaksError, semgrepError error
 
-	semgrepFilename := path.Join(p.config.ArtifactsDir, p.config.CodeScan.SemgrepFilename)
 	gitleaksFilename := path.Join(p.config.ArtifactsDir, p.config.CodeScan.GitleaksFilename)
+	semgrepFilename := path.Join(p.config.ArtifactsDir, p.config.CodeScan.SemgrepFilename)
 	slog.Info("run image scan pipeline", "dry_run_enabled", p.DryRunEnabled, "artifact_directory", p.config.ArtifactsDir)
 
 	slog.Debug("ensure artifact directory exists")
@@ -54,7 +56,20 @@ func (p *CodeScan) Run() error {
 	}
 	defer gitleaksFile.Close()
 
-	gitleaksError = runGitleaks(gitleaksFile, p.Stderr, p.config, p.DryRunEnabled)
+	// All of the gatcheck summaries should print at the end
+	summaryBuf := new(bytes.Buffer)
+	buf := new(bytes.Buffer)
+	// MultiWriter will write to the gitleaks file and to the buf so gatecheck can parse it
+	mw := io.MultiWriter(gitleaksFile, buf)
+	gitleaksError = runGitleaks(mw, p.Stderr, p.config, p.DryRunEnabled)
+
+	slog.Debug("sumarize gitleaks report")
+	err = shell.GatecheckCommand(buf, summaryBuf, p.Stderr).List("gitleaks").WithDryRun(p.DryRunEnabled).Run()
+	if err != nil {
+		slog.Error("cannot run gatecheck list on gitleaks report")
+	}
+	// Add a new line to separate the reports
+	fmt.Fprintln(summaryBuf, "")
 
 	slog.Debug("open semgrep file for output", "filename", semgrepFilename)
 	semgrepFile, err := os.OpenFile(semgrepFilename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
@@ -62,8 +77,20 @@ func (p *CodeScan) Run() error {
 		slog.Error("failed to create semgrep scan report file")
 		return errors.New("Code Scan Pipeline failed, Semgrep did not run. See log for details.")
 	}
+	defer semgrepFile.Close()
 
-	semgrepError = runSemgrep(semgrepFile, p.Stderr, p.config, p.DryRunEnabled, p.SemgrepExperimental)
+	buf = new(bytes.Buffer)
+	mw = io.MultiWriter(semgrepFile, buf)
+
+	semgrepError = runSemgrep(mw, p.Stderr, p.config, p.DryRunEnabled, p.SemgrepExperimental)
+	slog.Debug("sumarize gitleaks report")
+	err = shell.GatecheckCommand(buf, summaryBuf, p.Stderr).List("semgrep").WithDryRun(p.DryRunEnabled).Run()
+	if err != nil {
+		slog.Error("cannot run gatecheck list on semgrep report")
+	}
+
+	// print the summaries
+	_, _ = summaryBuf.WriteTo(p.Stdout)
 
 	return errors.Join(gitleaksError, semgrepError)
 }
