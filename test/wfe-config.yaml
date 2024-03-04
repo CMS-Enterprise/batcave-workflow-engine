@@ -26,3 +26,4 @@ codeScan:
     semgrepFilename: semgrep-sast-report.json
     semgrepRules: p/default
 artifactDir: artifacts
+gatecheckbundlefilename: gatecheck-bundle.tar.gz

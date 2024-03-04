@@ -1,9 +1,12 @@
 package pipelines
 
 import (
+	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"os"
+	"path"
 	"workflow-engine/pkg/shell"
 )
 
@@ -38,4 +41,49 @@ func RunGatecheckList(dst io.Writer, stdIn io.Reader, stdErr io.Writer, filetype
 
 func RunGatecheckListAll(dst io.Writer, stdIn io.Reader, stdErr io.Writer, filetype string, dryRunEnabled bool) error {
 	return shell.GatecheckCommand(stdIn, dst, stdErr).ListAll(filetype).WithDryRun(dryRunEnabled).Run()
+}
+
+func RunGatecheckBundleAdd(bundleFilename string, stdErr io.Writer, dryRunEnabled bool, filenames ...string) error {
+	cmd := shell.GatecheckCommand(nil, nil, stdErr)
+	for _, filename := range filenames {
+		err := cmd.BundleAdd(bundleFilename, filename).WithDryRun(dryRunEnabled).Run()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// InitGatecheckBundle will encode the config file to JSON and create a new bundle or add it to an existing one
+func InitGatecheckBundle(config *Config, stdErr io.Writer, dryRunEnabled bool) error {
+	tempConfigFilename := path.Join(os.TempDir(), "wfe-config.json")
+
+	tempFile, err := OpenOrCreateFile(tempConfigFilename)
+	if err != nil {
+		slog.Error("cannot create temp config file", "error", err)
+		return err
+	}
+
+	defer func() {
+		_ = tempFile.Close()
+		_ = os.Remove(tempConfigFilename)
+	}()
+
+	if err := json.NewEncoder(tempFile).Encode(config); err != nil {
+		slog.Error("cannot encode temp config file", "error", err)
+		return err
+	}
+	gatecheck := shell.GatecheckCommand(nil, nil, stdErr)
+
+	bundleFilename := path.Join(config.ArtifactsDir, config.GatecheckBundleFilename)
+	if _, err = os.Stat(bundleFilename); err != nil {
+		// The bundle file does not exist
+		if errors.Is(err, os.ErrNotExist) {
+			return gatecheck.BundleCreate(bundleFilename, tempConfigFilename).WithDryRun(dryRunEnabled).Run()
+		}
+		return err
+	}
+
+	return gatecheck.BundleAdd(bundleFilename, tempConfigFilename).WithDryRun(dryRunEnabled).Run()
+
 }

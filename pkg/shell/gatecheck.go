@@ -17,14 +17,26 @@ func (s *gatecheckCmd) Version() *Command {
 //
 // shell: `cat grype-report.json | gatecheck list -i grype`
 func (s *gatecheckCmd) List(inputFileType string) *Command {
-	return NewCommand(s.InitCmd().WithArgs("list", "--input-type", inputFileType))
+	exe := s.InitCmd().WithArgs("list", "--input-type", inputFileType)
+	return NewCommand(exe)
 }
 
 // ListAll will print a table of vulnerabilities in a report
 //
 // shell: `cat grype-report.json | gatecheck list --all -i grype`
 func (s *gatecheckCmd) ListAll(inputFileType string) *Command {
-	return NewCommand(s.InitCmd().WithArgs("list", "--all", "--input-type", inputFileType))
+	exe := s.InitCmd().WithArgs("list", "--all", "--input-type", inputFileType)
+	return NewCommand(exe)
+}
+
+func (s *gatecheckCmd) BundleCreate(bundleFilename string, targetFilename string) *Command {
+	exe := s.InitCmd().WithArgs("bundle", "create", bundleFilename, targetFilename)
+	return NewCommand(exe)
+}
+
+func (s *gatecheckCmd) BundleAdd(bundleFilename string, targetFilename string) *Command {
+	exe := s.InitCmd().WithArgs("bundle", "add", bundleFilename, targetFilename)
+	return NewCommand(exe)
 }
 
 // GatecheckCommand with custom stdin, stdout, and stderr

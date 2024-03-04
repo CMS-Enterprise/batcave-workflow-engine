@@ -12,11 +12,12 @@ import (
 
 // Config contains all parameters for the various pipelines
 type Config struct {
-	Version      string           `json:"version"     toml:"version"     yaml:"version"`
-	ImageBuild   configImageBuild `json:"imageBuild"  toml:"imageBuild"  yaml:"imageBuild"`
-	ImageScan    configImageScan  `json:"imageScan"   toml:"imageScan"   yaml:"imageScan"`
-	CodeScan     configCodeScan   `json:"codeScan"    toml:"codeScan"    yaml:"codeScan"`
-	ArtifactsDir string           `json:"artifactDir" toml:"artifactDir" yaml:"artifactDir"`
+	Version                 string           `json:"version"     toml:"version"     yaml:"version"`
+	ImageBuild              configImageBuild `json:"imageBuild"  toml:"imageBuild"  yaml:"imageBuild"`
+	ImageScan               configImageScan  `json:"imageScan"   toml:"imageScan"   yaml:"imageScan"`
+	CodeScan                configCodeScan   `json:"codeScan"    toml:"codeScan"    yaml:"codeScan"`
+	ArtifactsDir            string           `json:"artifactDir" toml:"artifactDir" yaml:"artifactDir"`
+	GatecheckBundleFilename string           `json:"gatecheckBundleFilename toml:"gatecheckBundleFilename yaml:"gatecheckBundleFilename`
 }
 
 type configImageBuild struct {
@@ -54,6 +55,9 @@ type configCodeScan struct {
 func SetDefaults(v *viper.Viper) {
 	v.MustBindEnv("artifactsdir", "WFE_ARTIFACTS_DIR")
 	v.SetDefault("artifactsdir", "artifacts")
+
+	v.MustBindEnv("gatecheckBundleFilename", "WFE_GATECHECK_BUNDLE_FILENAME")
+	v.SetDefault("gatecheckBundleFilename", "gatecheck-bundle.tar.gz")
 
 	v.MustBindEnv("imagebuild.enabled", "WFE_IMAGE_BUILD_ENABLED")
 	v.MustBindEnv("imagebuild.builddir", "WFE_IMAGE_BUILD_DIR")
