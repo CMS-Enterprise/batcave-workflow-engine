@@ -27,7 +27,7 @@ func (s *clamavCmd) Run() *Command {
 //
 // shell: `clamscan -irv --scan-archive=yes --max-filesize=4000M --max-scansize=4000M --stdout ${TARGET_DIR}`
 func (s *clamavCmd) Scan(directory string) *Command {
-	args := []string{"-irv", "--scan-archive=yes", "--max-filesize=4000M", "--max-scansize=4000M", "--stdout", directory}
+	args := []string{"-irv", "--scan-archive=yes", "--max-filesize=2000M", "--max-scansize=2000M", "--stdout", "--debug", directory}
 	exe := s.InitCmd().WithArgs(args...)
 	return NewCommand(exe)
 }

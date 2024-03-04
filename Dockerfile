@@ -13,7 +13,7 @@ COPY pkg ./pkg
 RUN mkdir -p ../bin && \
     go build -o ../bin/workflow-engine ./cmd/workflow-engine
 
-FROM ghcr.io/cms-enterprise/batcave/omnibus:v1.1.0
+FROM ghcr.io/cms-enterprise/batcave/omnibus:v1.1.0-rc2
 
 # Install docker and podman CLIs
 RUN apk update && apk add --no-cache docker-cli-buildx podman fuse-overlayfs
