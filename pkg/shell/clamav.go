@@ -6,7 +6,6 @@ import (
 
 type clamavCmd struct {
 	InitCmd      func() *Executable
-	experimental bool
 }
 
 // Version outputs the version of the ClamAV CLI
@@ -27,7 +26,7 @@ func (s *clamavCmd) Run() *Command {
 //
 // shell: `clamscan -irv --scan-archive=yes --max-filesize=4000M --max-scansize=4000M --stdout ${TARGET_DIR}`
 func (s *clamavCmd) Scan(directory string) *Command {
-	args := []string{"-irv", "--scan-archive=yes", "--max-filesize=2000M", "--max-scansize=2000M", "--stdout", "--debug", directory}
+	args := []string{"-irv", "--scan-archive=yes", "--max-filesize=2000M", "--max-scansize=2000M", "--stdout", directory}
 	exe := s.InitCmd().WithArgs(args...)
 	return NewCommand(exe)
 }

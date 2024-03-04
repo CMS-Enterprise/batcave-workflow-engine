@@ -18,44 +18,14 @@ type imagePublish struct {
 	dockerOrAlias dockerOrAliasCommand
 }
 
-func (p *imagePublish) WithArtifactConfig(config ArtifactConfig) *imagePublish {
-	if config.Directory != "" {
-		p.artifactConfig.Directory = config.Directory
-	}
-	if config.AntivirusFilename != "" {
-		p.artifactConfig.AntivirusFilename = config.AntivirusFilename
-	}
-	if config.GatecheckBundleFilename != "" {
-		p.artifactConfig.GatecheckBundleFilename = config.GatecheckBundleFilename
-	}
-	if config.GatecheckConfigFilename != "" {
-		p.artifactConfig.GatecheckConfigFilename = config.GatecheckConfigFilename
-	}
-	if config.GitleaksFilename != "" {
-		p.artifactConfig.GitleaksFilename = config.GitleaksFilename
-	}
-	if config.GrypeFilename != "" {
-		p.artifactConfig.GrypeFilename = config.GrypeFilename
-	}
-	if config.GrypeConfigFilename != "" {
-		p.artifactConfig.GrypeConfigFilename = config.GrypeConfigFilename
-	}
-	if config.GrypeActiveFindingsFilename != "" {
-		p.artifactConfig.GrypeActiveFindingsFilename = config.GrypeActiveFindingsFilename
-	}
-	if config.GrypeAllFindingsFilename != "" {
-		p.artifactConfig.GrypeAllFindingsFilename = config.GrypeAllFindingsFilename
-	}
-	if config.SBOMFilename != "" {
-		p.artifactConfig.SBOMFilename = config.SBOMFilename
-	}
-	if config.SemgrepFilename != "" {
-		p.artifactConfig.SemgrepFilename = config.SemgrepFilename
-	}
-	if config.ClamavFilename != "" {
-		p.artifactConfig.ClamavFilename = config.ClamavFilename
-	}
+func (p *imagePublish) WithConfig(config *Config) *imagePublish {
+	p.config = config
+	return p
+}
 
+func (p *imagePublish) WithPodman() *imagePublish {
+	slog.Debug("use podman cli")
+	p.dockerOrAlias = shell.PodmanCommand(nil, p.Stdout, p.Stderr)
 	return p
 }
 

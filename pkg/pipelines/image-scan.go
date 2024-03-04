@@ -78,32 +78,34 @@ func (p *ImageScan) Run() error {
 		slog.Error("cannot run gatecheck list all on grype report")
 	}
 
-	// Holds the ClamAV scan output TODO: multi writer to the artifact directory and gatecheck
+	clamavFilename := path.Join(p.config.ArtifactsDir, p.config.ImageScan.ClamavFilename)
+	slog.Debug("open clamav artifact", "dest", clamavFilename)
+	clamavFile, err := OpenOrCreateFile(clamavFilename)
+	if err != nil {
+		slog.Error("failed to open clamav file", "filename", clamavFilename, "error", err)
+		return errors.New("image Scan Pipeline failed. See log for details")
+	}
+	defer clamavFile.Close()
+
 	clamavBuf := new(bytes.Buffer)
+	clamavMW := io.MultiWriter(clamavFile, clamavBuf)
 
 	// Do a ClamAV (freshclam) update on the CVD database
 	err = shell.FreshClamCommand(nil, p.Stdout, p.Stderr).Run().WithDryRun(p.DryRunEnabled).Run()
 	if err != nil {
-		return err
+		slog.Error("failed to update clamav database:", err)
+		return errors.New("image Scan Pipeline failed. See log for details")
 	}
 
 	// Do a ClamAV scan on the target directory, fail if the command fails
-	err = shell.ClamScanCommand(nil, clamavBuf, p.Stderr).Scan(".").WithDryRun(p.DryRunEnabled).Run()
+	err = RunClamavScan(clamavMW, clamavBuf, p.Stderr, p.config, p.DryRunEnabled)
 	if err != nil {
-		return err
+		slog.Error("clamav failed to scan target directory:", err)
+		return errors.New("image Scan Pipeline failed. See log for details")
 	}
 
-	// Save the ClamAV file to the artifact directory
-	clamavFilename := path.Join(p.artifactConfig.Directory, p.artifactConfig.ClamavFilename)
-	p.logger.Debug("open clamav artifact", "dest", clamavFilename)
-	clamavFile, err := os.OpenFile(clamavFilename, os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer clamavFile.Close()
-
-	p.logger.Debug("save clamav artifact", "dest", clamavFilename)
-	if _, err := io.Copy(clamavFile, buf); err != nil {
+	slog.Debug("save clamav artifact", "dest", clamavFilename)
+	if _, err := io.Copy(clamavFile, clamavBuf); err != nil {
 		return err
 	}
 	
@@ -116,4 +118,8 @@ func RunSyftScan(reportDst io.Writer, stdErr io.Writer, config *Config, dryRunEn
 
 func RunGrypeScanSBOM(reportDst io.Writer, syftSrc io.Reader, stdErr io.Writer, config *Config, dryRunEnabled bool) error {
 	return shell.GrypeCommand(syftSrc, reportDst, stdErr).ScanSBOM().WithDryRun(dryRunEnabled).Run()
+}
+
+func RunClamavScan(reportDst io.Writer, clamavSrc io.Reader, stdErr io.Writer, config *Config, dryRunEnabled bool) error {
+	return shell.ClamScanCommand(clamavSrc, reportDst, stdErr).Scan(".").WithDryRun(dryRunEnabled).Run()
 }
