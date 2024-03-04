@@ -42,14 +42,14 @@ func (p *CodeScan) Run() error {
 	semgrepFilename := path.Join(p.config.ArtifactsDir, p.config.CodeScan.SemgrepFilename)
 	slog.Info("run image scan pipeline", "dry_run_enabled", p.DryRunEnabled, "artifact_directory", p.config.ArtifactsDir)
 
-	slog.Debug("ensure artifact directory exists")
-	if err := os.MkdirAll(p.config.ArtifactsDir, 0o755); err != nil {
-		slog.Error("failed to create artifact directory", "directory", p.config.ArtifactsDir)
+	if err := MakeDirectoryP(p.config.ArtifactsDir); err != nil {
+		slog.Error("failed to create artifact directory", "name", p.config.ArtifactsDir)
 		return errors.New("Code Scan Pipeline failed to run. See log for details.")
 	}
 
 	slog.Debug("open gitleaks artifact for output", "filename", gitleaksFilename)
-	gitleaksFile, err := os.OpenFile(gitleaksFilename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+
+	gitleaksFile, err := OpenOrCreateFile(gitleaksFilename)
 	if err != nil {
 		slog.Error("cannot open gitleaks report file", "filename", gitleaksFilename, "error", err)
 		return errors.New("Code Scan Pipeline failed, Gitleaks did not run. See log for details.")
@@ -61,18 +61,17 @@ func (p *CodeScan) Run() error {
 	buf := new(bytes.Buffer)
 	// MultiWriter will write to the gitleaks file and to the buf so gatecheck can parse it
 	mw := io.MultiWriter(gitleaksFile, buf)
-	gitleaksError = runGitleaks(mw, p.Stderr, p.config, p.DryRunEnabled)
+	gitleaksError = RunGitleaksDetect(mw, p.Stderr, p.config, p.DryRunEnabled)
 
-	slog.Debug("sumarize gitleaks report")
-	err = shell.GatecheckCommand(buf, summaryBuf, p.Stderr).List("gitleaks").WithDryRun(p.DryRunEnabled).Run()
+	slog.Debug("summarize gitleaks report")
+	err = RunGatecheckList(summaryBuf, buf, p.Stderr, "gitleaks", p.DryRunEnabled)
 	if err != nil {
 		slog.Error("cannot run gatecheck list on gitleaks report")
 	}
 	// Add a new line to separate the reports
 	fmt.Fprintln(summaryBuf, "")
 
-	slog.Debug("open semgrep file for output", "filename", semgrepFilename)
-	semgrepFile, err := os.OpenFile(semgrepFilename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	semgrepFile, err := OpenOrCreateFile(semgrepFilename)
 	if err != nil {
 		slog.Error("failed to create semgrep scan report file")
 		return errors.New("Code Scan Pipeline failed, Semgrep did not run. See log for details.")
@@ -82,9 +81,9 @@ func (p *CodeScan) Run() error {
 	buf = new(bytes.Buffer)
 	mw = io.MultiWriter(semgrepFile, buf)
 
-	semgrepError = runSemgrep(mw, p.Stderr, p.config, p.DryRunEnabled, p.SemgrepExperimental)
-	slog.Debug("sumarize gitleaks report")
-	err = shell.GatecheckCommand(buf, summaryBuf, p.Stderr).List("semgrep").WithDryRun(p.DryRunEnabled).Run()
+	semgrepError = RunSemgrep(mw, p.Stderr, p.config, p.DryRunEnabled, p.SemgrepExperimental)
+	slog.Debug("summarize semgrep report")
+	err = RunGatecheckList(summaryBuf, buf, p.Stderr, "semgrep", p.DryRunEnabled)
 	if err != nil {
 		slog.Error("cannot run gatecheck list on semgrep report")
 	}
@@ -95,8 +94,12 @@ func (p *CodeScan) Run() error {
 	return errors.Join(gitleaksError, semgrepError)
 }
 
-// runGitleaks the report will be written to stdout
-func runGitleaks(reportDst io.Writer, stdErr io.Writer, config *Config, dryRunEnabled bool) error {
+// RunGitleaksDetect the report will be written to stdout
+//
+// Gitleaks is a special case because the command does not support writing to a file that doesn't exist
+// It also doesn't write the contents of the report to stdout which means piping isn't possible.
+// This function creates a temporary file for the report and then copies the content to the dst writer
+func RunGitleaksDetect(reportDst io.Writer, stdErr io.Writer, config *Config, dryRunEnabled bool) error {
 	slog.Debug("create temp gitleaks report", "dir", os.TempDir())
 	reportFile, err := os.CreateTemp(os.TempDir(), "*-gitleaks-report.json")
 	if err != nil {
@@ -118,7 +121,7 @@ func runGitleaks(reportDst io.Writer, stdErr io.Writer, config *Config, dryRunEn
 	return errors.Join(seekErr, copyErr)
 }
 
-func runSemgrep(reportDst io.Writer, stdErr io.Writer, config *Config, dryRunEnabled bool, experimental bool) error {
+func RunSemgrep(reportDst io.Writer, stdErr io.Writer, config *Config, dryRunEnabled bool, experimental bool) error {
 	var semgrep interface {
 		Scan(rules string) *shell.Command
 	}

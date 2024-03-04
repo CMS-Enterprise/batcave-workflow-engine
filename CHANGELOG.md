@@ -31,6 +31,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - All commands will defer to viper for arguments and defaults
 - no push flag to image publish
 - Gatecheck Shell Command
+- pipeline helper functions for common file operations
 
 ### Fixed
 
