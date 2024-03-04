@@ -2,63 +2,20 @@ package pipelines
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
-	"os"
 	"path"
 	"workflow-engine/pkg/shell"
 )
 
-// TODO: pipeline-triggers currently does a curl to a gatecheck repo in GitLab to get the gatecheck.yaml file.
-//       For now, this gatecheck.yaml file is hardcoded as follows, but it should be changed to point
-//       to a gatecheck.yaml specific to the version that is used in omnibus.
-var gatecheckYaml =
-`cyclonedx:
-    allowList:
-        - id: example allow id
-          reason: example reason
-    denyList:
-        - id: example deny id
-          reason: example reason
-    required: false
-    critical: -1
-    high: -1
-    medium: -1
-    low: -1
-    info: -1
-    none: -1
-    unknown: -1
-gitleaks:
-    secretsAllowed: false
-grype:
-    allowList:
-        - id: example allow id
-          reason: example reason
-    denyList:
-        - id: example deny id
-          reason: example reason
-    epssAllowThreshold: 0.01
-    epssDenyThreshold: 0.6
-    critical: 100
-    high: 500
-    medium: 1000
-    low: 1000
-    negligible: -1
-    unknown: -1
-semgrep:
-    error: 1
-    warning: 5
-    info: -1
-`
-
 type imagePublish struct {
-	Stdout         io.Writer
-	Stderr         io.Writer
-	DryRunEnabled  bool
-	CLICmd         cliCmd
-	logger         *slog.Logger
-	imageConfig    ImageConfig
-	artifactConfig ArtifactConfig
+	Stdout        io.Writer
+	Stderr        io.Writer
+	DryRunEnabled bool
+	NoPush        bool
+	config        *Config
+	dockerOrAlias dockerOrAliasCommand
 }
 
 func (p *imagePublish) WithArtifactConfig(config ArtifactConfig) *imagePublish {
@@ -98,6 +55,7 @@ func (p *imagePublish) WithArtifactConfig(config ArtifactConfig) *imagePublish {
 	if config.ClamavFilename != "" {
 		p.artifactConfig.ClamavFilename = config.ClamavFilename
 	}
+
 	return p
 }
 
@@ -106,61 +64,34 @@ func NewimagePublish(stdout io.Writer, stderr io.Writer) *imagePublish {
 		Stdout:        stdout,
 		Stderr:        stderr,
 		DryRunEnabled: false,
-		logger:        slog.Default().With("pipeline", "image_package"),
-		imageConfig:   ImageConfig{
-			BuildDockerfile: "Dockerfile",
-		},
-		artifactConfig: ArtifactConfig{
-			Directory:        			     ".artifacts",
-			AntivirusFilename:					 "clamav-report.txt",
-			GatecheckBundleFilename:     "gatecheck-bundle.tar.gz",
-			GatecheckConfigFilename:     "gatecheck.yaml",
-			GrypeFilename:               "grype-scan.json",
-			GrypeConfigFilename:         ".grype.yaml",
-			GrypeActiveFindingsFilename: "active-findings-grype-scan.json",
-			GrypeAllFindingsFilename:    "all-findings-grype-scan.json",
-			GitleaksFilename:            "gitleaks-secrets-scan-report.json",
-			SBOMFilename:                "syft-sbom.json",
-			SemgrepFilename:             "semgrep-sast-report.json",
-			ClamavFilename: 						 "clamav-report.txt",
-		},
 	}
 
-	pipeline.CLICmd = shell.DockerCommand(nil, pipeline.Stdout, pipeline.Stderr)
+	pipeline.dockerOrAlias = shell.DockerCommand(nil, pipeline.Stdout, pipeline.Stderr)
 
 	return pipeline
 }
 
-func (i *imagePublish) Run() error {
-	var gatecheckBundleError, gatecheckSummaryError error
-	var antivirusFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.AntivirusFilename)
-	var gatecheckBundleFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.GatecheckBundleFilename)
-	var gatecheckConfigFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.GatecheckConfigFilename)
-	var gitleaksFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.GitleaksFilename)
-	var grypeFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.GrypeFilename)
-	var grypeConfigFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.GrypeConfigFilename)
-	var grypeActiveFindingsFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.GrypeActiveFindingsFilename)
-	var grypeAllFindingsFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.GrypeAllFindingsFilename)
-	var sbomFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.SBOMFilename)
-	var semgrepFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.SemgrepFilename)
-	var clamavFilename = path.Join(i.artifactConfig.Directory, i.artifactConfig.ClamavFilename)
-	var dockerFilename = i.imageConfig.BuildDockerfile
+func (p *imagePublish) Run() error {
+	dockerFilename := p.config.ImageBuild.Dockerfile
+	gitleaksFilename := path.Join(p.config.ArtifactsDir, p.config.CodeScan.GitleaksFilename)
+	semgrepFilename := path.Join(p.config.ArtifactsDir, p.config.CodeScan.SemgrepFilename)
+	antivirusFilename := path.Join(p.config.ArtifactsDir, p.config.ImageScan.AntivirusFilename)
+	grypeFilename := path.Join(p.config.ArtifactsDir, p.config.ImageScan.GrypeFullFilename)
+	grypeConfigFilename := path.Join(p.config.ArtifactsDir, p.config.ImageScan.GrypeConfigFilename)
+	sbomFilename := path.Join(p.config.ArtifactsDir, p.config.ImageScan.SyftFilename)
+	clamavFilename := path.Join(p.config.ArtifactsDir, p.config.ImageScan.ClamavFilename)
 
-	l := slog.Default()
+	fmt.Fprintln(p.Stderr, dockerFilename, gitleaksFilename, semgrepFilename, antivirusFilename, grypeFilename, grypeConfigFilename, sbomFilename, clamavFilename)
 
-	l.Info("start", "dry_run_enabled", i.DryRunEnabled)
-	defer l.Info("complete")
+	if p.NoPush {
+		slog.Warn("pushing is disabled, skip.")
+		return nil
+	}
+	err := p.dockerOrAlias.Push(p.config.ImageBuild.Tag).WithDryRun(p.DryRunEnabled).Run()
+	if err != nil {
+		slog.Error("failed to push image tag to registry", "image_tag", p.config.ImageBuild.Tag)
+		return errors.New("Image Publish Pipeline failed. See log for details.")
+	}
 
-	// Create gatecheck.yaml file
-	gatecheckConfigFile := []byte(gatecheckYaml)
-  gatecheckConfigError := os.WriteFile(gatecheckConfigFilename, gatecheckConfigFile, 0644)
-
-	// Run gatecheck bundle
-	gatecheck := shell.GatecheckCommand(nil, i.Stdout, i.Stderr)
-	gatecheckBundleError = gatecheck.Bundle(gatecheckBundleFilename, gitleaksFilename, grypeFilename, grypeConfigFilename, grypeActiveFindingsFilename, grypeAllFindingsFilename, sbomFilename, semgrepFilename, clamavFilename, gatecheckConfigFilename, dockerFilename, antivirusFilename).WithDryRun(i.DryRunEnabled).Run()
-	
-	// Run gatecheck summary
-	gatecheckSummaryError = gatecheck.Summary(gatecheckBundleFilename).WithDryRun(i.DryRunEnabled).Run()
-	
-	return errors.Join(gatecheckConfigError, gatecheckBundleError, gatecheckSummaryError)
+	return nil
 }

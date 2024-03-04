@@ -91,7 +91,6 @@ func (o *ImageBuildOptions) WithSquashLayers(enabled bool) *ImageBuildOptions {
 
 // WithCache sets caching to a registry
 func (o *ImageBuildOptions) WithCache(cacheTo string, cacheFrom string) *ImageBuildOptions {
-
 	if cacheTo != "" {
 		o.args = append(o.args, "--cache-to", cacheTo)
 	}
@@ -137,7 +136,7 @@ func (p *dockerCLICmd) Build(opts *ImageBuildOptions) *Command {
 //
 // shell: [docker|podman] push <image>
 func (p *dockerCLICmd) Push(imageName string) *Command {
-	e := p.initCmd().WithArgs("push").WithArgs(imageName)
+	e := p.initCmd().WithArgs("push", imageName)
 	return NewCommand(e)
 }
 
