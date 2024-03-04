@@ -28,8 +28,16 @@ OR compile manually
 ```bash
 git clone <this-repo> <target-dir>
 cd <target-dir>
+mkdir bin
 go build -o bin/workflow-engine ./cmd/workflow-engine
 ```
+
+Optionally, if you care to include metadata you use build arguments
+
+```shell
+go build -ldflags="-X 'main.cliVersion=v0.0.0-source-build' -X 'main.gitCommit=$(git rev-parse HEAD)' -X 'main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=$(git log -1 --pretty=%B)'" -o ./bin ./cmd/workflow-engine
+```
+
 
 ## Running A Pipeline
 
