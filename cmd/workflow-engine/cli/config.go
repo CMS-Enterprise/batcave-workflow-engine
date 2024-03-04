@@ -167,7 +167,3 @@ func writeBuiltins(w io.Writer, asFormat string) error {
 
 	return NewAbstractEncoder(w, builtins).Encode(asFormat)
 }
-
-func writeExampleTo(w io.Writer, asFormat string) error {
-	return NewAbstractEncoder(w, pipelines.NewDefaultConfig()).Encode(asFormat)
-}
