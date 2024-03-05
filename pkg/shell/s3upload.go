@@ -14,17 +14,17 @@ func (s *s3uploadCmd) Version() *Command {
 	return NewCommand(s.InitCmd().WithArgs("--version"))
 }
 
-// ScanFile runs a S3Upload cmd with provided vars
+// Upload runs a S3Upload cmd with provided vars
 //
-// shell: `s3upload -f ${DOCKERFILE_NAME} -b ${AWS_BUCKET} -k ${S3_KEY}/${DOCKERFILE_NAME}`
-func (s *s3uploadCmd) Scan(sourceFile string, bucketName string, s3Key string, destFile string) *Command {
+// shell: `s3upload -f <file name> -b <bucket> -k <s3 key>`
+func (s *s3uploadCmd) Upload(sourceFile string, bucketName string, s3Key string) *Command {
 	exe := s.InitCmd().WithArgs(
 		"-f",
 		sourceFile,
 		"-b",
 		bucketName,
 		"-k",
-		s3Key+"/"+destFile,
+		s3Key,
 	)
 
 	return NewCommand(exe)

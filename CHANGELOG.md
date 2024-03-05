@@ -18,6 +18,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - Config syntax to correlated with pipelines
 - Code Scan Run organization to use functions for simplicity
 - Add multi writer for Gatecheck list
+- async run execution for image scan pipeline
 
 ### Added
 
@@ -34,6 +35,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - pipeline helper functions for common file operations
 - Oras Command
 - Deploy pipeline validation only (beta feature)
+- clamscan & freshclam for virus scanning
 
 ### Fixed
 

@@ -3,10 +3,9 @@ package pipelines
 import (
 	"errors"
 	"io"
+	"log/slog"
 	"path"
 	"workflow-engine/pkg/shell"
-
-	"log/slog"
 )
 
 type Deploy struct {

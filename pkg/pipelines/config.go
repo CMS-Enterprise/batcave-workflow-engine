@@ -16,8 +16,8 @@ type Config struct {
 	ImageBuild              configImageBuild   `json:"imageBuild"              toml:"imageBuild"              yaml:"imageBuild"`
 	ImageScan               configImageScan    `json:"imageScan"               toml:"imageScan"               yaml:"imageScan"`
 	CodeScan                configCodeScan     `json:"codeScan"                toml:"codeScan"                yaml:"codeScan"`
-	ImagePublish            configImagePublish `json:"imagePublish" toml:"imagePublish" yaml:"imagePublish"`
-	Deploy                  configDeploy       `json:"deploy" toml:"deploy" yaml:"deploy"`
+	ImagePublish            configImagePublish `json:"imagePublish"            toml:"imagePublish"            yaml:"imagePublish"`
+	Deploy                  configDeploy       `json:"deploy"                  toml:"deploy"                  yaml:"deploy"`
 	ArtifactsDir            string             `json:"artifactDir"             toml:"artifactDir"             yaml:"artifactDir"`
 	GatecheckBundleFilename string             `json:"gatecheckBundleFilename" toml:"gatecheckBundleFilename" yaml:"gatecheckBundleFilename"`
 }
@@ -42,7 +42,7 @@ type configImageScan struct {
 	GrypeConfigFilename string `json:"grypeConfigFilename" toml:"grypeConfigFilename" yaml:"grypeConfigFilename"`
 	GrypeActiveFilename string `json:"grypeActiveFilename" toml:"grypeActiveFilename" yaml:"grypeActiveFilename"`
 	GrypeFullFilename   string `json:"grypeFullFilename"   toml:"grypeFullFilename"   yaml:"grypeFullFilename"`
-	ClamavFilename  		string `json:"clamavFilename"      toml:"clamavFilename"      yaml:"clamavFilename"`
+	ClamavFilename      string `json:"clamavFilename"      toml:"clamavFilename"      yaml:"clamavFilename"`
 	TargetImage         string `json:"targetImage"         toml:"targetImage"         yaml:"targetImage"`
 }
 
@@ -61,7 +61,7 @@ type configImagePublish struct {
 }
 
 type configDeploy struct {
-	Enabled bool `json:"enabled"        toml:"enabled"        yaml:"enabled"`
+	Enabled bool `json:"enabled" toml:"enabled" yaml:"enabled"`
 }
 
 func SetDefaults(v *viper.Viper) {

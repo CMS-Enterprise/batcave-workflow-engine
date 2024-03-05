@@ -15,7 +15,15 @@ type ImagePublish struct {
 	config        *Config
 	dockerOrAlias dockerOrAliasCommand
 	runtime       struct {
-		bundleFilename string
+		bundleFilename       string
+		dockerfileKey        string
+		sbomKey              string
+		clamavKey            string
+		gatecheckConfigKey   string
+		gatecheckManifestKey string
+		grypeReportKey       string
+		semgrepReportKey     string
+		gitleaksKey          string
 	}
 }
 
@@ -43,6 +51,7 @@ func NewimagePublish(stdout io.Writer, stderr io.Writer) *ImagePublish {
 }
 
 func (p *ImagePublish) preRun() error {
+	// numbers for date format is From the docs: https://go.dev/src/time/format.go
 	p.runtime.bundleFilename = path.Join(p.config.ArtifactsDir, p.config.GatecheckBundleFilename)
 	return nil
 }
@@ -70,5 +79,6 @@ func (p *ImagePublish) Run() error {
 			"image_tag", p.config.ImagePublish.ArtifactsImage, "bundle_filename", p.runtime.bundleFilename)
 		return errors.New("Image Publish Pipeline failed. See log for details.")
 	}
+
 	return nil
 }

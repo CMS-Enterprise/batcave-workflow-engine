@@ -147,6 +147,25 @@ func (p *dockerCLICmd) Info() *Command {
 	return NewCommand(p.initCmd().WithArgs("info"))
 }
 
+// Pull an image into the local context
+func (p *dockerCLICmd) Pull(image string) *Command {
+	exe := p.initCmd().WithArgs("pull", image)
+	return NewCommand(exe)
+}
+
+// Save an image to a tar archive, streams to STDOUT
+//
+// Note this command can reassign stdout which is an edge case to accomodate
+// all of the aliases since this is the only command that actually dumps to
+// stdout.
+//
+// shell: `[docker|podman] save`
+func (p *dockerCLICmd) Save(image string, stdout io.Writer) *Command {
+	exe := p.initCmd().WithArgs("save", image)
+	exe.WithIO(exe.Stdin, stdout, exe.Stderr)
+	return NewCommand(exe)
+}
+
 // PodmanCommand with custom stdout and stderr
 func PodmanCommand(stdin io.Reader, stdout io.Writer, stderr io.Writer) *dockerCLICmd {
 	return &dockerCLICmd{

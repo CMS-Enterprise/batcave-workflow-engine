@@ -6,6 +6,8 @@
 package shell
 
 import (
+	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"os"
@@ -66,6 +68,7 @@ type Command struct {
 	info          string
 	dryRunEnabled bool
 	logger        *slog.Logger
+	executable    *Executable
 }
 
 func NewCommand(exe *Executable) *Command {
@@ -73,6 +76,7 @@ func NewCommand(exe *Executable) *Command {
 		runFunc: func() error {
 			return exe.Run()
 		},
+		executable:    exe,
 		info:          exe.String(),
 		dryRunEnabled: false,
 		logger:        slog.Default(),
@@ -101,6 +105,27 @@ func (c *Command) Run() error {
 		return nil
 	}
 	return c.runFunc()
+}
+
+func (c *Command) RunWithContext(ctx context.Context) error {
+	c.logger.Info("run with context", "command", c.String())
+	if err := c.executable.Start(); err != nil {
+		return err
+	}
+	doneChan := make(chan struct{}, 1)
+	var runError error
+	go func() {
+		runError = c.executable.Wait()
+		doneChan <- struct{}{}
+	}()
+
+	select {
+	case <-doneChan:
+		return runError
+	case <-ctx.Done():
+		err := c.executable.Process.Kill()
+		return errors.Join(errors.New("command canceled"), err)
+	}
 }
 
 // RunLogError runs the command function and logs any potential errors

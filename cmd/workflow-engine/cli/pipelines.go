@@ -137,6 +137,7 @@ func runImageBuild(cmd *cobra.Command, _ []string) error {
 
 func runImageScan(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
+	cliInterface, _ := cmd.Flags().GetString("cli-interface")
 	configFilename, _ := cmd.Flags().GetString("config")
 
 	config := new(pipelines.Config)
@@ -144,7 +145,7 @@ func runImageScan(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	return imageScanPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled)
+	return imageScanPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled, cliInterface)
 }
 
 func runimagePublish(cmd *cobra.Command, _ []string) error {
@@ -182,10 +183,13 @@ func imageBuildPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Co
 	return pipeline.WithBuildConfig(config).Run()
 }
 
-func imageScanPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Config, dryRunEnabled bool) error {
+func imageScanPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Config, dryRunEnabled bool, cliInterface string) error {
 	pipeline := pipelines.NewImageScan(stdout, stderr)
 	pipeline.DryRunEnabled = dryRunEnabled
 
+	if cliInterface == "podman" {
+		pipeline = pipeline.WithPodman()
+	}
 	return pipeline.WithConfig(config).Run()
 }
 
