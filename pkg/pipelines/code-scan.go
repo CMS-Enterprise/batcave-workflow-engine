@@ -78,6 +78,11 @@ func (p *CodeScan) preRun() error {
 }
 
 func (p *CodeScan) Run() error {
+	if !p.config.CodeScan.Enabled {
+		slog.Warn("code scan pipeline is disabled, skip.")
+		return nil
+	}
+
 	if err := p.preRun(); err != nil {
 		return errors.New("Code Scan Pipeline Pre-Run Failed. See log for details.")
 	}

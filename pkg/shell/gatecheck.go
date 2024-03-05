@@ -29,13 +29,27 @@ func (s *gatecheckCmd) ListAll(inputFileType string) *Command {
 	return NewCommand(exe)
 }
 
+// BundleCreate creates a new bundle
+//
+// shell: `gatecheck bundle create <bundle file> <target file>
 func (s *gatecheckCmd) BundleCreate(bundleFilename string, targetFilename string) *Command {
 	exe := s.InitCmd().WithArgs("bundle", "create", bundleFilename, targetFilename)
 	return NewCommand(exe)
 }
 
+// BundleAdd creates a new bundle
+//
+// shell: `gatecheck bundle add <bundle file> <target file>
 func (s *gatecheckCmd) BundleAdd(bundleFilename string, targetFilename string) *Command {
 	exe := s.InitCmd().WithArgs("bundle", "add", bundleFilename, targetFilename)
+	return NewCommand(exe)
+}
+
+// Validate creates a new bundle
+//
+// shell: `gatecheck validate <target file>
+func (s *gatecheckCmd) Validate(filename string) *Command {
+	exe := s.InitCmd().WithArgs("validate", filename)
 	return NewCommand(exe)
 }
 

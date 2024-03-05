@@ -12,12 +12,13 @@ import (
 
 // Config contains all parameters for the various pipelines
 type Config struct {
-	Version                 string           `json:"version"                 toml:"version"                 yaml:"version"`
-	ImageBuild              configImageBuild `json:"imageBuild"              toml:"imageBuild"              yaml:"imageBuild"`
-	ImageScan               configImageScan  `json:"imageScan"               toml:"imageScan"               yaml:"imageScan"`
-	CodeScan                configCodeScan   `json:"codeScan"                toml:"codeScan"                yaml:"codeScan"`
-	ArtifactsDir            string           `json:"artifactDir"             toml:"artifactDir"             yaml:"artifactDir"`
-	GatecheckBundleFilename string           `json:"gatecheckBundleFilename" toml:"gatecheckBundleFilename" yaml:"gatecheckBundleFilename"`
+	Version                 string             `json:"version"                 toml:"version"                 yaml:"version"`
+	ImageBuild              configImageBuild   `json:"imageBuild"              toml:"imageBuild"              yaml:"imageBuild"`
+	ImageScan               configImageScan    `json:"imageScan"               toml:"imageScan"               yaml:"imageScan"`
+	CodeScan                configCodeScan     `json:"codeScan"                toml:"codeScan"                yaml:"codeScan"`
+	ImagePublish            configImagePublish `json:"imagePublish" toml:"imagePublish" yaml:"imagePublish"`
+	ArtifactsDir            string             `json:"artifactDir"             toml:"artifactDir"             yaml:"artifactDir"`
+	GatecheckBundleFilename string             `json:"gatecheckBundleFilename" toml:"gatecheckBundleFilename" yaml:"gatecheckBundleFilename"`
 }
 
 type configImageBuild struct {

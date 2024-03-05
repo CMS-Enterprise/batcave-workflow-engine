@@ -73,6 +73,11 @@ func (p *ImageScan) preRun() error {
 }
 
 func (p *ImageScan) Run() error {
+	if !p.config.ImageScan.Enabled {
+		slog.Warn("image scan pipeline is disabled, skip.")
+		return nil
+	}
+
 	if err := p.preRun(); err != nil {
 		return errors.New("Code Scan Pipeline Pre-Run Failed. See log for details.")
 	}
