@@ -146,7 +146,7 @@ func (p *ImageScan) Run() error {
 }
 
 func (p *ImageScan) postRun() error {
-	files := []string{p.runtime.sbomFilename, p.runtime.grypeFilename}
+	files := []string{p.runtime.sbomFilename, p.runtime.grypeFilename, p.runtime.clamavFilename}
 	err := RunGatecheckBundleAdd(p.runtime.bundleFilename, p.Stderr, p.DryRunEnabled, files...)
 	if err != nil {
 		slog.Error("cannot run gatecheck bundle add", "error", err)
