@@ -31,6 +31,7 @@ func NewWorkflowEngineCommand() *cobra.Command {
 
 	// Turn off usage after an error occurs which polutes the terminal
 	cmd.SilenceUsage = true
+	cmd.SilenceErrors = true
 
 	// Add Sub-commands
 	cmd.AddCommand(newConfigCommand(), newRunCommand(), versionCmd)

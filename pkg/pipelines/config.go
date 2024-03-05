@@ -12,11 +12,14 @@ import (
 
 // Config contains all parameters for the various pipelines
 type Config struct {
-	Version      string           `json:"version"     toml:"version"     yaml:"version"`
-	ImageBuild   configImageBuild `json:"imageBuild"  toml:"imageBuild"  yaml:"imageBuild"`
-	ImageScan    configImageScan  `json:"imageScan"   toml:"imageScan"   yaml:"imageScan"`
-	CodeScan     configCodeScan   `json:"codeScan"    toml:"codeScan"    yaml:"codeScan"`
-	ArtifactsDir string           `json:"artifactDir" toml:"artifactDir" yaml:"artifactDir"`
+	Version                 string             `json:"version"                 toml:"version"                 yaml:"version"`
+	ImageBuild              configImageBuild   `json:"imageBuild"              toml:"imageBuild"              yaml:"imageBuild"`
+	ImageScan               configImageScan    `json:"imageScan"               toml:"imageScan"               yaml:"imageScan"`
+	CodeScan                configCodeScan     `json:"codeScan"                toml:"codeScan"                yaml:"codeScan"`
+	ImagePublish            configImagePublish `json:"imagePublish" toml:"imagePublish" yaml:"imagePublish"`
+	Deploy                  configDeploy       `json:"deploy" toml:"deploy" yaml:"deploy"`
+	ArtifactsDir            string             `json:"artifactDir"             toml:"artifactDir"             yaml:"artifactDir"`
+	GatecheckBundleFilename string             `json:"gatecheckBundleFilename" toml:"gatecheckBundleFilename" yaml:"gatecheckBundleFilename"`
 }
 
 type configImageBuild struct {
@@ -52,9 +55,22 @@ type configCodeScan struct {
 	SemgrepRules     string `json:"semgrepRules"     toml:"semgrepRules"     yaml:"semgrepRules"`
 }
 
+type configImagePublish struct {
+	Enabled        bool   `json:"enabled"        toml:"enabled"        yaml:"enabled"`
+	ArtifactsImage string `json:"artifactsImage" toml:"artifactsImage" yaml:"artifactsImage"`
+	PushLatest     bool   `json:"pushLatest"     toml:"pushLatest"     yaml:"pushLatest"`
+}
+
+type configDeploy struct {
+	Enabled bool `json:"enabled"        toml:"enabled"        yaml:"enabled"`
+}
+
 func SetDefaults(v *viper.Viper) {
 	v.MustBindEnv("artifactsdir", "WFE_ARTIFACTS_DIR")
 	v.SetDefault("artifactsdir", "artifacts")
+
+	v.MustBindEnv("gatecheckBundleFilename", "WFE_GATECHECK_BUNDLE_FILENAME")
+	v.SetDefault("gatecheckBundleFilename", "gatecheck-bundle.tar.gz")
 
 	v.MustBindEnv("imagebuild.enabled", "WFE_IMAGE_BUILD_ENABLED")
 	v.MustBindEnv("imagebuild.builddir", "WFE_IMAGE_BUILD_DIR")
@@ -70,7 +86,7 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault("imagebuild.enabled", "1")
 	v.SetDefault("imagebuild.builddir", ".")
 	v.SetDefault("imagebuild.dockerfile", "Dockerfile")
-	v.SetDefault("imagebuild.tag", "latest")
+	v.SetDefault("imagebuild.tag", "my-app:latest")
 
 	v.MustBindEnv("imagescan.enabled", "WFE_IMAGE_SCAN_ENABLED")
 	v.MustBindEnv("imagescan.clamavFilename", "WFE_IMAGE_SCAN_CLAMAV_FILENAME")
@@ -96,6 +112,17 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault("codescan.gitleaksSrcDir", ".")
 	v.SetDefault("codescan.semgrepFilename", "semgrep-sast-report.json")
 	v.SetDefault("codescan.semgrepRules", "p/default")
+
+	v.MustBindEnv("imagepublish.enabled", "WFE_IMAGE_PUBLISH_ENABLED")
+	v.MustBindEnv("imagepublish.artifactimage", "WFE_IMAGE_PUBLISH_ARTIFACT_IMAGE")
+	v.MustBindEnv("imagepublish.pushlatest", "WFE_IMAGE_PUSH_LATEST")
+
+	v.SetDefault("imagepublish.enabled", "1")
+	v.SetDefault("imagepublish.pushlatest", "1")
+	v.SetDefault("iamgepublish.artifactsimage", "my-app/artifacts:latest")
+
+	v.MustBindEnv("deploy.enabled", "WFE_DEPLOY_ENABLED")
+	v.SetDefault("deploy.enabled", "1")
 }
 
 func RenderTemplate(dst io.Writer, templateSrc io.Reader) error {

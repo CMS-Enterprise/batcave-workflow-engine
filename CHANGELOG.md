@@ -32,6 +32,8 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - no push flag to image publish
 - Gatecheck Shell Command
 - pipeline helper functions for common file operations
+- Oras Command
+- Deploy pipeline validation only (beta feature)
 
 ### Fixed
 

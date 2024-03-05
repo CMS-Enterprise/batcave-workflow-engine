@@ -3,3 +3,5 @@ bin
 .vscode
 test/.artifacts
 test/artifacts
+artifacts
+

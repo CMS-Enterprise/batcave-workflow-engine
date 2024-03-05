@@ -41,6 +41,7 @@ func (d *Debug) Run() error {
 		shell.SyftCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
 		shell.GitleaksCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
 		shell.GatecheckCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
+		shell.OrasCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
 	)
 
 	// Just log errors for optional commands
