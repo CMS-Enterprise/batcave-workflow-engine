@@ -12,7 +12,6 @@ type ImagePublish struct {
 	Stdout        io.Writer
 	Stderr        io.Writer
 	DryRunEnabled bool
-	NoPush        bool
 	config        *Config
 	dockerOrAlias dockerOrAliasCommand
 	runtime       struct {

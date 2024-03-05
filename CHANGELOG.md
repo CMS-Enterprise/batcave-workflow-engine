@@ -33,6 +33,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - Gatecheck Shell Command
 - pipeline helper functions for common file operations
 - Oras Command
+- Deploy pipeline validation only (beta feature)
 
 ### Fixed
 

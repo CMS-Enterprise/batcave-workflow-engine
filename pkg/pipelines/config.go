@@ -17,6 +17,7 @@ type Config struct {
 	ImageScan               configImageScan    `json:"imageScan"               toml:"imageScan"               yaml:"imageScan"`
 	CodeScan                configCodeScan     `json:"codeScan"                toml:"codeScan"                yaml:"codeScan"`
 	ImagePublish            configImagePublish `json:"imagePublish" toml:"imagePublish" yaml:"imagePublish"`
+	Deploy                  configDeploy       `json:"deploy" toml:"deploy" yaml:"deploy"`
 	ArtifactsDir            string             `json:"artifactDir"             toml:"artifactDir"             yaml:"artifactDir"`
 	GatecheckBundleFilename string             `json:"gatecheckBundleFilename" toml:"gatecheckBundleFilename" yaml:"gatecheckBundleFilename"`
 }
@@ -57,6 +58,10 @@ type configImagePublish struct {
 	Enabled        bool   `json:"enabled"        toml:"enabled"        yaml:"enabled"`
 	ArtifactsImage string `json:"artifactsImage" toml:"artifactsImage" yaml:"artifactsImage"`
 	PushLatest     bool   `json:"pushLatest"     toml:"pushLatest"     yaml:"pushLatest"`
+}
+
+type configDeploy struct {
+	Enabled bool `json:"enabled"        toml:"enabled"        yaml:"enabled"`
 }
 
 func SetDefaults(v *viper.Viper) {
@@ -114,6 +119,9 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault("imagepublish.enabled", "1")
 	v.SetDefault("imagepublish.pushlatest", "1")
 	v.SetDefault("iamgepublish.artifactsimage", "my-app/artifacts:latest")
+
+	v.MustBindEnv("deploy.enabled", "WFE_DEPLOY_ENABLED")
+	v.SetDefault("deploy.enabled", "1")
 }
 
 func RenderTemplate(dst io.Writer, templateSrc io.Reader) error {
