@@ -17,13 +17,13 @@ func newRunCommand() *cobra.Command {
 
 	imageBuildCmd.Flags().StringP("cli-interface", "i", "docker", "[docker|podman] CLI interface to use for image building")
 
-	imageBuildCmd.Flags().String("build-dir", ".", "image build context directory")
-	_ = viper.BindPFlag("imagebuild.buildDir", imageBuildCmd.Flags().Lookup("build-dir"))
+	imageBuildCmd.Flags().String("build-dir", viper.GetString("imagebuild.builddir"), "image build context directory")
+	_ = viper.BindPFlag("imagebuild.builddir", imageBuildCmd.Flags().Lookup("build-dir"))
 
-	imageBuildCmd.Flags().String("dockerfile", "Dockerfile", "image build custom Dockerfile")
+	imageBuildCmd.Flags().String("dockerfile", viper.GetString("imagebuild.dockerfile"), "image build custom Dockerfile")
 	_ = viper.BindPFlag("image.dockerfile", imageBuildCmd.Flags().Lookup("dockerfile"))
 
-	imageBuildCmd.Flags().StringToString("build-arg", map[string]string{}, "A build argument passed to the container build command")
+	imageBuildCmd.Flags().StringToString("build-arg", viper.GetStringMapString("imagebuild."), "A build argument passed to the container build command")
 	_ = viper.BindPFlag("imagebuild.args", imageBuildCmd.Flags().Lookup("build-arg"))
 
 	imageBuildCmd.Flags().String("tag", "", "image build custom tag")

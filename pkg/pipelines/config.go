@@ -64,12 +64,9 @@ type configDeploy struct {
 	Enabled bool `json:"enabled" toml:"enabled" yaml:"enabled"`
 }
 
-func SetDefaults(v *viper.Viper) {
+func BindEnvs(v *viper.Viper) {
 	v.MustBindEnv("artifactsdir", "WFE_ARTIFACTS_DIR")
-	v.SetDefault("artifactsdir", "artifacts")
-
 	v.MustBindEnv("gatecheckBundleFilename", "WFE_GATECHECK_BUNDLE_FILENAME")
-	v.SetDefault("gatecheckBundleFilename", "gatecheck-bundle.tar.gz")
 
 	v.MustBindEnv("imagebuild.enabled", "WFE_IMAGE_BUILD_ENABLED")
 	v.MustBindEnv("imagebuild.builddir", "WFE_IMAGE_BUILD_DIR")
@@ -82,11 +79,6 @@ func SetDefaults(v *viper.Viper) {
 	v.MustBindEnv("imagebuild.squashlayers", "WFE_IMAGE_BUILD_SQUASH_LAYERS")
 	v.MustBindEnv("imagebuild.scantarget", "WFE_IMAGE_BUILD_SCAN_TARGET")
 
-	v.SetDefault("imagebuild.enabled", "1")
-	v.SetDefault("imagebuild.builddir", ".")
-	v.SetDefault("imagebuild.dockerfile", "Dockerfile")
-	v.SetDefault("imagebuild.tag", "my-app:latest")
-
 	v.MustBindEnv("imagescan.enabled", "WFE_IMAGE_SCAN_ENABLED")
 	v.MustBindEnv("imagescan.clamavFilename", "WFE_IMAGE_SCAN_CLAMAV_FILENAME")
 	v.MustBindEnv("imagescan.syftFilename", "WFE_IMAGE_SCAN_SYFT_FILENAME")
@@ -94,17 +86,35 @@ func SetDefaults(v *viper.Viper) {
 	v.MustBindEnv("imagescan.grypeActiveFindingsFilename", "WFE_IMAGE_SCAN_GRYPE_ACTIVE_FINDINGS_FILENAME")
 	v.MustBindEnv("imagescan.grypeAllFindingsFilename", "WFE_IMAGE_SCAN_GRYPE_ALL_FINDINGS_FILENAME")
 
-	v.SetDefault("imagescan.enabled", "1")
-	v.SetDefault("imagescan.clamavFilename", "clamav-virus-report.txt")
-	v.SetDefault("imagescan.syftFilename", "syft-sbom-report.json")
-	v.SetDefault("imagescan.grypeActiveFilename", "grype-vulnerability-report-active.json")
-	v.SetDefault("imagescan.grypeFullFilename", "grype-vulnerability-report-full.json")
-
 	v.MustBindEnv("codescan.enabled", "WFE_CODE_SCAN_ENABLED")
 	v.MustBindEnv("codescan.gitleaksFilename", "WFE_CODE_SCAN_GITLEAKS_FILENAME")
 	v.MustBindEnv("codescan.gitleaksSrcDir", "WFE_CODE_SCAN_GITLEAKS_SRC_DIR")
 	v.MustBindEnv("codescan.semgrepFilename", "WFE_CODE_SCAN_SEMGREP_FILENAME")
 	v.MustBindEnv("codescan.semgrepRules", "WFE_CODE_SCAN_SEMGREP_RULES")
+
+	v.MustBindEnv("imagepublish.enabled", "WFE_IMAGE_PUBLISH_ENABLED")
+	v.MustBindEnv("imagepublish.artifactimage", "WFE_IMAGE_PUBLISH_ARTIFACT_IMAGE")
+	v.MustBindEnv("imagepublish.pushlatest", "WFE_IMAGE_PUSH_LATEST")
+
+	v.MustBindEnv("deploy.enabled", "WFE_DEPLOY_ENABLED")
+}
+
+func SetDefaults(v *viper.Viper) {
+	v.SetDefault("version", "1")
+	v.SetDefault("artifactsdir", "artifacts")
+
+	v.SetDefault("gatecheckBundleFilename", "gatecheck-bundle.tar.gz")
+
+	v.SetDefault("imagebuild.enabled", "1")
+	v.SetDefault("imagebuild.builddir", ".")
+	v.SetDefault("imagebuild.dockerfile", "Dockerfile")
+	v.SetDefault("imagebuild.tag", "my-app:latest")
+
+	v.SetDefault("imagescan.enabled", "1")
+	v.SetDefault("imagescan.clamavFilename", "clamav-virus-report.txt")
+	v.SetDefault("imagescan.syftFilename", "syft-sbom-report.json")
+	v.SetDefault("imagescan.grypeActiveFilename", "grype-vulnerability-report-active.json")
+	v.SetDefault("imagescan.grypeFullFilename", "grype-vulnerability-report-full.json")
 
 	v.SetDefault("codescan.enabled", "1")
 	v.SetDefault("codescan.gitleaksFilename", "gitleaks-secrets-report.json")
@@ -112,15 +122,10 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault("codescan.semgrepFilename", "semgrep-sast-report.json")
 	v.SetDefault("codescan.semgrepRules", "p/default")
 
-	v.MustBindEnv("imagepublish.enabled", "WFE_IMAGE_PUBLISH_ENABLED")
-	v.MustBindEnv("imagepublish.artifactimage", "WFE_IMAGE_PUBLISH_ARTIFACT_IMAGE")
-	v.MustBindEnv("imagepublish.pushlatest", "WFE_IMAGE_PUSH_LATEST")
-
 	v.SetDefault("imagepublish.enabled", "1")
 	v.SetDefault("imagepublish.pushlatest", "1")
 	v.SetDefault("iamgepublish.artifactsimage", "my-app/artifacts:latest")
 
-	v.MustBindEnv("deploy.enabled", "WFE_DEPLOY_ENABLED")
 	v.SetDefault("deploy.enabled", "1")
 }
 

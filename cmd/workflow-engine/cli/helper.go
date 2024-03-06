@@ -109,8 +109,8 @@ func (a *AbstractEncoder) Encode(asFormat string) error {
 // Helper Functions
 
 func ListConfig(w io.Writer, v *viper.Viper) error {
-	for _, key := range viper.AllKeys() {
-		_, err := fmt.Fprintf(w, "%-45s %s\n", key, fmt.Sprintf("%v", viper.Get(key)))
+	for _, key := range v.AllKeys() {
+		_, err := fmt.Fprintf(w, "%-45s %s\n", key, fmt.Sprintf("%v", v.Get(key)))
 		if err != nil {
 			return err
 		}
@@ -118,34 +118,45 @@ func ListConfig(w io.Writer, v *viper.Viper) error {
 	return nil
 }
 
-// LoadConfig will do a viper.ReadIn and unmarshal the values into a new config object
-//
-// This function assumes the caller already did v.SetFilename(configFilename)
-// If the config file does not exist, this function will return an error.
-// If the possibility of a non-existent configuration is expected, you don't need to
-// use this function. you can call unmarshal directly to load default values
-func LoadConfig(config *pipelines.Config, v *viper.Viper) error {
-	if err := v.ReadInConfig(); err != nil {
-		return err
-	}
-	if err := v.Unmarshal(config); err != nil {
-		return err
-	}
-	return nil
-}
-
-// LoadOrDefault will use the default config if filename is blank
+// LoadOrDefault will use the default values in v if filename is blank
 //
 // Caller should pass in a new config object
 func LoadOrDefault(filename string, config *pipelines.Config, v *viper.Viper) error {
-	viper.SetConfigFile(filename)
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			return err
-		}
-		slog.Warn("no configuration file provided with --config flag, using default configuration")
-		_ = viper.Unmarshal(config)
+	slog.Debug("load configuration from file", "filename", filename)
+	if filename == "" {
+		slog.Debug("no filename given, load from env, cli flags, and then defaults")
+		return loadWithoutConfigFile(config, v)
 	}
+
+	v.SetConfigFile(filename)
+
+	err := v.ReadInConfig()
+	if err != nil {
+		slog.Error("viper read in config failed", "filename", filename)
+		return errors.New("config file failed to load. See log for details.")
+	}
+
+	slog.Debug("unmarshal into config object")
+	if err := v.Unmarshal(config); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func loadWithoutConfigFile(config *pipelines.Config, v *viper.Viper) error {
+	var configNotFoundErr *viper.ConfigFileNotFoundError
+	err := v.ReadInConfig()
+	if err != nil && errors.As(err, &configNotFoundErr) {
+		slog.Error("viper read in config failed", "error", err)
+		return errors.New("config file failed to load. See log for details.")
+	}
+
+	slog.Debug("unmarshal into config object")
+	if err := v.Unmarshal(config); err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -1,9 +1,9 @@
-version: ""
+version: "1"
 imageBuild:
     enabled: true
     buildDir: .
     dockerfile: Dockerfile
-    tag: latest
+    tag: my-app:latest
     platform: ""
     target: ""
     cacheTo: ""
@@ -17,7 +17,7 @@ imageScan:
     grypeConfigFilename: ""
     grypeActiveFilename: grype-vulnerability-report-active.json
     grypeFullFilename: grype-vulnerability-report-full.json
-    clamavFilename: ""
+    clamavFilename: clamav-virus-report.txt
     targetImage: ""
 codeScan:
     enabled: true
@@ -25,5 +25,11 @@ codeScan:
     gitleaksSrcDir: .
     semgrepFilename: semgrep-sast-report.json
     semgrepRules: p/default
+imagePublish:
+    enabled: true
+    artifactsImage: ""
+    pushLatest: true
+deploy:
+    enabled: true
 artifactDir: artifacts
-gatecheckbundlefilename: gatecheck-bundle.tar.gz
+gatecheckBundleFilename: gatecheck-bundle.tar.gz
