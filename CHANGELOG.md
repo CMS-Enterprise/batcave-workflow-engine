@@ -39,6 +39,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - clamscan & freshclam for virus scanning
 - command run with context
 - command run with IO
+- grype CMD 
 
 ### Fixed
 

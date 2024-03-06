@@ -6,7 +6,8 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"workflow-engine/pkg/shell/legacy"
+	shell "workflow-engine/pkg/shell"
+	legacyShell "workflow-engine/pkg/shell/legacy"
 )
 
 type Debug struct {
@@ -37,17 +38,26 @@ func (d *Debug) Run() error {
 
 	// Collect errors for mandatory commands
 	errs := errors.Join(
-		shell.GrypeCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
-		shell.SyftCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
-		shell.GitleaksCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
-		shell.GatecheckCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
-		shell.OrasCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
-		shell.ClamScanCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
+		legacyShell.GrypeCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
+		legacyShell.SyftCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
+		legacyShell.GitleaksCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
+		legacyShell.GatecheckCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
+		legacyShell.OrasCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
+		legacyShell.ClamScanCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
 	)
 
+	exitCodes := map[string]int{}
+	exitCodes["grype"] = shell.GrypeVersion(shell.WithDryRun(d.DryRunEnabled), shell.WithStdout(d.Stdout))
+
+	for c, exitCode := range exitCodes {
+		if exitCode != shell.ExitOK {
+			slog.Error("a mandatory shell command failed", "command", c, "exit_code", exitCode)
+		}
+	}
+
 	// Just log errors for optional commands
-	shell.PodmanCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).RunLogErrorAsWarning()
-	shell.DockerCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).RunLogErrorAsWarning()
+	legacyShell.PodmanCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).RunLogErrorAsWarning()
+	legacyShell.DockerCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).RunLogErrorAsWarning()
 
 	return errs
 }
