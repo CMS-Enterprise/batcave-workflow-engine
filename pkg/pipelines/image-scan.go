@@ -11,7 +11,8 @@ import (
 	"path"
 	"sync"
 	"time"
-	"workflow-engine/pkg/shell/legacy"
+	"workflow-engine/pkg/shell"
+	shellLegacy "workflow-engine/pkg/shell/legacy"
 )
 
 // ImageScan Pipeline
@@ -53,13 +54,13 @@ func NewImageScan(stdout io.Writer, stderr io.Writer) *ImageScan {
 		DryRunEnabled: false,
 		config:        new(Config),
 		// will declare at runtime
-		DockerOrAlias: shell.DockerCommand(nil, nil, nil),
+		DockerOrAlias: shellLegacy.DockerCommand(nil, nil, nil),
 	}
 }
 
 func (p *ImageScan) WithPodman() *ImageScan {
 	slog.Debug("use podman cli")
-	p.DockerOrAlias = shell.PodmanCommand(nil, p.Stdout, p.Stderr)
+	p.DockerOrAlias = shellLegacy.PodmanCommand(nil, p.Stdout, p.Stderr)
 	return p
 }
 
@@ -199,10 +200,15 @@ func (p *ImageScan) Run() error {
 		syftReportBuf := new(bytes.Buffer)
 		syftMW := io.MultiWriter(p.runtime.sbomFile, syftReportBuf)
 
-		err := RunSyftScan(syftMW, p.Stderr, p.config, p.DryRunEnabled)
-		if err != nil {
+		syftExit := shell.SyftScanImage(
+			shell.WithScanImage(p.config.ImageScan.TargetImage),
+			shell.WithDryRun(p.DryRunEnabled),
+			shell.WithIO(nil, syftMW, p.Stderr),
+		)
+
+		if syftExit != shell.ExitOK {
 			slog.Error("syft sbom generation failed")
-			return err
+			return fmt.Errorf("syft non-zero exit: %d", syftExit)
 		}
 		// Syft report passed so it can be added to the bundle
 		p.runtime.syftJobSuccess = true
@@ -210,17 +216,21 @@ func (p *ImageScan) Run() error {
 		grypeReportBuf := new(bytes.Buffer)
 		grypeMW := io.MultiWriter(p.runtime.grypeFile, grypeReportBuf)
 
-		err = RunGrypeScanSBOM(grypeMW, syftReportBuf, p.Stderr, p.config, p.DryRunEnabled)
-		if err != nil {
+		grypeExit := shell.GrypeScanSBOM(
+			shell.WithDryRun(p.DryRunEnabled),
+			shell.WithIO(syftReportBuf, grypeMW, p.Stderr),
+		)
+		if grypeExit != shell.ExitOK {
 			slog.Error("grype vulnerability scan failed")
-			return err
+			return fmt.Errorf("grype non-zero exit: %d", grypeExit)
 		}
+
 		// Grype report passed so it can be added to the bundle
 		p.runtime.grypeJobSuccess = true
 
 		slog.Debug("summarize grype report")
 		listErrBuf := new(bytes.Buffer)
-		err = RunGatecheckListAll(p.runtime.gatecheckListBuf, grypeReportBuf, listErrBuf, "grype", p.DryRunEnabled)
+		err := RunGatecheckListAll(p.runtime.gatecheckListBuf, grypeReportBuf, listErrBuf, "grype", p.DryRunEnabled)
 		if err != nil {
 			slog.Error("cannot run gatecheck list all on grype report, dumping stderr log")
 			_, _ = io.Copy(p.Stderr, listErrBuf)
@@ -303,16 +313,8 @@ func (p *ImageScan) postRun() error {
 	return err
 }
 
-func RunSyftScan(reportDst io.Writer, stdErr io.Writer, config *Config, dryRunEnabled bool) error {
-	return shell.SyftCommand(nil, reportDst, stdErr).ScanImage(config.ImageScan.TargetImage).WithDryRun(dryRunEnabled).Run()
-}
-
-func RunGrypeScanSBOM(reportDst io.Writer, syftSrc io.Reader, stdErr io.Writer, config *Config, dryRunEnabled bool) error {
-	return shell.GrypeCommand(syftSrc, reportDst, stdErr).ScanSBOM().WithDryRun(dryRunEnabled).Run()
-}
-
 func RunClamScan(reportDst io.Writer, stdErr io.Writer, targetDirectory string, dryRunEnabled bool) error {
-	return shell.ClamScanCommand(nil, reportDst, stdErr).Scan(targetDirectory).WithDryRun(dryRunEnabled).Run()
+	return shellLegacy.ClamScanCommand(nil, reportDst, stdErr).Scan(targetDirectory).WithDryRun(dryRunEnabled).Run()
 }
 
 type asyncResult struct {
@@ -327,7 +329,7 @@ func clamavDatabaseUpdate(ctx context.Context, resultChan chan<- asyncResult, cm
 	res := asyncResult{success: true, taskName: "clamav database update", msg: "clamav database successfully updated with freshclam"}
 
 	/// Freshclam outputs debug information to stdout
-	err := shell.FreshClamCommand(nil, cmdLogW, nil).FreshClam().WithDryRun(dryRunEnabled).RunWithContext(ctx)
+	err := shellLegacy.FreshClamCommand(nil, cmdLogW, nil).FreshClam().WithDryRun(dryRunEnabled).RunWithContext(ctx)
 	if err != nil {
 		res.success = false
 		res.msg = err.Error()

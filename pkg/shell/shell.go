@@ -8,10 +8,12 @@ import (
 	"os/exec"
 )
 
-const ExitOK int = 0
-const ExitUnknown int = 232
-const ExitContextCancel int = 231
-const ExitKillFailure int = 230
+const (
+	ExitOK            int = 0
+	ExitUnknown       int = 232
+	ExitContextCancel int = 231
+	ExitKillFailure   int = 230
+)
 
 // Command is any function that accepts optionFuncs and returns an exit code
 //
@@ -28,6 +30,7 @@ type Options struct {
 	stdout        io.Writer
 	stderr        io.Writer
 	ctx           context.Context
+	scanImage     string
 }
 
 // apply should be called before the exec.Cmd is run
@@ -81,6 +84,12 @@ func WithStdout(w io.Writer) OptionFunc {
 func WithStderr(w io.Writer) OptionFunc {
 	return func(o *Options) {
 		o.stderr = w
+	}
+}
+
+func WithScanImage(image string) OptionFunc {
+	return func(o *Options) {
+		o.scanImage = image
 	}
 }
 

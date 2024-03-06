@@ -48,6 +48,7 @@ func (d *Debug) Run() error {
 
 	exitCodes := map[string]int{}
 	exitCodes["grype"] = shell.GrypeVersion(shell.WithDryRun(d.DryRunEnabled), shell.WithStdout(d.Stdout))
+	exitCodes["syft"] = shell.SyftVersion(shell.WithDryRun(d.DryRunEnabled), shell.WithStdout(d.Stdout))
 
 	for c, exitCode := range exitCodes {
 		if exitCode != shell.ExitOK {
