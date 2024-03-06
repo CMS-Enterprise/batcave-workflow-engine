@@ -11,7 +11,7 @@ import (
 	"path"
 	"sync"
 	"time"
-	"workflow-engine/pkg/shell"
+	"workflow-engine/pkg/shell/legacy"
 )
 
 // ImageScan Pipeline

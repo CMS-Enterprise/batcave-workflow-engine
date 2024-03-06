@@ -4,7 +4,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
-	"workflow-engine/pkg/shell"
+	"workflow-engine/pkg/shell/legacy"
 )
 
 type dockerOrAliasCommand interface {

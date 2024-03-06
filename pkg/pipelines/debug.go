@@ -6,7 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"workflow-engine/pkg/shell"
+	"workflow-engine/pkg/shell/legacy"
 )
 
 type Debug struct {

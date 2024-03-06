@@ -19,6 +19,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - Code Scan Run organization to use functions for simplicity
 - Add multi writer for Gatecheck list
 - async run execution for image scan pipeline
+- moved shell package to legacy
 
 ### Added
 

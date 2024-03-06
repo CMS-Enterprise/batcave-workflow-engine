@@ -5,7 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"path"
-	"workflow-engine/pkg/shell"
+	"workflow-engine/pkg/shell/legacy"
 )
 
 type ImagePublish struct {
