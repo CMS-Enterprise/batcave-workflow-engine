@@ -18,9 +18,11 @@ type ImageScan struct {
 	runtime       struct {
 		sbomFile         *os.File
 		grypeFile        *os.File
+		clamavFile       *os.File
 		gatecheckListBuf *bytes.Buffer
 		sbomFilename     string
 		grypeFilename    string
+		clamavFilename   string
 		bundleFilename   string
 	}
 }
@@ -61,6 +63,13 @@ func (p *ImageScan) preRun() error {
 		return err
 	}
 
+	p.runtime.clamavFilename = path.Join(p.config.ArtifactsDir, p.config.ImageScan.ClamavFilename)
+	p.runtime.clamavFile, err = OpenOrCreateFile(p.runtime.clamavFilename)
+	if err != nil {
+		slog.Error("cannot open clamav file", "filename", p.runtime.clamavFilename, "error", err)
+		return err
+	}
+
 	if err := InitGatecheckBundle(p.config, p.Stderr, p.DryRunEnabled); err != nil {
 		slog.Error("cannot initialize gatecheck bundle", "error", err)
 		return err
@@ -85,6 +94,7 @@ func (p *ImageScan) Run() error {
 	defer func() {
 		_ = p.runtime.sbomFile.Close()
 		_ = p.runtime.grypeFile.Close()
+		_ = p.runtime.clamavFile.Close()
 	}()
 
 	slog.Info("run image scan pipeline", "dry_run_enabled", p.DryRunEnabled, "artifact_directory", p.config.ArtifactsDir)
@@ -112,6 +122,25 @@ func (p *ImageScan) Run() error {
 		return errors.New("image Scan Pipeline failed. See log for details")
 	}
 
+	clamavBuf := new(bytes.Buffer)
+	clamavMW := io.MultiWriter(p.runtime.clamavFile, clamavBuf)
+
+	// Do a ClamAV (freshclam) update on the CVD database
+	slog.Debug("update clamav database")
+	freshClamErr := RunFreshClam(clamavMW, clamavBuf, p.Stderr, p.config, p.DryRunEnabled)
+	if freshClamErr != nil {
+		slog.Error("failed to update clamav database:", freshClamErr)
+		return errors.New("image Scan Pipeline failed. See log for details")
+	}
+
+	// Do a ClamAV scan on the target directory, fail if the command fails
+	slog.Debug("scan target directory with clamav")
+	clamScanErr := RunClamavScan(clamavMW, clamavBuf, p.Stderr, p.config, p.DryRunEnabled)
+	if clamScanErr != nil {
+		slog.Error("clamav failed to scan target directory:", clamScanErr)
+		return errors.New("image Scan Pipeline failed. See log for details")
+	}
+	
 	if err := p.postRun(); err != nil {
 		return errors.New("Code Scan Pipeline Post-Run Failed. See log for details.")
 	}
@@ -119,7 +148,7 @@ func (p *ImageScan) Run() error {
 }
 
 func (p *ImageScan) postRun() error {
-	files := []string{p.runtime.sbomFilename, p.runtime.grypeFilename}
+	files := []string{p.runtime.sbomFilename, p.runtime.grypeFilename, p.runtime.clamavFilename}
 	err := RunGatecheckBundleAdd(p.runtime.bundleFilename, p.Stderr, p.DryRunEnabled, files...)
 	if err != nil {
 		slog.Error("cannot run gatecheck bundle add", "error", err)
@@ -137,4 +166,12 @@ func RunSyftScan(reportDst io.Writer, stdErr io.Writer, config *Config, dryRunEn
 
 func RunGrypeScanSBOM(reportDst io.Writer, syftSrc io.Reader, stdErr io.Writer, config *Config, dryRunEnabled bool) error {
 	return shell.GrypeCommand(syftSrc, reportDst, stdErr).ScanSBOM().WithDryRun(dryRunEnabled).Run()
+}
+
+func RunFreshClam(reportDst io.Writer, clamavSrc io.Reader, stdErr io.Writer, config *Config, dryRunEnabled bool) error {
+	return shell.FreshClamCommand(clamavSrc, reportDst, stdErr).Run().WithDryRun(dryRunEnabled).Run()
+}
+
+func RunClamavScan(reportDst io.Writer, clamavSrc io.Reader, stdErr io.Writer, config *Config, dryRunEnabled bool) error {
+	return shell.ClamScanCommand(clamavSrc, reportDst, stdErr).Scan(".").WithDryRun(dryRunEnabled).Run()
 }

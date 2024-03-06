@@ -38,11 +38,11 @@ type configImageBuild struct {
 
 type configImageScan struct {
 	Enabled             bool   `json:"enabled"             toml:"enabled"             yaml:"enabled"`
-	AntivirusFilename   string `json:"antivirusFilename"   toml:"antivirusFilename"   yaml:"antivirusFilename"`
 	SyftFilename        string `json:"syftFilename"        toml:"syftFilename"        yaml:"syftFilename"`
 	GrypeConfigFilename string `json:"grypeConfigFilename" toml:"grypeConfigFilename" yaml:"grypeConfigFilename"`
 	GrypeActiveFilename string `json:"grypeActiveFilename" toml:"grypeActiveFilename" yaml:"grypeActiveFilename"`
 	GrypeFullFilename   string `json:"grypeFullFilename"   toml:"grypeFullFilename"   yaml:"grypeFullFilename"`
+	ClamavFilename  		string `json:"clamavFilename"      toml:"clamavFilename"      yaml:"clamavFilename"`
 	TargetImage         string `json:"targetImage"         toml:"targetImage"         yaml:"targetImage"`
 }
 

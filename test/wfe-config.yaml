@@ -13,11 +13,11 @@ imageBuild:
     scanTarget: ""
 imageScan:
     enabled: true
-    antivirusFilename: ""
     syftFilename: syft-sbom-report.json
     grypeConfigFilename: ""
     grypeActiveFilename: grype-vulnerability-report-active.json
     grypeFullFilename: grype-vulnerability-report-full.json
+    clamavFilename: ""
     targetImage: ""
 codeScan:
     enabled: true
