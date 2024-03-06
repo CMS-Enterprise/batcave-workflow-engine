@@ -34,6 +34,7 @@ type ImageScan struct {
 		bundleFilename   string
 		imageTarFilename string
 		gatecheckListBuf *bytes.Buffer
+		clamavReportBuf  *bytes.Buffer
 		syftJobSuccess   bool
 		grypeJobSuccess  bool
 		clamJobSuccess   bool
@@ -51,7 +52,8 @@ func NewImageScan(stdout io.Writer, stderr io.Writer) *ImageScan {
 		Stderr:        stderr,
 		DryRunEnabled: false,
 		config:        new(Config),
-		DockerOrAlias: shell.DockerCommand(nil, stdout, stderr),
+		// will declare at runtime
+		DockerOrAlias: shell.DockerCommand(nil, nil, nil),
 	}
 }
 
@@ -63,6 +65,11 @@ func (p *ImageScan) WithPodman() *ImageScan {
 
 func (p *ImageScan) preRun() error {
 	var err error
+	fmt.Fprintln(p.Stderr, "******* Workflow Engine Image Scan Pipeline [Pre-Run] *******")
+
+	// In Memory buffers for runtime reports
+	p.runtime.clamavReportBuf = new(bytes.Buffer)
+	p.runtime.gatecheckListBuf = new(bytes.Buffer)
 
 	if err := MakeDirectoryP(p.config.ArtifactsDir); err != nil {
 		slog.Error("failed to create artifact directory", "name", p.config.ArtifactsDir)
@@ -98,6 +105,14 @@ func (p *ImageScan) preRun() error {
 	}
 	p.runtime.imageTarFilename = p.runtime.imageTarFile.Name()
 
+	// create gatecheck bundle file
+	if err := InitGatecheckBundle(p.config, p.Stderr, p.DryRunEnabled); err != nil {
+		slog.Error("cannot initialize gatecheck bundle", "error", err)
+		return err
+	}
+
+	p.runtime.bundleFilename = path.Join(p.config.ArtifactsDir, p.config.GatecheckBundleFilename)
+
 	// The follow are async tasks meaning that they should happen concurrently in the background since they
 	// take so long.
 	//
@@ -112,22 +127,14 @@ func (p *ImageScan) preRun() error {
 	// Results from the function can just be "error" because it would block execution of this function
 	// By wrapping the results in a struct, we can monitor later via a channel
 	resultChan := make(chan asyncResult)
-
 	slog.Debug("start async task update virus definitions with fresh clam")
-	go clamavDatabaseUpdate(ctx, resultChan, p.Stderr, p.DryRunEnabled)
+	clamLogBuf := new(bytes.Buffer)
+	go clamavDatabaseUpdate(ctx, resultChan, clamLogBuf, p.DryRunEnabled)
 
 	slog.Debug("start async task image tarball download")
-	go dockerSave(ctx, resultChan, p.DockerOrAlias, p.runtime.imageTarFile, p.config.ImageScan.TargetImage, true, p.DryRunEnabled)
+	dockerSaveBuf := new(bytes.Buffer)
+	go dockerSave(ctx, resultChan, p.DockerOrAlias, p.runtime.imageTarFile, dockerSaveBuf, p.config.ImageScan.TargetImage, true, p.DryRunEnabled)
 	// TODO: add a remote bool to the config object
-
-	// create gatecheck bundle file
-	if err := InitGatecheckBundle(p.config, p.Stderr, p.DryRunEnabled); err != nil {
-		slog.Error("cannot initialize gatecheck bundle", "error", err)
-		return err
-	}
-
-	p.runtime.bundleFilename = path.Join(p.config.ArtifactsDir, p.config.GatecheckBundleFilename)
-	p.runtime.gatecheckListBuf = new(bytes.Buffer)
 
 	var taskError error
 	tasks := 2
@@ -135,15 +142,19 @@ func (p *ImageScan) preRun() error {
 	for i := 0; i < tasks; i++ {
 		res := <-resultChan
 		if res.success {
-			slog.Info(res.msg, "task_name", res.taskName, "elapsed", res.elapsed)
+			slog.Debug(res.msg, "task_name", res.taskName, "elapsed", res.elapsed)
 			// wait for the other task to finish
 			continue
 		}
 		// cancel the context for the async tasks, all tasks should return at some point even after cancel
 		cancel()
 		slog.Error(res.msg, "task_name", res.taskName, "elapsed", res.elapsed)
-		taskError = errors.New("async task failure")
+		taskError = errors.New("async task failure, dumping logs... docker and then freshclam")
+		_, _ = io.Copy(p.Stderr, dockerSaveBuf)
+		_, _ = io.Copy(p.Stderr, clamLogBuf)
 	}
+
+	_ = p.runtime.imageTarFile.Close()
 
 	return taskError
 }
@@ -164,6 +175,8 @@ func (p *ImageScan) Run() error {
 		_ = p.runtime.clamavFile.Close()
 	}()
 
+	fmt.Fprintln(p.Stderr, "******* Workflow Engine Image Scan Pipeline [Run] *******")
+
 	clamStdErrBuf := new(bytes.Buffer)
 	var clamScanError error
 
@@ -174,15 +187,9 @@ func (p *ImageScan) Run() error {
 	// careful not to modify values like p.runtime here because it's not thread safe to access
 	// fields in a struct at the same time. in the future we could make it safe by using a mutux.
 	clamScanJob := func() {
-		clamScanError = RunClamScan(p.runtime.clamavFile, clamStdErrBuf, p.runtime.imageTarFilename, p.DryRunEnabled)
+		mw := io.MultiWriter(p.runtime.clamavFile, p.runtime.clamavReportBuf)
+		clamScanError = RunClamScan(mw, clamStdErrBuf, p.runtime.imageTarFilename, p.DryRunEnabled)
 		wg.Done()
-	}
-
-	clamScanErrStream := func(w io.Writer) {
-		for {
-			time.Sleep(time.Millisecond * 10)
-			_, _ = io.Copy(w, clamStdErrBuf)
-		}
 	}
 
 	// Scope the vulnerability scan to prevent early return
@@ -212,26 +219,27 @@ func (p *ImageScan) Run() error {
 		p.runtime.grypeJobSuccess = true
 
 		slog.Debug("summarize grype report")
-		err = RunGatecheckListAll(p.runtime.gatecheckListBuf, grypeReportBuf, p.Stderr, "grype", p.DryRunEnabled)
+		listErrBuf := new(bytes.Buffer)
+		err = RunGatecheckListAll(p.runtime.gatecheckListBuf, grypeReportBuf, listErrBuf, "grype", p.DryRunEnabled)
 		if err != nil {
-			slog.Error("cannot run gatecheck list all on grype report")
+			slog.Error("cannot run gatecheck list all on grype report, dumping stderr log")
+			_, _ = io.Copy(p.Stderr, listErrBuf)
 			return err
 		}
 		return nil
 	}
 
-	slog.Info("run image scan pipeline", "dry_run_enabled", p.DryRunEnabled, "artifact_directory", p.config.ArtifactsDir)
 	slog.Debug("start clam virus scan in the background")
 	go clamScanJob()
 
 	syftGrypeError := syftGrypeJob()
 
-	slog.Debug("waiting for clam virus scan to complete, streaming stderr")
-	go clamScanErrStream(p.Stderr)
+	slog.Debug("waiting for clam virus scan to complete, suppressing stderr unless command fails")
 	wg.Wait() // Block here until clamAV finishes
 
 	if clamScanError != nil {
-		slog.Error("clam scan failed", "error", clamScanError)
+		slog.Error("clam scan failed, dumping logs", "error", clamScanError)
+		_, _ = io.Copy(p.Stderr, clamStdErrBuf)
 	} else {
 		p.runtime.clamJobSuccess = true
 	}
@@ -249,6 +257,7 @@ func (p *ImageScan) Run() error {
 }
 
 func (p *ImageScan) postRun() error {
+	fmt.Fprintln(p.Stderr, "******* Workflow Engine Image Scan Pipeline [Post-Run] *******")
 	cleanUpFiles := []string{p.runtime.imageTarFilename}
 	bundleFiles := []string{}
 
@@ -277,15 +286,19 @@ func (p *ImageScan) postRun() error {
 		}
 	}
 
-	err := RunGatecheckBundleAdd(p.runtime.bundleFilename, p.Stderr, p.DryRunEnabled, bundleFiles...)
+	errBuf := new(bytes.Buffer)
+	err := RunGatecheckBundleAdd(p.runtime.bundleFilename, errBuf, p.DryRunEnabled, bundleFiles...)
 	if err != nil {
-		slog.Error("cannot run gatecheck bundle add", "error", err)
+		slog.Error("cannot run gatecheck bundle add, dumping logs", "error", err)
+		_, _ = io.Copy(p.Stderr, errBuf)
 	}
+
+	// print clamAV Report Content
+	_, _ = p.runtime.clamavFile.Seek(0, io.SeekStart)
+	_, _ = io.Copy(p.Stderr, p.runtime.clamavReportBuf)
 
 	// print the Gatecheck List Content
 	_, _ = p.runtime.gatecheckListBuf.WriteTo(p.Stdout)
-
-	// print clamAV Report Content
 
 	return err
 }
@@ -309,11 +322,12 @@ type asyncResult struct {
 	elapsed  time.Duration
 }
 
-func clamavDatabaseUpdate(ctx context.Context, resultChan chan<- asyncResult, stdErr io.Writer, dryRunEnabled bool) {
+func clamavDatabaseUpdate(ctx context.Context, resultChan chan<- asyncResult, cmdLogW io.Writer, dryRunEnabled bool) {
 	start := time.Now()
 	res := asyncResult{success: true, taskName: "clamav database update", msg: "clamav database successfully updated with freshclam"}
 
-	err := shell.FreshClamCommand(nil, stdErr, stdErr).FreshClam().WithDryRun(dryRunEnabled).RunWithContext(ctx)
+	/// Freshclam outputs debug information to stdout
+	err := shell.FreshClamCommand(nil, cmdLogW, nil).FreshClam().WithDryRun(dryRunEnabled).RunWithContext(ctx)
 	if err != nil {
 		res.success = false
 		res.msg = err.Error()
@@ -323,11 +337,12 @@ func clamavDatabaseUpdate(ctx context.Context, resultChan chan<- asyncResult, st
 	resultChan <- res
 }
 
-func dockerSave(ctx context.Context, resultChan chan<- asyncResult, docker dockerOrAliasCommand, w io.Writer, image string, remote bool, dryRunEnabled bool) {
+func dockerSave(ctx context.Context, resultChan chan<- asyncResult, docker dockerOrAliasCommand, dstW io.Writer, cmdLogW io.Writer, image string, remote bool, dryRunEnabled bool) {
 	start := time.Now()
 	res := asyncResult{success: true, taskName: "docker save", msg: "docker save complete"}
 	if remote {
-		err := docker.Pull(image).WithDryRun(dryRunEnabled).RunWithContext(ctx)
+		// docker pull outputs debug information to stdout
+		err := docker.Pull(image).WithDryRun(dryRunEnabled).WithIO(nil, cmdLogW, nil).RunWithContext(ctx)
 		if err != nil {
 			res.success = false
 			res.msg = fmt.Sprintf("cannot pull remote image. error: %v", err)
@@ -337,7 +352,7 @@ func dockerSave(ctx context.Context, resultChan chan<- asyncResult, docker docke
 		}
 	}
 
-	err := docker.Save(image, w).WithDryRun(dryRunEnabled).RunWithContext(ctx)
+	err := docker.Save(image).WithDryRun(dryRunEnabled).WithIO(nil, dstW, cmdLogW).RunWithContext(ctx)
 	if err != nil {
 		res.success = false
 		res.msg = fmt.Sprintf("cannot save image. error: %v", err)

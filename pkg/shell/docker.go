@@ -160,9 +160,8 @@ func (p *dockerCLICmd) Pull(image string) *Command {
 // stdout.
 //
 // shell: `[docker|podman] save`
-func (p *dockerCLICmd) Save(image string, stdout io.Writer) *Command {
+func (p *dockerCLICmd) Save(image string) *Command {
 	exe := p.initCmd().WithArgs("save", image)
-	exe.WithIO(exe.Stdin, stdout, exe.Stderr)
 	return NewCommand(exe)
 }
 

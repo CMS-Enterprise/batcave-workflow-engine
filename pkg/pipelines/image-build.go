@@ -13,7 +13,7 @@ type dockerOrAliasCommand interface {
 	Push(string) *shell.Command
 	Pull(string) *shell.Command
 	Build(*shell.ImageBuildOptions) *shell.Command
-	Save(string, io.Writer) *shell.Command
+	Save(string) *shell.Command
 }
 
 type ImageBuild struct {

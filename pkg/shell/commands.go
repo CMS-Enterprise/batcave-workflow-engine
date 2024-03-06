@@ -107,6 +107,15 @@ func (c *Command) Run() error {
 	return c.runFunc()
 }
 
+// RunWithIO can be used to adjust the IO at run time which is useful for redirects
+func (c *Command) WithIO(stdin io.Reader, stdout io.Writer, stderr io.Writer) *Command {
+	c.executable.Stdin = stdin
+	c.executable.Stdout = stdout
+	c.executable.Stderr = stderr
+	return c
+}
+
+// RunWithContext will run and kill the process if ctx.Done happens before the command completes
 func (c *Command) RunWithContext(ctx context.Context) error {
 	c.logger.Info("run with context", "command", c.String())
 	if err := c.executable.Start(); err != nil {

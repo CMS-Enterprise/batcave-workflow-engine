@@ -1,6 +1,7 @@
 package pipelines
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -75,16 +76,27 @@ func InitGatecheckBundle(config *Config, stdErr io.Writer, dryRunEnabled bool) e
 		slog.Error("cannot encode temp config file", "error", err)
 		return err
 	}
-	gatecheck := shell.GatecheckCommand(nil, nil, stdErr)
+
+	stderrBuf := new(bytes.Buffer)
+	gatecheck := shell.GatecheckCommand(nil, nil, stderrBuf)
 
 	bundleFilename := path.Join(config.ArtifactsDir, config.GatecheckBundleFilename)
 	if _, err = os.Stat(bundleFilename); err != nil {
 		// The bundle file does not exist
 		if errors.Is(err, os.ErrNotExist) {
-			return gatecheck.BundleCreate(bundleFilename, tempConfigFilename).WithDryRun(dryRunEnabled).Run()
+			err := gatecheck.BundleCreate(bundleFilename, tempConfigFilename).WithDryRun(dryRunEnabled).Run()
+			if err != nil {
+				_, _ = io.Copy(stdErr, stderrBuf)
+			}
+			return err
 		}
 		return err
 	}
 
-	return gatecheck.BundleAdd(bundleFilename, tempConfigFilename).WithDryRun(dryRunEnabled).Run()
+	err = gatecheck.BundleAdd(bundleFilename, tempConfigFilename).WithDryRun(dryRunEnabled).Run()
+	if err != nil {
+		_, _ = io.Copy(stdErr, stderrBuf)
+	}
+
+	return err
 }

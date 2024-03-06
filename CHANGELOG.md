@@ -36,6 +36,8 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - Oras Command
 - Deploy pipeline validation only (beta feature)
 - clamscan & freshclam for virus scanning
+- command run with context
+- command run with IO
 
 ### Fixed
 
