@@ -9,8 +9,6 @@ import (
 	"log/slog"
 	"os"
 	"path"
-	"sync"
-	"time"
 	"workflow-engine/pkg/shell"
 	shellLegacy "workflow-engine/pkg/shell/legacy"
 )
@@ -36,10 +34,17 @@ type ImageScan struct {
 		imageTarFilename string
 		gatecheckListBuf *bytes.Buffer
 		clamavReportBuf  *bytes.Buffer
+		taskChan         chan asyncTask
 		syftJobSuccess   bool
 		grypeJobSuccess  bool
 		clamJobSuccess   bool
 	}
+}
+
+type asyncTask struct {
+	name    string
+	success bool
+	logBuf  *bytes.Buffer
 }
 
 func (p *ImageScan) WithConfig(config *Config) *ImageScan {
@@ -68,7 +73,7 @@ func (p *ImageScan) preRun() error {
 	var err error
 	fmt.Fprintln(p.Stderr, "******* Workflow Engine Image Scan Pipeline [Pre-Run] *******")
 
-	// In Memory buffers for runtime reports
+	// In Memory buffers for runtime reports, async logs, etc.
 	p.runtime.clamavReportBuf = new(bytes.Buffer)
 	p.runtime.gatecheckListBuf = new(bytes.Buffer)
 
@@ -121,43 +126,46 @@ func (p *ImageScan) preRun() error {
 	// the routine is handed off to the go scheduler so it won't stop once this function's scope exits
 
 	// Using context, the execution can be signaled to cancel if one of the other tasks fails first.
-	// If docker fails, we can't do a clamAV scan anyway so fail the entire prerun
+	// If docker fails, we can't do a clamAV scan  or vice versa, so fail the entire pre-run
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// Results from the function can just be "error" because it would block execution of this function
-	// By wrapping the results in a struct, we can monitor later via a channel
-	resultChan := make(chan asyncResult)
 	slog.Debug("start async task update virus definitions with fresh clam")
-	clamLogBuf := new(bytes.Buffer)
-	go clamavDatabaseUpdate(ctx, resultChan, clamLogBuf, p.DryRunEnabled)
+	go func() {
+		task := asyncTask{name: "fresh clam", success: true, logBuf: new(bytes.Buffer)}
+		exitCode := shell.Freshclam(
+			shell.WithDryRun(p.DryRunEnabled),
+			shell.WithStdout(task.logBuf),
+			shell.WithCtx(ctx),
+		)
+		if exitCode != shell.ExitOK {
+			cancel() // cancel other async tasks
+			task.success = false
+			_, _ = fmt.Fprintf(task.logBuf, "\n Exit Code: %d", exitCode)
+		}
+		p.runtime.taskChan <- task
+	}()
 
 	slog.Debug("start async task image tarball download")
-	dockerSaveBuf := new(bytes.Buffer)
-	go dockerSave(ctx, resultChan, p.DockerOrAlias, p.runtime.imageTarFile, dockerSaveBuf, p.config.ImageScan.TargetImage, true, p.DryRunEnabled)
-	// TODO: add a remote bool to the config object
-
-	var taskError error
-	tasks := 2
-	slog.Debug("wait for async tasks to complete")
-	for i := 0; i < tasks; i++ {
-		res := <-resultChan
-		if res.success {
-			slog.Debug(res.msg, "task_name", res.taskName, "elapsed", res.elapsed)
-			// wait for the other task to finish
-			continue
+	go func() {
+		task := asyncTask{name: "docker save", success: true, logBuf: new(bytes.Buffer)}
+		exitCode := shell.DockerSave(
+			shell.WithDryRun(p.DryRunEnabled),
+			shell.WithCtx(ctx),
+			shell.WithImage(p.runtime.imageTarFilename),
+			shell.WithIO(nil, p.runtime.imageTarFile, task.logBuf),
+		)
+		if exitCode != shell.ExitOK {
+			cancel() // cancel other async tasks
+			task.success = false
+			_, _ = fmt.Fprintf(task.logBuf, "\n Exit Code: %d", exitCode)
 		}
-		// cancel the context for the async tasks, all tasks should return at some point even after cancel
-		cancel()
-		slog.Error(res.msg, "task_name", res.taskName, "elapsed", res.elapsed)
-		taskError = errors.New("async task failure, dumping logs... docker and then freshclam")
-		_, _ = io.Copy(p.Stderr, dockerSaveBuf)
-		_, _ = io.Copy(p.Stderr, clamLogBuf)
-	}
+		p.runtime.taskChan <- task
+	}()
 
 	_ = p.runtime.imageTarFile.Close()
-
-	return taskError
+	return nil
 }
 
 func (p *ImageScan) Run() error {
@@ -177,20 +185,39 @@ func (p *ImageScan) Run() error {
 	}()
 
 	fmt.Fprintln(p.Stderr, "******* Workflow Engine Image Scan Pipeline [Run] *******")
-
-	clamStdErrBuf := new(bytes.Buffer)
-	var clamScanError error
-
-	var wg sync.WaitGroup // used to determine when the clam av job finishes
-	wg.Add(1)             // Only the clamAV job is run async
-
+	// make a new channel for only this function scope
+	runTaskChan := make(chan asyncTask, 1)
 	// Scope the clam scan so it can run in the background since it will take longer than the others
-	// careful not to modify values like p.runtime here because it's not thread safe to access
-	// fields in a struct at the same time. in the future we could make it safe by using a mutux.
 	clamScanJob := func() {
+		taskCount := 2
+		var clamScanError error
+		// wait for freshclam and dockersave to complete
+		for i := 0; i < taskCount; i++ {
+			task := <-p.runtime.taskChan
+			if !task.success {
+				err := fmt.Errorf("cannot run clamscan, dependent task failed: %s", task.name)
+				clamScanError = errors.Join(clamScanError, err)
+			}
+		}
+		// Create a new task
+		clamScanTask := asyncTask{name: "clamscan", success: true, logBuf: new(bytes.Buffer)}
+
+		// fail early if the freshclam or docker save failed
+		if clamScanError != nil {
+			clamScanTask.success = false
+			runTaskChan <- clamScanTask
+			return
+		}
+
 		mw := io.MultiWriter(p.runtime.clamavFile, p.runtime.clamavReportBuf)
-		clamScanError = RunClamScan(mw, clamStdErrBuf, p.runtime.imageTarFilename, p.DryRunEnabled)
-		wg.Done()
+		exitCode := shell.Clamscan(
+			shell.WithDryRun(p.DryRunEnabled),
+			shell.WithIO(nil, mw, clamScanTask.logBuf),
+		)
+		if exitCode != shell.ExitOK {
+			clamScanTask.success = false
+		}
+		runTaskChan <- clamScanTask
 	}
 
 	// Scope the vulnerability scan to prevent early return
@@ -245,14 +272,17 @@ func (p *ImageScan) Run() error {
 	syftGrypeError := syftGrypeJob()
 
 	slog.Debug("waiting for clam virus scan to complete, suppressing stderr unless command fails")
-	wg.Wait() // Block here until clamAV finishes
+	var clamScanError error
 
-	if clamScanError != nil {
-		slog.Error("clam scan failed, dumping logs", "error", clamScanError)
-		_, _ = io.Copy(p.Stderr, clamStdErrBuf)
-	} else {
-		p.runtime.clamJobSuccess = true
+	// blocking
+	task := <-runTaskChan
+	if !task.success {
+		clamScanError = errors.New("Clamscan failed. See log for details")
+		slog.Error("clam scan failed, dumping logs")
+		_, _ = io.Copy(p.Stderr, task.logBuf)
 	}
+
+	p.runtime.clamJobSuccess = task.success
 
 	postRunError := p.postRun()
 	if postRunError != nil {
@@ -311,55 +341,4 @@ func (p *ImageScan) postRun() error {
 	_, _ = p.runtime.gatecheckListBuf.WriteTo(p.Stdout)
 
 	return err
-}
-
-func RunClamScan(reportDst io.Writer, stdErr io.Writer, targetDirectory string, dryRunEnabled bool) error {
-	return shellLegacy.ClamScanCommand(nil, reportDst, stdErr).Scan(targetDirectory).WithDryRun(dryRunEnabled).Run()
-}
-
-type asyncResult struct {
-	taskName string
-	success  bool
-	msg      string
-	elapsed  time.Duration
-}
-
-func clamavDatabaseUpdate(ctx context.Context, resultChan chan<- asyncResult, cmdLogW io.Writer, dryRunEnabled bool) {
-	start := time.Now()
-	res := asyncResult{success: true, taskName: "clamav database update", msg: "clamav database successfully updated with freshclam"}
-
-	/// Freshclam outputs debug information to stdout
-	err := shellLegacy.FreshClamCommand(nil, cmdLogW, nil).FreshClam().WithDryRun(dryRunEnabled).RunWithContext(ctx)
-	if err != nil {
-		res.success = false
-		res.msg = err.Error()
-	}
-
-	res.elapsed = time.Since(start)
-	resultChan <- res
-}
-
-func dockerSave(ctx context.Context, resultChan chan<- asyncResult, docker dockerOrAliasCommand, dstW io.Writer, cmdLogW io.Writer, image string, remote bool, dryRunEnabled bool) {
-	start := time.Now()
-	res := asyncResult{success: true, taskName: "docker save", msg: "docker save complete"}
-	if remote {
-		// docker pull outputs debug information to stdout
-		err := docker.Pull(image).WithDryRun(dryRunEnabled).WithIO(nil, cmdLogW, nil).RunWithContext(ctx)
-		if err != nil {
-			res.success = false
-			res.msg = fmt.Sprintf("cannot pull remote image. error: %v", err)
-			res.elapsed = time.Since(start)
-			resultChan <- res
-			return
-		}
-	}
-
-	err := docker.Save(image).WithDryRun(dryRunEnabled).WithIO(nil, dstW, cmdLogW).RunWithContext(ctx)
-	if err != nil {
-		res.success = false
-		res.msg = fmt.Sprintf("cannot save image. error: %v", err)
-	}
-
-	res.elapsed = time.Since(start)
-	resultChan <- res
 }

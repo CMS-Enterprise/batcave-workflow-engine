@@ -6,7 +6,7 @@ import "os/exec"
 // Requirements: N/A
 //
 // Ouputs: CLI Version information to STDOUT
-func SyftVersion(options ...OptionFunc) int {
+func SyftVersion(options ...OptionFunc) ExitCode {
 	o := newOptions(options...)
 	cmd := exec.Command("syft", "version")
 	return run(cmd, o)
@@ -17,7 +17,7 @@ func SyftVersion(options ...OptionFunc) int {
 // Requirements: WithScanImage() option
 //
 // Ouputs: A JSON vulnerability Report to STDOUT
-func SyftScanImage(options ...OptionFunc) int {
+func SyftScanImage(options ...OptionFunc) ExitCode {
 	o := newOptions(options...)
 	cmd := exec.Command("syft", "--scope=squashed", "-o", "cyclonedx-json", o.scanImage)
 	return run(cmd, o)

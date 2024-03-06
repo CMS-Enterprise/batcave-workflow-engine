@@ -8,11 +8,14 @@ import (
 	"os/exec"
 )
 
+type ExitCode int
+
 const (
-	ExitOK            int = 0
-	ExitUnknown       int = 232
-	ExitContextCancel int = 231
-	ExitKillFailure   int = 230
+	ExitOK               ExitCode = 0
+	ExitUnknown                   = 232
+	ExitContextCancel             = 231
+	ExitKillFailure               = 230
+	ExitBadConfiguration          = 299
 )
 
 // Command is any function that accepts optionFuncs and returns an exit code
@@ -21,7 +24,7 @@ const (
 // parses the options to configure the exec.Cmd
 //
 // It also handles early termination of the command with a context and logging
-type Command func(...OptionFunc) int
+type Command func(...OptionFunc) ExitCode
 
 // Options are flexible parameters for any command
 type Options struct {
@@ -31,6 +34,9 @@ type Options struct {
 	stderr        io.Writer
 	ctx           context.Context
 	scanImage     string
+	tarFilename   string
+	dockerAlias   DockerAlias
+	imageName     string
 }
 
 // apply should be called before the exec.Cmd is run
@@ -93,6 +99,30 @@ func WithScanImage(image string) OptionFunc {
 	}
 }
 
+func WithCtx(ctx context.Context) OptionFunc {
+	return func(o *Options) {
+		o.ctx = ctx
+	}
+}
+
+// WithDockerAlias can be used to configure an alternative docker compatible CLI
+//
+// For example, `docker build` and `podman build` can be used interchangably
+func WithDockerAlias(a DockerAlias) OptionFunc {
+	return func(o *Options) {
+		o.dockerAlias = a
+	}
+}
+
+// WithImage can be used for multiple commands to define a target image as a parameter
+//
+// This will include the full image and tag for example `alpine:latest`
+func WithImage(image string) OptionFunc {
+	return func(o *Options) {
+		o.imageName = image
+	}
+}
+
 // run handles the execution of the command
 //
 // context will be set to background if not provided in the o.ctx
@@ -100,7 +130,7 @@ func WithScanImage(image string) OptionFunc {
 // if ctx fires done.
 //
 // Setting the dry run option will always return ExitOK
-func run(cmd *exec.Cmd, o *Options) int {
+func run(cmd *exec.Cmd, o *Options) ExitCode {
 	slog.Info("shell exec", "dry_run", o.dryRunEnabled, "command", cmd.String())
 	if o.dryRunEnabled {
 		return ExitOK
@@ -132,7 +162,7 @@ func run(cmd *exec.Cmd, o *Options) int {
 	case <-doneChan:
 		var exitCodeError *exec.ExitError
 		if errors.As(runError, &exitCodeError) {
-			return exitCodeError.ExitCode()
+			return ExitCode(exitCodeError.ExitCode())
 		}
 		if runError != nil {
 			return ExitUnknown

@@ -46,7 +46,7 @@ func (d *Debug) Run() error {
 		legacyShell.ClamScanCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
 	)
 
-	exitCodes := map[string]int{}
+	exitCodes := map[string]shell.ExitCode{}
 	exitCodes["grype"] = shell.GrypeVersion(shell.WithDryRun(d.DryRunEnabled), shell.WithStdout(d.Stdout))
 	exitCodes["syft"] = shell.SyftVersion(shell.WithDryRun(d.DryRunEnabled), shell.WithStdout(d.Stdout))
 

@@ -29,9 +29,9 @@ type CodeScan struct {
 	}
 }
 
-func (s *CodeScan) WithConfig(config *Config) *CodeScan {
-	s.config = config
-	return s
+func (p *CodeScan) WithConfig(config *Config) *CodeScan {
+	p.config = config
+	return p
 }
 
 func NewCodeScan(stdout io.Writer, stderr io.Writer) *CodeScan {
