@@ -126,16 +126,18 @@ func (p *ImageScan) Run() error {
 	clamavMW := io.MultiWriter(p.runtime.clamavFile, clamavBuf)
 
 	// Do a ClamAV (freshclam) update on the CVD database
-	err = shell.FreshClamCommand(nil, p.Stdout, p.Stderr).Run().WithDryRun(p.DryRunEnabled).Run()
-	if err != nil {
-		slog.Error("failed to update clamav database:", err)
+	slog.Debug("update clamav database")
+	freshClamErr := RunFreshClam(clamavMW, clamavBuf, p.Stderr, p.config, p.DryRunEnabled)
+	if freshClamErr != nil {
+		slog.Error("failed to update clamav database:", freshClamErr)
 		return errors.New("image Scan Pipeline failed. See log for details")
 	}
 
 	// Do a ClamAV scan on the target directory, fail if the command fails
-	err = RunClamavScan(clamavMW, clamavBuf, p.Stderr, p.config, p.DryRunEnabled)
-	if err != nil {
-		slog.Error("clamav failed to scan target directory:", err)
+	slog.Debug("scan target directory with clamav")
+	clamScanErr := RunClamavScan(clamavMW, clamavBuf, p.Stderr, p.config, p.DryRunEnabled)
+	if clamScanErr != nil {
+		slog.Error("clamav failed to scan target directory:", clamScanErr)
 		return errors.New("image Scan Pipeline failed. See log for details")
 	}
 	
