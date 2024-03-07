@@ -1,14 +1,13 @@
 package pipelines
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
 	"os"
 	"path"
-	shell "workflow-engine/pkg/shell/legacy"
+	"workflow-engine/pkg/shell"
 )
 
 const (
@@ -38,27 +37,23 @@ func OpenOrCreateFile(filename string) (*os.File, error) {
 
 // Common Shell Commands to Functions
 
-func RunGatecheckList(dst io.Writer, stdIn io.Reader, stdErr io.Writer, filetype string, dryRunEnabled bool) error {
-	return shell.GatecheckCommand(stdIn, dst, stdErr).List(filetype).WithDryRun(dryRunEnabled).Run()
-}
-
-func RunGatecheckListAll(dst io.Writer, stdIn io.Reader, stdErr io.Writer, filetype string, dryRunEnabled bool) error {
-	return shell.GatecheckCommand(stdIn, dst, stdErr).ListAll(filetype).WithDryRun(dryRunEnabled).Run()
-}
-
-func RunGatecheckBundleAdd(bundleFilename string, stdErr io.Writer, dryRunEnabled bool, filenames ...string) error {
-	cmd := shell.GatecheckCommand(nil, nil, stdErr)
+func RunGatecheckBundleAdd(bundleFilename string, stderr io.Writer, dryRunEnabled bool, filenames ...string) error {
 	for _, filename := range filenames {
-		err := cmd.BundleAdd(bundleFilename, filename).WithDryRun(dryRunEnabled).Run()
-		if err != nil {
-			return err
+		opts := []shell.OptionFunc{
+			shell.WithDryRun(dryRunEnabled),
+			shell.WithBundleFile(bundleFilename, filename),
+			shell.WithErrorOnly(stderr),
 		}
+
+		return shell.GatecheckBundleAdd(opts...).GetError("gatecheck bundle add")
 	}
 	return nil
 }
 
 // InitGatecheckBundle will encode the config file to JSON and create a new bundle or add it to an existing one
-func InitGatecheckBundle(config *Config, stdErr io.Writer, dryRunEnabled bool) error {
+//
+// The stderr will be suppressed unless there is an non-zero exit code
+func InitGatecheckBundle(config *Config, stderr io.Writer, dryRunEnabled bool) error {
 	tempConfigFilename := path.Join(os.TempDir(), "wfe-config.json")
 
 	tempFile, err := OpenOrCreateFile(tempConfigFilename)
@@ -77,26 +72,22 @@ func InitGatecheckBundle(config *Config, stdErr io.Writer, dryRunEnabled bool) e
 		return err
 	}
 
-	stderrBuf := new(bytes.Buffer)
-	gatecheck := shell.GatecheckCommand(nil, nil, stderrBuf)
-
 	bundleFilename := path.Join(config.ArtifactsDir, config.GatecheckBundleFilename)
+	opts := []shell.OptionFunc{
+		shell.WithDryRun(dryRunEnabled),
+		shell.WithBundleFile(bundleFilename, tempConfigFilename),
+		shell.WithErrorOnly(stderr),
+	}
 	if _, err = os.Stat(bundleFilename); err != nil {
 		// The bundle file does not exist
 		if errors.Is(err, os.ErrNotExist) {
-			err := gatecheck.BundleCreate(bundleFilename, tempConfigFilename).WithDryRun(dryRunEnabled).Run()
-			if err != nil {
-				_, _ = io.Copy(stdErr, stderrBuf)
-			}
-			return err
+			exitCode := shell.GatecheckBundleCreate(opts...)
+			return exitCode.GetError("gatecheck bundle create")
 		}
 		return err
 	}
 
-	err = gatecheck.BundleAdd(bundleFilename, tempConfigFilename).WithDryRun(dryRunEnabled).Run()
-	if err != nil {
-		_, _ = io.Copy(stdErr, stderrBuf)
-	}
+	exitCode := shell.GatecheckBundleAdd(opts...)
 
-	return err
+	return exitCode.GetError("gatecheck bundle add")
 }

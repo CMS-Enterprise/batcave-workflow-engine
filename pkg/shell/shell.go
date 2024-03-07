@@ -51,7 +51,11 @@ type Options struct {
 	imageName       string
 	reportType      string
 	artifactsImage  string
-	bundleFilename  string
+
+	gatecheck struct {
+		bundleFilename string
+		targetFile     string
+	}
 
 	semgrep struct {
 		rules        string
@@ -196,7 +200,14 @@ func WithReportType(reportType string) OptionFunc {
 func WithArtifactBundle(artifactImage string, bundleFilename string) OptionFunc {
 	return func(o *Options) {
 		o.artifactsImage = artifactImage
-		o.bundleFilename = bundleFilename
+		o.gatecheck.bundleFilename = bundleFilename
+	}
+}
+
+func WithBundleFile(bundleFilename string, targetFilename string) OptionFunc {
+	return func(o *Options) {
+		o.gatecheck.bundleFilename = bundleFilename
+		o.gatecheck.targetFile = targetFilename
 	}
 }
 
@@ -222,7 +233,7 @@ func WithListTarget(filename string) OptionFunc {
 // Setting the dry run option will always return ExitOK
 func run(cmd *exec.Cmd, o *Options) ExitCode {
 
-	slog.Info("shell exec", "dry_run", o.dryRunEnabled, "command", cmd.String())
+	slog.Info("shell exec", "dry_run", o.dryRunEnabled, "command", cmd.String(), "errors_only", o.errorOnly)
 	if o.dryRunEnabled {
 		return ExitOK
 	}
@@ -232,7 +243,7 @@ func run(cmd *exec.Cmd, o *Options) ExitCode {
 	cmd.Stderr = o.stderr
 
 	stdErrBuf := new(bytes.Buffer)
-	if o.errorOnlyStderr != nil {
+	if o.errorOnly {
 		cmd.Stderr = stdErrBuf
 	}
 
@@ -277,6 +288,7 @@ func run(cmd *exec.Cmd, o *Options) ExitCode {
 	if exitCode != ExitOK {
 		o.failTriggerFunc()
 		if o.errorOnly {
+			slog.Info("non-zero exit and error only, dumping log")
 			if _, err := io.Copy(o.errorOnlyStderr, stdErrBuf); err != nil {
 				slog.Warn("cannot dump stderr to destination", "error", err)
 			}

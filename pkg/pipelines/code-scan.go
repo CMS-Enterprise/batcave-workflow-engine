@@ -10,7 +10,6 @@ import (
 	"path"
 	"sync"
 	"workflow-engine/pkg/shell"
-	legacyShell "workflow-engine/pkg/shell/legacy"
 )
 
 type CodeScan struct {
@@ -200,56 +199,4 @@ func (p *CodeScan) postRun() error {
 	// print the Gatecheck List Content
 	_, _ = p.runtime.postSummaryBuffer.WriteTo(p.Stdout)
 	return err
-}
-
-// RunGitleaksDetect the report will be written to stdout
-//
-// Gitleaks is a special case because the command does not support writing to a file that doesn't exist
-// It also doesn't write the contents of the report to stdout which means piping isn't possible.
-// This function creates a temporary file for the report and then copies the content to the dst writer
-func RunGitleaksDetect(reportDst io.Writer, stdErr io.Writer, config *Config, dryRunEnabled bool) error {
-	slog.Debug("create temp gitleaks report", "dir", os.TempDir())
-	reportFile, err := os.CreateTemp(os.TempDir(), "*-gitleaks-report.json")
-	if err != nil {
-		return err
-	}
-	tempReportFilename := reportFile.Name()
-
-	defer func() {
-		_ = reportFile.Close()
-		_ = os.Remove(tempReportFilename)
-	}()
-
-	cmd := legacyShell.GitleaksCommand(nil, nil, stdErr).DetectSecrets(config.CodeScan.GitleaksSrcDir, tempReportFilename)
-	err = cmd.WithDryRun(dryRunEnabled).Run()
-	if err != nil {
-		return errors.New("Code Scan Pipeline failed: Gitleaks execution failure. See log for details.")
-	}
-
-	// Seek errors are really unlikely, just join with the copy error in the rare case that it occurs
-	_, seekErr := reportFile.Seek(0, io.SeekStart)
-
-	_, copyErr := io.Copy(reportDst, reportFile)
-	return errors.Join(seekErr, copyErr)
-}
-
-func RunSemgrep(reportDst io.Writer, stdErr io.Writer, config *Config, dryRunEnabled bool, experimental bool) error {
-	var semgrep interface {
-		Scan(rules string) *legacyShell.Command
-	}
-
-	if experimental {
-		semgrep = legacyShell.OSemgrepCommand(nil, reportDst, stdErr)
-	} else {
-		semgrep = legacyShell.SemgrepCommand(nil, reportDst, stdErr)
-	}
-
-	// manually suppress errors for findings, convert to warnings
-	// https://semgrep.dev/docs/semgrep-ci/configuring-blocking-and-errors-in-ci/
-	// error code documentation: https://semgrep.dev/docs/cli-reference/
-	if err := semgrep.Scan(config.CodeScan.SemgrepRules).WithDryRun(dryRunEnabled).Run(); err != nil {
-		return errors.New("Code Scan Pipeline failed: Semgrep findings detected. See log for details.")
-	}
-
-	return nil
 }

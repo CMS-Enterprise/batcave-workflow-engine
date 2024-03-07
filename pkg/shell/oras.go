@@ -27,7 +27,7 @@ func OrasPushBundle(options ...OptionFunc) ExitCode {
 		"--artifact-type",
 		"application/vnd.gatecheckdev.gatecheck.bundle.tar+gzip",
 		o.artifactsImage,
-		o.bundleFilename,
+		o.gatecheck.bundleFilename,
 	)
 	return run(exe, o)
 }

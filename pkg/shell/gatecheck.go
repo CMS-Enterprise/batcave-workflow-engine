@@ -2,6 +2,17 @@ package shell
 
 import "os/exec"
 
+// GatecheckVersion print version information
+//
+// Requirement: N/A
+//
+// Output: to STDOUT
+func GatecheckVersion(options ...OptionFunc) ExitCode {
+	o := newOptions(options...)
+	cmd := exec.Command("gatecheck", "version")
+	return run(cmd, o)
+}
+
 // GatecheckList will print a summarized view of a a report
 //
 // Requirement: supported report from STDIN WithReportType
@@ -27,13 +38,26 @@ func GatecheckListAll(options ...OptionFunc) ExitCode {
 	return run(cmd, o)
 }
 
-// GatecheckVersion print version information
+// GatecheckBundleAdd add a file to an existing bundle
 //
-// Requirement: N/A
+// Requirement: WithBundleFile
 //
-// Output: to STDOUT
-func GatecheckVersion(options ...OptionFunc) ExitCode {
+// Output: debug to STDERR
+func GatecheckBundleAdd(options ...OptionFunc) ExitCode {
 	o := newOptions(options...)
-	cmd := exec.Command("gatecheck", "version")
+	cmd := exec.Command("gatecheck", "bundle", "add",
+		o.gatecheck.bundleFilename, o.gatecheck.targetFile)
+	return run(cmd, o)
+}
+
+// GatecheckBundleCreate new bundle and add a file
+//
+// Requirement: WithBundleFile
+//
+// Output: debug to STDERR
+func GatecheckBundleCreate(options ...OptionFunc) ExitCode {
+	o := newOptions(options...)
+	cmd := exec.Command("gatecheck", "bundle", "create",
+		o.gatecheck.bundleFilename, o.gatecheck.targetFile)
 	return run(cmd, o)
 }
