@@ -1,6 +1,7 @@
 package shell
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -40,6 +41,8 @@ type Options struct {
 	stdin           io.Reader
 	stdout          io.Writer
 	stderr          io.Writer
+	errorOnlyStderr io.Writer
+	errorOnly       bool
 	ctx             context.Context
 	failTriggerFunc func()
 	scanImage       string
@@ -49,6 +52,18 @@ type Options struct {
 	reportType      string
 	artifactsImage  string
 	bundleFilename  string
+
+	semgrep struct {
+		rules        string
+		experimental bool
+	}
+
+	gitleaks struct {
+		targetDirectory string
+		reportPath      string
+	}
+
+	listTargetFilename string
 }
 
 // apply should be called before the exec.Cmd is run
@@ -73,6 +88,16 @@ type OptionFunc func(o *Options)
 func WithDryRun(enabled bool) OptionFunc {
 	return func(o *Options) {
 		o.dryRunEnabled = enabled
+	}
+}
+
+// WithErrorOnly buffers stderr unless there is a non-zero exit code.
+//
+// If there is a non-zero exit, the error buffer will dump to stderr
+func WithErrorOnly(stderr io.Writer) OptionFunc {
+	return func(o *Options) {
+		o.errorOnly = true
+		o.errorOnlyStderr = stderr
 	}
 }
 
@@ -115,6 +140,13 @@ func WithScanImage(image string) OptionFunc {
 func WithCtx(ctx context.Context) OptionFunc {
 	return func(o *Options) {
 		o.ctx = ctx
+	}
+}
+
+func WithGitleaks(targetDirectory string, reportPath string) OptionFunc {
+	return func(o *Options) {
+		o.gitleaks.targetDirectory = targetDirectory
+		o.gitleaks.reportPath = reportPath
 	}
 }
 
@@ -168,6 +200,19 @@ func WithArtifactBundle(artifactImage string, bundleFilename string) OptionFunc 
 	}
 }
 
+func WithSemgrep(rules string, experimental bool) OptionFunc {
+	return func(o *Options) {
+		o.semgrep.rules = rules
+		o.semgrep.experimental = experimental
+	}
+}
+
+func WithListTarget(filename string) OptionFunc {
+	return func(o *Options) {
+		o.listTargetFilename = filename
+	}
+}
+
 // run handles the execution of the command
 //
 // context will be set to background if not provided in the o.ctx
@@ -176,6 +221,7 @@ func WithArtifactBundle(artifactImage string, bundleFilename string) OptionFunc 
 //
 // Setting the dry run option will always return ExitOK
 func run(cmd *exec.Cmd, o *Options) ExitCode {
+
 	slog.Info("shell exec", "dry_run", o.dryRunEnabled, "command", cmd.String())
 	if o.dryRunEnabled {
 		return ExitOK
@@ -184,6 +230,11 @@ func run(cmd *exec.Cmd, o *Options) ExitCode {
 	cmd.Stdin = o.stdin
 	cmd.Stdout = o.stdout
 	cmd.Stderr = o.stderr
+
+	stdErrBuf := new(bytes.Buffer)
+	if o.errorOnlyStderr != nil {
+		cmd.Stderr = stdErrBuf
+	}
 
 	if err := cmd.Start(); err != nil {
 		return ExitUnknown
@@ -225,6 +276,11 @@ func run(cmd *exec.Cmd, o *Options) ExitCode {
 
 	if exitCode != ExitOK {
 		o.failTriggerFunc()
+		if o.errorOnly {
+			if _, err := io.Copy(o.errorOnlyStderr, stdErrBuf); err != nil {
+				slog.Warn("cannot dump stderr to destination", "error", err)
+			}
+		}
 	}
 
 	return exitCode

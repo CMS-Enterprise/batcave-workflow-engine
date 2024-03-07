@@ -8,7 +8,9 @@ import (
 	"log/slog"
 	"os"
 	"path"
-	"workflow-engine/pkg/shell/legacy"
+	"sync"
+	"workflow-engine/pkg/shell"
+	legacyShell "workflow-engine/pkg/shell/legacy"
 )
 
 type CodeScan struct {
@@ -20,12 +22,13 @@ type CodeScan struct {
 	SemgrepRules                  string
 	config                        *Config
 	runtime                       struct {
-		gitleaksFile     *os.File
-		semgrepFile      *os.File
-		bundleFilename   string
-		gitleaksFilename string
-		semgrepFilename  string
-		gatecheckListBuf *bytes.Buffer
+		gitleaksFile      *os.File
+		semgrepFile       *os.File
+		bundleFilename    string
+		gitleaksFilename  string
+		semgrepFilename   string
+		postSummaryBuffer *bytes.Buffer
+		summaryMutex      sync.Mutex
 	}
 }
 
@@ -71,7 +74,7 @@ func (p *CodeScan) preRun() error {
 		return err
 	}
 
-	p.runtime.gatecheckListBuf = new(bytes.Buffer)
+	p.runtime.postSummaryBuffer = new(bytes.Buffer)
 	p.runtime.bundleFilename = path.Join(p.config.ArtifactsDir, p.config.GatecheckBundleFilename)
 
 	return nil
@@ -96,27 +99,86 @@ func (p *CodeScan) Run() error {
 
 	slog.Debug("open gatecheck bundle file for output", "filename", p.runtime.bundleFilename)
 
-	// All of the gatcheck summaries should print at the end
-	buf := new(bytes.Buffer)
-	// MultiWriter will write to the gitleaks file and to the buf so gatecheck can parse it
-	mw := io.MultiWriter(p.runtime.gitleaksFile, buf)
-	gitleaksError := RunGitleaksDetect(mw, p.Stderr, p.config, p.DryRunEnabled)
+	// Add a new line to separate the reports
+	fmt.Fprintln(p.runtime.postSummaryBuffer, "")
 
-	slog.Debug("summarize gitleaks report")
-	if err := RunGatecheckList(p.runtime.gatecheckListBuf, buf, p.Stderr, "gitleaks", p.DryRunEnabled); err != nil {
-		slog.Error("cannot run gatecheck list on gitleaks report")
+	semgrepTask := NewAsyncTask("semgrep")
+	go func() {
+		defer semgrepTask.stdErrPipeWriter.Close()
+		buf := new(bytes.Buffer)
+		mw := io.MultiWriter(p.runtime.semgrepFile, buf)
+		exitCode := shell.SemgrepScan(
+			shell.WithDryRun(p.DryRunEnabled),
+			shell.WithIO(nil, mw, semgrepTask.stdErrPipeWriter),
+			shell.WithSemgrep(p.config.CodeScan.SemgrepRules, p.SemgrepExperimental),
+		)
+		switch exitCode {
+		case shell.ExitOK:
+			semgrepTask.logger.Debug("no semgrep findings")
+		case 1:
+			semgrepTask.logger.Debug("semgrep findings, suppress error")
+		default:
+			// Don't gatecheck list
+			semgrepTask.exitError = exitCode.GetError("semgrep")
+			return
+		}
+		// locking prevents writing at the same time
+		p.runtime.summaryMutex.Lock()
+		defer p.runtime.summaryMutex.Unlock()
+
+		fmt.Fprintf(p.runtime.postSummaryBuffer, "%50s\n", "Semgrep Findings")
+		// list report
+		exitCode = shell.GatecheckList(
+			shell.WithDryRun(p.DryRunEnabled),
+			shell.WithIO(buf, p.runtime.postSummaryBuffer, nil),
+			shell.WithReportType("semgrep"),
+			shell.WithErrorOnly(semgrepTask.stdErrPipeWriter),
+		)
+		// Join errors, will be nil or both are nil
+		semgrepTask.exitError = errors.Join(semgrepTask.exitError, exitCode.GetError("gatcheck list"))
+	}()
+
+	gitleaksTask := NewAsyncTask("gitleaks")
+	go func() {
+		defer gitleaksTask.stdErrPipeWriter.Close()
+		exitCode := shell.GitLeaksDetect(
+			shell.WithDryRun(p.DryRunEnabled),
+			shell.WithStderr(gitleaksTask.stdErrPipeWriter),
+			shell.WithGitleaks(p.config.CodeScan.GitleaksSrcDir, p.runtime.gitleaksFilename),
+		)
+
+		gitleaksTask.exitError = exitCode.GetError("gitleaks")
+
+		// Gitleaks annoyingly doesn't output the json to stdout, so no piping into gatecheck list
+		_ = p.runtime.gitleaksFile.Close()
+
+		if gitleaksTask.exitError != nil {
+			return
+		}
+
+		// locking prevents writing at the same time
+		p.runtime.summaryMutex.Lock()
+		defer p.runtime.summaryMutex.Unlock()
+		fmt.Fprintf(p.runtime.postSummaryBuffer, "%30s\n", "Gitleaks Findings")
+		// list report
+		exitCode = shell.GatecheckList(
+			shell.WithDryRun(p.DryRunEnabled),
+			shell.WithIO(nil, p.runtime.postSummaryBuffer, nil),
+			shell.WithListTarget(p.runtime.gitleaksFilename),
+			shell.WithErrorOnly(semgrepTask.stdErrPipeWriter),
+		)
+		gitleaksTask.exitError = exitCode.GetError("gatecheck list gitleaks report")
+	}()
+
+	var gitleaksError, semgrepError error
+
+	// Wait order determines the stderr print order
+	if err := semgrepTask.Wait(p.Stderr); err != nil {
+		semgrepError = fmt.Errorf("semgrep run failure: %v", err)
 	}
 
-	// Add a new line to separate the reports
-	fmt.Fprintln(p.runtime.gatecheckListBuf, "")
-
-	buf = new(bytes.Buffer)
-	mw = io.MultiWriter(p.runtime.semgrepFile, buf)
-
-	semgrepError := RunSemgrep(mw, p.Stderr, p.config, p.DryRunEnabled, p.SemgrepExperimental)
-	slog.Debug("summarize semgrep report")
-	if err := RunGatecheckList(p.runtime.gatecheckListBuf, buf, p.Stderr, "semgrep", p.DryRunEnabled); err != nil {
-		slog.Error("cannot run gatecheck list on semgrep report")
+	if err := gitleaksTask.Wait(p.Stderr); err != nil {
+		semgrepError = fmt.Errorf("gitleaks run failure: %v", err)
 	}
 
 	var postRunError error
@@ -136,8 +198,7 @@ func (p *CodeScan) postRun() error {
 	}
 
 	// print the Gatecheck List Content
-	_, _ = p.runtime.gatecheckListBuf.WriteTo(p.Stdout)
-
+	_, _ = p.runtime.postSummaryBuffer.WriteTo(p.Stdout)
 	return err
 }
 
@@ -159,7 +220,7 @@ func RunGitleaksDetect(reportDst io.Writer, stdErr io.Writer, config *Config, dr
 		_ = os.Remove(tempReportFilename)
 	}()
 
-	cmd := shell.GitleaksCommand(nil, nil, stdErr).DetectSecrets(config.CodeScan.GitleaksSrcDir, tempReportFilename)
+	cmd := legacyShell.GitleaksCommand(nil, nil, stdErr).DetectSecrets(config.CodeScan.GitleaksSrcDir, tempReportFilename)
 	err = cmd.WithDryRun(dryRunEnabled).Run()
 	if err != nil {
 		return errors.New("Code Scan Pipeline failed: Gitleaks execution failure. See log for details.")
@@ -174,13 +235,13 @@ func RunGitleaksDetect(reportDst io.Writer, stdErr io.Writer, config *Config, dr
 
 func RunSemgrep(reportDst io.Writer, stdErr io.Writer, config *Config, dryRunEnabled bool, experimental bool) error {
 	var semgrep interface {
-		Scan(rules string) *shell.Command
+		Scan(rules string) *legacyShell.Command
 	}
 
 	if experimental {
-		semgrep = shell.OSemgrepCommand(nil, reportDst, stdErr)
+		semgrep = legacyShell.OSemgrepCommand(nil, reportDst, stdErr)
 	} else {
-		semgrep = shell.SemgrepCommand(nil, reportDst, stdErr)
+		semgrep = legacyShell.SemgrepCommand(nil, reportDst, stdErr)
 	}
 
 	// manually suppress errors for findings, convert to warnings

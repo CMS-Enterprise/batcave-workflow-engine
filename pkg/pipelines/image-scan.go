@@ -133,18 +133,16 @@ func (p *ImageScan) Run() error {
 		}
 
 		// List Report
-		errBuf := new(bytes.Buffer) // Save stderr to dump if error
 		exitCode = shell.GatecheckListAll(
 			shell.WithDryRun(p.DryRunEnabled),
 			shell.WithReportType("grype"),
-			shell.WithIO(grypeBuf, p.runtime.postSummaryBuffer, errBuf),
+			shell.WithIO(grypeBuf, p.runtime.postSummaryBuffer, nil),
+			// Reduce the logging noise to only essential tasks, only dump stderr for errors
+			shell.WithErrorOnly(clamscanTask.stdErrPipeWriter),
 		)
 		fmt.Fprintln(p.runtime.postSummaryBuffer)
 
-		// Reduce the logging noise to only essential tasks, only dump stderr for errors
 		if exitCode != shell.ExitOK {
-			slog.Debug("dump gatecheck list stderr")
-			_, _ = io.Copy(p.Stderr, errBuf)
 			return exitCode.GetError("gatecheck list")
 		}
 
@@ -204,10 +202,8 @@ func (p *ImageScan) postRun() error {
 		slog.Error("cannot run gatecheck bundle add, dumping logs", "error", err)
 		_, _ = io.Copy(p.Stderr, errBuf)
 	}
-
 	// print clamAV Report and grype summary
-	_, _ = io.Copy(p.Stdout, p.runtime.postSummaryBuffer)
-
+	_, _ = p.runtime.postSummaryBuffer.WriteTo(p.Stdout)
 	return err
 }
 

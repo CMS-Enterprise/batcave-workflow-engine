@@ -4,12 +4,15 @@ import "os/exec"
 
 // GatecheckList will print a summarized view of a a report
 //
-// Requirement: supported report from STDIN
+// Requirement: supported report from STDIN WithReportType
 //
 // Output: table to STDOUT
 func GatecheckList(options ...OptionFunc) ExitCode {
 	o := newOptions(options...)
 	cmd := exec.Command("gatecheck", "list", "--input-type", o.reportType)
+	if o.listTargetFilename != "" {
+		cmd = exec.Command("gatecheck", "list", o.listTargetFilename)
+	}
 	return run(cmd, o)
 }
 
