@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"strings"
 	"workflow-engine/pkg/shell"
 )
 
@@ -21,6 +22,7 @@ type ImageScan struct {
 	Stderr        io.Writer
 	DryRunEnabled bool
 	config        *Config
+	DockerAlias   string
 	runtime       struct {
 		sbomFile          *os.File
 		grypeFile         *os.File
@@ -106,20 +108,36 @@ func (p *ImageScan) Run() error {
 
 	fmt.Fprintln(p.Stdout, "******* Workflow Engine Image Scan Pipeline [Run] *******")
 
+	alias := shell.DockerAliasDocker
+	// print the connection information, exit pipeline if failed
+	switch strings.ToLower(p.DockerAlias) {
+	case "podman":
+		alias = shell.DockerAliasPodman
+	case "docker":
+		alias = shell.DockerAliasDocker
+	}
+
 	// Run in the background since this task takes a log time, we can stream the log after other jobs run
 	clamscanTask := NewAsyncTask("clamscan")
 	mw := io.MultiWriter(p.runtime.clamavFile, p.runtime.postSummaryBuffer)
-	go RunClamScanJob(clamscanTask, mw, p.DryRunEnabled, shell.DockerAliasDocker, p.config.ImageScan.TargetImage)
+	opts := []shell.OptionFunc{
+		shell.WithDryRun(p.DryRunEnabled),
+		shell.WithScanImage(p.config.ImageScan.TargetImage), // clamscan target
+		shell.WithImage(p.config.ImageScan.TargetImage),     // Docker save image
+		shell.WithDockerAlias(alias),
+	}
+	go RunClamScanJob(clamscanTask, mw, opts)
 
 	// Scope this way in-order to return without returning the entire run function
 	syftGrypeError := func() error {
 		syftBuf := new(bytes.Buffer)
-		exitCode := shell.SyftScanImage(
+		opts := []shell.OptionFunc{
 			shell.WithScanImage(p.config.ImageScan.TargetImage),
 			shell.WithDryRun(p.DryRunEnabled),
 			shell.WithStdout(io.MultiWriter(syftBuf, p.runtime.sbomFile)),
 			shell.WithStderr(p.Stderr),
-		)
+		}
+		exitCode := shell.SyftScanImage(opts...)
 		if exitCode != shell.ExitOK {
 			return exitCode.GetError("syft") // just return to syftGrypeError
 		}
@@ -132,14 +150,16 @@ func (p *ImageScan) Run() error {
 			return exitCode.GetError("grype")
 		}
 
-		// List Report
-		exitCode = shell.GatecheckListAll(
+		opts = []shell.OptionFunc{
 			shell.WithDryRun(p.DryRunEnabled),
 			shell.WithReportType("grype"),
 			shell.WithIO(grypeBuf, p.runtime.postSummaryBuffer, nil),
 			// Reduce the logging noise to only essential tasks, only dump stderr for errors
 			shell.WithErrorOnly(clamscanTask.stdErrPipeWriter),
-		)
+		}
+
+		// List Report
+		exitCode = shell.GatecheckListAll(opts...)
 		fmt.Fprintln(p.runtime.postSummaryBuffer)
 
 		if exitCode != shell.ExitOK {
@@ -207,7 +227,7 @@ func (p *ImageScan) postRun() error {
 	return err
 }
 
-func RunClamScanJob(task *AsyncTask, reportDst io.Writer, dryRunEnabled bool, alias shell.DockerAlias, targetImage string) {
+func RunClamScanJob(task *AsyncTask, reportDst io.Writer, options []shell.OptionFunc) {
 	defer task.stdErrPipeWriter.Close()
 	commonError := errors.New("Clam Scan Job Failed. See log for details.")
 	// Create temporary image tar file for writing
@@ -235,25 +255,27 @@ func RunClamScanJob(task *AsyncTask, reportDst io.Writer, dryRunEnabled bool, al
 	// If the command fails, it will call cancel to trigger an interupt on the freshclam job
 	go func() {
 		defer dockerSaveTask.stdErrPipeReader.Close()
-		exitCode := shell.DockerSave(
-			shell.WithImage(targetImage),
-			shell.WithDockerAlias(alias),
+		opts := append(
+			options,
 			shell.WithCtx(ctx),
 			shell.WithFailTrigger(cancel),
-			shell.WithDryRun(dryRunEnabled),
 			shell.WithStdout(imageTarFile),
-			shell.WithStderr(dockerSaveTask.stdErrPipeWriter))
+			shell.WithStderr(dockerSaveTask.stdErrPipeWriter),
+		)
+		exitCode := shell.DockerSave(opts...)
 		dockerSaveTask.exitError = exitCode.GetError("docker save")
 	}()
 
 	go func() {
 		defer freshclamTask.stdErrPipeReader.Close()
-		exitCode := shell.Freshclam(
+		opts := append(
+			options,
 			shell.WithCtx(ctx),
 			shell.WithFailTrigger(cancel),
-			shell.WithDryRun(dryRunEnabled),
 			shell.WithStdout(freshclamTask.stdErrPipeWriter),
 		)
+
+		exitCode := shell.Freshclam(opts...)
 		freshclamTask.exitError = exitCode.GetError("freshclam")
 	}()
 
@@ -271,11 +293,12 @@ func RunClamScanJob(task *AsyncTask, reportDst io.Writer, dryRunEnabled bool, al
 		return
 	}
 
-	exitCode := shell.Clamscan(
-		shell.WithDryRun(dryRunEnabled),
+	opts := append(
+		options,
 		shell.WithTarFilename(imageTarFilename),
 		shell.WithIO(nil, reportDst, task.stdErrPipeWriter),
 	)
+	exitCode := shell.Clamscan(opts...)
 
 	task.exitError = exitCode.GetError("clamscan")
 }

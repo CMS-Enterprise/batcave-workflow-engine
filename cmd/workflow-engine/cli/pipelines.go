@@ -15,8 +15,6 @@ func newRunCommand() *cobra.Command {
 	// run image-build
 	imageBuildCmd := newBasicCommand("image-build", "builds an image", runImageBuild)
 
-	imageBuildCmd.Flags().StringP("cli-interface", "i", "docker", "[docker|podman] CLI interface to use for image building")
-
 	imageBuildCmd.Flags().String("build-dir", viper.GetString("imagebuild.builddir"), "image build context directory")
 	_ = viper.BindPFlag("imagebuild.builddir", imageBuildCmd.Flags().Lookup("build-dir"))
 
@@ -41,7 +39,7 @@ func newRunCommand() *cobra.Command {
 	imageBuildCmd.Flags().String("cache-from", "", "image build custom cache-from option")
 	_ = viper.BindPFlag("imagebuild.cachefrom", imageBuildCmd.Flags().Lookup("cache-from"))
 
-	imageBuildCmd.Flags().Bool("squash-layers", true, "image build squash all layers into one option")
+	imageBuildCmd.Flags().Bool("squash-layers", false, "image build squash all layers into one option")
 	_ = viper.BindPFlag("imagebuild.squashlayers", imageBuildCmd.Flags().Lookup("squash-layers"))
 
 	// run image-scan
@@ -88,6 +86,7 @@ func newRunCommand() *cobra.Command {
 	// Persistent Flags, available on all sub commands
 	cmd.PersistentFlags().BoolP("dry-run", "n", false, "log commands to debug but don't execute")
 	cmd.PersistentFlags().StringP("config", "f", "", "workflow engine config file in json, yaml, or toml")
+	cmd.PersistentFlags().StringP("cli-interface", "i", "docker", "[docker|podman] CLI interface to use for image building")
 
 	// Flag marks
 	_ = cmd.MarkFlagFilename("config", "json", "yaml", "yml", "toml")
@@ -151,12 +150,13 @@ func runImageScan(cmd *cobra.Command, _ []string) error {
 func runimagePublish(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
 	configFilename, _ := cmd.Flags().GetString("config")
+	cliInterface, _ := cmd.Flags().GetString("cli-interface")
 
 	config := new(pipelines.Config)
 	if err := LoadOrDefault(configFilename, config, viper.GetViper()); err != nil {
 		return err
 	}
-	return imagePublishPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled)
+	return imagePublishPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled, cliInterface)
 }
 
 func runCodeScan(cmd *cobra.Command, _ []string) error {
@@ -177,23 +177,22 @@ func runCodeScan(cmd *cobra.Command, _ []string) error {
 func imageBuildPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Config, dryRunEnabled bool, cliInterface string) error {
 	pipeline := pipelines.NewImageBuild(stdout, stderr)
 	pipeline.DryRunEnabled = dryRunEnabled
-	if cliInterface == "podman" {
-		pipeline = pipeline.WithPodman()
-	}
+	pipeline.DockerAlias = cliInterface
 	return pipeline.WithBuildConfig(config).Run()
 }
 
 func imageScanPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Config, dryRunEnabled bool, cliInterface string) error {
 	pipeline := pipelines.NewImageScan(stdout, stderr)
 	pipeline.DryRunEnabled = dryRunEnabled
+	pipeline.DockerAlias = cliInterface
 
 	return pipeline.WithConfig(config).Run()
 }
 
-func imagePublishPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Config, dryRunEnabled bool) error {
+func imagePublishPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Config, dryRunEnabled bool, cliInterface string) error {
 	pipeline := pipelines.NewimagePublish(stdout, stderr)
 	pipeline.DryRunEnabled = dryRunEnabled
-
+	pipeline.DockerAlias = cliInterface
 	return pipeline.WithConfig(config).Run()
 }
 

@@ -4,23 +4,15 @@ import (
 	"errors"
 	"io"
 	"log/slog"
-	"workflow-engine/pkg/shell/legacy"
+	"strings"
+	"workflow-engine/pkg/shell"
 )
-
-type dockerOrAliasCommand interface {
-	Version() *shell.Command
-	Info() *shell.Command
-	Push(string) *shell.Command
-	Pull(string) *shell.Command
-	Build(*shell.ImageBuildOptions) *shell.Command
-	Save(string) *shell.Command
-}
 
 type ImageBuild struct {
 	Stdout        io.Writer
 	Stderr        io.Writer
+	DockerAlias   string
 	DryRunEnabled bool
-	DockerOrAlias dockerOrAliasCommand
 	config        *Config
 }
 
@@ -29,18 +21,10 @@ func NewImageBuild(stdout io.Writer, stderr io.Writer) *ImageBuild {
 		Stdout:        stdout,
 		Stderr:        stderr,
 		DryRunEnabled: false,
-		DockerOrAlias: shell.DockerCommand(nil, stdout, stderr),
+		DockerAlias:   "docker",
 	}
 
-	pipeline.DockerOrAlias = shell.DockerCommand(nil, pipeline.Stdout, pipeline.Stderr)
-
 	return pipeline
-}
-
-func (p *ImageBuild) WithPodman() *ImageBuild {
-	slog.Debug("use podman cli")
-	p.DockerOrAlias = shell.PodmanCommand(nil, p.Stdout, p.Stderr)
-	return p
 }
 
 func (p *ImageBuild) WithBuildConfig(config *Config) *ImageBuild {
@@ -50,27 +34,48 @@ func (p *ImageBuild) WithBuildConfig(config *Config) *ImageBuild {
 }
 
 func (p *ImageBuild) Run() error {
-	slog.Info("run image build pipeline", "dry_run_enabled", p.DryRunEnabled, "artifact_directory", p.config.ArtifactsDir)
+	slog.Info("run image build pipeline", "dry_run_enabled", p.DryRunEnabled, "artifact_directory", p.config.ArtifactsDir, "alias", p.DockerAlias)
 
+	alias := shell.DockerAliasDocker
 	// print the connection information, exit pipeline if failed
-	err := p.DockerOrAlias.Info().WithDryRun(p.DryRunEnabled).Run()
-	if err != nil {
-		slog.Error("cannot print docker/podman system information which is likely due to bad engine connection")
-		return errors.New("Image Build Pipeline failed to run. See log for details.")
+	switch strings.ToLower(p.DockerAlias) {
+	case "podman":
+		alias = shell.DockerAliasPodman
+	case "docker":
+		alias = shell.DockerAliasDocker
 	}
 
-	buildOpts := shell.NewImageBuildOptions().
-		WithBuildDir(p.config.ImageBuild.BuildDir).
-		WithBuildFile(p.config.ImageBuild.Dockerfile).
-		WithBuildArgs(p.config.ImageBuild.Args).
-		WithTag(p.config.ImageBuild.Tag).
-		WithBuildPlatform(p.config.ImageBuild.Platform).
-		WithBuildTarget(p.config.ImageBuild.Target).
-		WithCache(p.config.ImageBuild.CacheTo, p.config.ImageBuild.CacheFrom)
+	// "" values will be stripped out
+	buildOpts := shell.ImageBuildOptions{
+		ImageName:    p.config.ImageBuild.Tag,
+		BuildDir:     p.config.ImageBuild.BuildDir,
+		Dockerfile:   p.config.ImageBuild.Dockerfile,
+		Target:       p.config.ImageBuild.Target,
+		Platform:     p.config.ImageBuild.Platform,
+		SquashLayers: p.config.ImageBuild.SquashLayers,
+		CacheTo:      p.config.ImageBuild.CacheTo,
+		CacheFrom:    p.config.ImageBuild.CacheFrom,
+	}
 
-	err = p.DockerOrAlias.Build(buildOpts).WithDryRun(p.DryRunEnabled).Run()
-	if err != nil {
+	opts := []shell.OptionFunc{
+		shell.WithDockerAlias(alias),
+		shell.WithStdout(p.Stdout),
+		shell.WithStderr(p.Stderr),
+		shell.WithDryRun(p.DryRunEnabled),
+	}
+
+	exitCode := shell.DockerInfo()
+
+	if exitCode != shell.ExitOK {
 		return errors.New("Image Build Pipeline ran but failed. See log for details.")
 	}
+
+	opts = append(opts, shell.WithBuildImageOptions(buildOpts))
+	exitCode = shell.DockerBuild(opts...)
+
+	if exitCode != shell.ExitOK {
+		return errors.New("Image Build Pipeline ran but failed. See log for details.")
+	}
+
 	return nil
 }

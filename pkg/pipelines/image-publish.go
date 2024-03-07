@@ -6,15 +6,14 @@ import (
 	"log/slog"
 	"path"
 	"workflow-engine/pkg/shell"
-	legacyShell "workflow-engine/pkg/shell/legacy"
 )
 
 type ImagePublish struct {
 	Stdout        io.Writer
 	Stderr        io.Writer
 	DryRunEnabled bool
+	DockerAlias   string
 	config        *Config
-	dockerOrAlias dockerOrAliasCommand
 	runtime       struct {
 		bundleFilename       string
 		dockerfileKey        string
@@ -33,21 +32,12 @@ func (p *ImagePublish) WithConfig(config *Config) *ImagePublish {
 	return p
 }
 
-func (p *ImagePublish) WithPodman() *ImagePublish {
-	slog.Debug("use podman cli")
-	p.dockerOrAlias = legacyShell.PodmanCommand(nil, p.Stdout, p.Stderr)
-	return p
-}
-
 func NewimagePublish(stdout io.Writer, stderr io.Writer) *ImagePublish {
 	pipeline := &ImagePublish{
 		Stdout:        stdout,
 		Stderr:        stderr,
 		DryRunEnabled: false,
 	}
-
-	pipeline.dockerOrAlias = legacyShell.DockerCommand(nil, pipeline.Stdout, pipeline.Stderr)
-
 	return pipeline
 }
 
@@ -67,16 +57,22 @@ func (p *ImagePublish) Run() error {
 		return errors.New("Code Scan Pipeline Pre-Run Failed. See log for details.")
 	}
 
-	err := p.dockerOrAlias.Push(p.config.ImageBuild.Tag).WithDryRun(p.DryRunEnabled).Run()
-	if err != nil {
+	exitCode := shell.DockerPush(
+		shell.WithDryRun(p.DryRunEnabled),
+		shell.WithImage(p.config.ImageBuild.Tag),
+		shell.WithStderr(p.Stderr),
+	)
+	if exitCode != shell.ExitOK {
 		slog.Error("failed to push image tag to registry", "image_tag", p.config.ImageBuild.Tag)
 		return errors.New("Image Publish Pipeline failed. See log for details.")
 	}
 
 	image, bundle := p.config.ImagePublish.ArtifactsImage, p.runtime.bundleFilename
-	exitCode := shell.OrasPushBundle(
-		shell.WithIO(nil, p.Stdout, p.Stderr), shell.WithArtifactBundle(image, bundle),
+	exitCode = shell.OrasPushBundle(
+		shell.WithIO(nil, p.Stdout, p.Stderr),
+		shell.WithArtifactBundle(image, bundle),
 	)
+
 	if exitCode != shell.ExitOK {
 		slog.Error("failed to push image artifact bundle to registry", "image_tag", image, "bundle_filename", bundle)
 		return errors.New("Image Publish Pipeline failed. See log for details.")

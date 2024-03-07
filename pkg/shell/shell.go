@@ -52,6 +52,8 @@ type Options struct {
 	reportType      string
 	artifactsImage  string
 
+	imageBuildOptions ImageBuildOptions
+
 	gatecheck struct {
 		bundleFilename string
 		targetFile     string
@@ -221,6 +223,12 @@ func WithSemgrep(rules string, experimental bool) OptionFunc {
 func WithListTarget(filename string) OptionFunc {
 	return func(o *Options) {
 		o.listTargetFilename = filename
+	}
+}
+
+func WithBuildImageOptions(options ImageBuildOptions) OptionFunc {
+	return func(o *Options) {
+		o.imageBuildOptions = options
 	}
 }
 

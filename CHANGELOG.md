@@ -21,6 +21,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - async run execution for image scan pipeline
 - moved shell package to legacy
 - image scan execution flow
+- docker build argument strategy for shell
 
 ### Added
 
