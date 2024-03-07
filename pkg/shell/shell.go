@@ -3,6 +3,7 @@ package shell
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"os/exec"
@@ -12,11 +13,18 @@ type ExitCode int
 
 const (
 	ExitOK               ExitCode = 0
-	ExitUnknown                   = 232
-	ExitContextCancel             = 231
-	ExitKillFailure               = 230
-	ExitBadConfiguration          = 299
+	ExitUnknown          ExitCode = 232
+	ExitContextCancel    ExitCode = 231
+	ExitKillFailure      ExitCode = 230
+	ExitBadConfiguration ExitCode = 299
 )
+
+func (e ExitCode) GetError(name string) error {
+	if e == ExitOK {
+		return nil
+	}
+	return fmt.Errorf("%s non-zero exit code: %d", name, e)
+}
 
 // Command is any function that accepts optionFuncs and returns an exit code
 //
@@ -28,15 +36,17 @@ type Command func(...OptionFunc) ExitCode
 
 // Options are flexible parameters for any command
 type Options struct {
-	dryRunEnabled bool
-	stdin         io.Reader
-	stdout        io.Writer
-	stderr        io.Writer
-	ctx           context.Context
-	scanImage     string
-	tarFilename   string
-	dockerAlias   DockerAlias
-	imageName     string
+	dryRunEnabled   bool
+	stdin           io.Reader
+	stdout          io.Writer
+	stderr          io.Writer
+	ctx             context.Context
+	failTriggerFunc func()
+	scanImage       string
+	tarFilename     string
+	dockerAlias     DockerAlias
+	imageName       string
+	reportType      string
 }
 
 // apply should be called before the exec.Cmd is run
@@ -49,6 +59,7 @@ func (o *Options) apply(options ...OptionFunc) {
 // newOptions is used to generate an Options struct and automatically apply optionFuncs
 func newOptions(options ...OptionFunc) *Options {
 	o := new(Options)
+	o.failTriggerFunc = func() {}
 	o.apply(options...)
 	return o
 }
@@ -105,6 +116,16 @@ func WithCtx(ctx context.Context) OptionFunc {
 	}
 }
 
+// WithFailTrigger will call the provided function for non-zero exit
+//
+// This can be useful if running multiple commands async and you want
+// to early termination with a context cancel should either command fail
+func WithFailTrigger(f func()) OptionFunc {
+	return func(o *Options) {
+		o.failTriggerFunc = f
+	}
+}
+
 // WithDockerAlias can be used to configure an alternative docker compatible CLI
 //
 // For example, `docker build` and `podman build` can be used interchangably
@@ -120,6 +141,21 @@ func WithDockerAlias(a DockerAlias) OptionFunc {
 func WithImage(image string) OptionFunc {
 	return func(o *Options) {
 		o.imageName = image
+	}
+}
+
+// WithImage can be used for multiple commands to define a archive/tar filename
+//
+// should include the full filename including extension
+func WithTarFilename(filename string) OptionFunc {
+	return func(o *Options) {
+		o.tarFilename = filename
+	}
+}
+
+func WithReportType(reportType string) OptionFunc {
+	return func(o *Options) {
+		o.reportType = reportType
 	}
 }
 
@@ -146,6 +182,7 @@ func run(cmd *exec.Cmd, o *Options) ExitCode {
 	if o.ctx == nil {
 		o.ctx = context.Background()
 	}
+
 	var runError error
 	doneChan := make(chan struct{}, 1)
 	go func() {
@@ -153,21 +190,33 @@ func run(cmd *exec.Cmd, o *Options) ExitCode {
 		doneChan <- struct{}{}
 	}()
 
+	var exitCode ExitCode
+
+	// Either context will cancel or the command will finish before
+	// capture the exit code
 	select {
 	case <-o.ctx.Done():
+		exitCode = ExitContextCancel
 		if err := cmd.Process.Kill(); err != nil {
-			return ExitKillFailure
+			exitCode = ExitKillFailure
 		}
-		return ExitContextCancel
 	case <-doneChan:
+
+		exitCode = ExitOK
+
 		var exitCodeError *exec.ExitError
 		if errors.As(runError, &exitCodeError) {
-			return ExitCode(exitCodeError.ExitCode())
+			exitCode = ExitCode(exitCodeError.ExitCode())
+			break
 		}
 		if runError != nil {
-			return ExitUnknown
+			exitCode = ExitUnknown
 		}
 	}
 
-	return ExitOK
+	if exitCode != ExitOK {
+		o.failTriggerFunc()
+	}
+
+	return exitCode
 }

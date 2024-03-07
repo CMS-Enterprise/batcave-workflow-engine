@@ -187,9 +187,6 @@ func imageScanPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Con
 	pipeline := pipelines.NewImageScan(stdout, stderr)
 	pipeline.DryRunEnabled = dryRunEnabled
 
-	if cliInterface == "podman" {
-		pipeline = pipeline.WithPodman()
-	}
 	return pipeline.WithConfig(config).Run()
 }
 

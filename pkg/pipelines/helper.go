@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path"
-	"workflow-engine/pkg/shell/legacy"
+	shell "workflow-engine/pkg/shell/legacy"
 )
 
 const (

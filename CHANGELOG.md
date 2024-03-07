@@ -20,6 +20,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - Add multi writer for Gatecheck list
 - async run execution for image scan pipeline
 - moved shell package to legacy
+- image scan execution flow
 
 ### Added
 
@@ -40,6 +41,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - command run with context
 - command run with IO
 - grype CMD 
+- async task object
 
 ### Fixed
 

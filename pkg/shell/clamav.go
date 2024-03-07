@@ -35,10 +35,9 @@ func Clamscan(optionFuncs ...OptionFunc) ExitCode {
 		"clamscan",
 		"--infected",
 		"--recursive",
-		"--verbose",
 		"--scan-archive=yes",
-		"--max-filesize=2000M",
-		"--max-scansize=2000M",
+		"--max-filesize=1000M", // files larger will be skipped and assumed clean
+		"--max-scansize=1000M", // will only scan this much from each file
 		"--stdout",
 		o.tarFilename,
 	)
@@ -52,6 +51,6 @@ func Clamscan(optionFuncs ...OptionFunc) ExitCode {
 // Outputs: Debugging information to STDOUT
 func Freshclam(optionFuncs ...OptionFunc) ExitCode {
 	o := newOptions(optionFuncs...)
-	cmd := exec.Command("freshclam", "--verbose")
+	cmd := exec.Command("freshclam")
 	return run(cmd, o)
 }
