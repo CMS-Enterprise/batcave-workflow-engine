@@ -35,6 +35,9 @@ RUN chown podman:podman -R /home/podman
 VOLUME /var/lib/containers
 VOLUME /home/podman/.local/share/containers
 
+# Set the environment variable for gatecheck to work properly
+ENV GATECHECK_FF_CLI_V1_ENABLED=1
+
 ENTRYPOINT ["workflow-engine"]
 
 LABEL org.opencontainers.image.title="workflow-engine"
