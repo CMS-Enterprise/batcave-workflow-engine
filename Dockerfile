@@ -4,14 +4,18 @@ WORKDIR /app/src
 
 COPY go.* .
 
+# install build dependencies
+
+RUN apk update && apk add git --no-cache
+
 # pre-fetch dependencies
-RUN go mod download
+RUN go mod download 
 
 COPY cmd ./cmd
 COPY pkg ./pkg
 
 RUN mkdir -p ../bin && \
-    go build -o ../bin/workflow-engine ./cmd/workflow-engine
+    go build -ldflags="-X 'main.cliVersion=v0.0.0-source-build' -X 'main.gitCommit=$(git rev-parse HEAD)' -X 'main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=$(git log -1 --pretty=%B)'" -o ../bin/workflow-engine ./cmd/workflow-engine
 
 FROM ghcr.io/cms-enterprise/batcave/omnibus:v1.1.0-rc3
 
