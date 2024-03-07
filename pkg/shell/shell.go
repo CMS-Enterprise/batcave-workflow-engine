@@ -47,6 +47,8 @@ type Options struct {
 	dockerAlias     DockerAlias
 	imageName       string
 	reportType      string
+	artifactsImage  string
+	bundleFilename  string
 }
 
 // apply should be called before the exec.Cmd is run
@@ -156,6 +158,13 @@ func WithTarFilename(filename string) OptionFunc {
 func WithReportType(reportType string) OptionFunc {
 	return func(o *Options) {
 		o.reportType = reportType
+	}
+}
+
+func WithArtifactBundle(artifactImage string, bundleFilename string) OptionFunc {
+	return func(o *Options) {
+		o.artifactsImage = artifactImage
+		o.bundleFilename = bundleFilename
 	}
 }
 

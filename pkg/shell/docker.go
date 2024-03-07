@@ -4,8 +4,10 @@ import "os/exec"
 
 type DockerAlias int8
 
-const DockerAliasDocker DockerAlias = 0
-const DockerAliasPodman DockerAlias = 1
+const (
+	DockerAliasDocker DockerAlias = 0
+	DockerAliasPodman DockerAlias = 1
+)
 
 // Save an image to a tar archive
 //

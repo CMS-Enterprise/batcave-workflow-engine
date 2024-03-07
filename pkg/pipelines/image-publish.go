@@ -5,7 +5,8 @@ import (
 	"io"
 	"log/slog"
 	"path"
-	"workflow-engine/pkg/shell/legacy"
+	"workflow-engine/pkg/shell"
+	legacyShell "workflow-engine/pkg/shell/legacy"
 )
 
 type ImagePublish struct {
@@ -34,7 +35,7 @@ func (p *ImagePublish) WithConfig(config *Config) *ImagePublish {
 
 func (p *ImagePublish) WithPodman() *ImagePublish {
 	slog.Debug("use podman cli")
-	p.dockerOrAlias = shell.PodmanCommand(nil, p.Stdout, p.Stderr)
+	p.dockerOrAlias = legacyShell.PodmanCommand(nil, p.Stdout, p.Stderr)
 	return p
 }
 
@@ -45,7 +46,7 @@ func NewimagePublish(stdout io.Writer, stderr io.Writer) *ImagePublish {
 		DryRunEnabled: false,
 	}
 
-	pipeline.dockerOrAlias = shell.DockerCommand(nil, pipeline.Stdout, pipeline.Stderr)
+	pipeline.dockerOrAlias = legacyShell.DockerCommand(nil, pipeline.Stdout, pipeline.Stderr)
 
 	return pipeline
 }
@@ -72,11 +73,12 @@ func (p *ImagePublish) Run() error {
 		return errors.New("Image Publish Pipeline failed. See log for details.")
 	}
 
-	cmd := shell.OrasCommand(nil, p.Stdout, p.Stderr).PushBundle(p.config.ImagePublish.ArtifactsImage, p.runtime.bundleFilename)
-	err = cmd.WithDryRun(p.DryRunEnabled).Run()
-	if err != nil {
-		slog.Error("failed to push image artifact bundle to registry",
-			"image_tag", p.config.ImagePublish.ArtifactsImage, "bundle_filename", p.runtime.bundleFilename)
+	image, bundle := p.config.ImagePublish.ArtifactsImage, p.runtime.bundleFilename
+	exitCode := shell.OrasPushBundle(
+		shell.WithIO(nil, p.Stdout, p.Stderr), shell.WithArtifactBundle(image, bundle),
+	)
+	if exitCode != shell.ExitOK {
+		slog.Error("failed to push image artifact bundle to registry", "image_tag", image, "bundle_filename", bundle)
 		return errors.New("Image Publish Pipeline failed. See log for details.")
 	}
 

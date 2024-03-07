@@ -23,3 +23,14 @@ func GatecheckListAll(options ...OptionFunc) ExitCode {
 	cmd := exec.Command("gatecheck", "list", "--all", "--input-type", o.reportType)
 	return run(cmd, o)
 }
+
+// GatecheckVersion print version information
+//
+// Requirement: N/A
+//
+// Output: to STDOUT
+func GatecheckVersion(options ...OptionFunc) ExitCode {
+	o := newOptions(options...)
+	cmd := exec.Command("gatecheck", "version")
+	return run(cmd, o)
+}

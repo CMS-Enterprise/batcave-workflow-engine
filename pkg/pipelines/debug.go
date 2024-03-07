@@ -37,6 +37,7 @@ func (d *Debug) Run() error {
 	slog.Info(fmt.Sprintf("Current directory: %s", wd))
 
 	// Collect errors for mandatory commands
+	commonOptions := []shell.OptionFunc{shell.WithDryRun(d.DryRunEnabled), shell.WithStdout(d.Stdout)}
 	errs := errors.Join(
 		legacyShell.GrypeCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
 		legacyShell.SyftCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
@@ -44,17 +45,11 @@ func (d *Debug) Run() error {
 		legacyShell.GatecheckCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
 		legacyShell.OrasCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
 		legacyShell.ClamScanCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).Run(),
+		shell.GrypeVersion(commonOptions...).GetError("grype"),
+		shell.SyftVersion(commonOptions...).GetError("syft"),
+		shell.ClamScanVersion(commonOptions...).GetError("clamscan"),
+		shell.FreshClamVersion(commonOptions...).GetError("freshclam"),
 	)
-
-	exitCodes := map[string]shell.ExitCode{}
-	exitCodes["grype"] = shell.GrypeVersion(shell.WithDryRun(d.DryRunEnabled), shell.WithStdout(d.Stdout))
-	exitCodes["syft"] = shell.SyftVersion(shell.WithDryRun(d.DryRunEnabled), shell.WithStdout(d.Stdout))
-
-	for c, exitCode := range exitCodes {
-		if exitCode != shell.ExitOK {
-			slog.Error("a mandatory shell command failed", "command", c, "exit_code", exitCode)
-		}
-	}
 
 	// Just log errors for optional commands
 	legacyShell.PodmanCommand(nil, d.Stdout, d.Stderr).Version().WithDryRun(d.DryRunEnabled).RunLogErrorAsWarning()
