@@ -133,7 +133,7 @@ func LoadOrDefault(filename string, config *pipelines.Config, v *viper.Viper) er
 	err := v.ReadInConfig()
 	if err != nil {
 		slog.Error("viper read in config failed", "filename", filename)
-		return errors.New("config file failed to load. See log for details.")
+		return errors.New("config file failed to load.")
 	}
 
 	slog.Debug("unmarshal into config object")
@@ -149,7 +149,7 @@ func loadWithoutConfigFile(config *pipelines.Config, v *viper.Viper) error {
 	err := v.ReadInConfig()
 	if err != nil && errors.As(err, &configNotFoundErr) {
 		slog.Error("viper read in config failed", "error", err)
-		return errors.New("config file failed to load. See log for details.")
+		return errors.New("config file failed to load.")
 	}
 
 	slog.Debug("unmarshal into config object")

@@ -54,7 +54,7 @@ func (p *ImagePublish) Run() error {
 	}
 
 	if err := p.preRun(); err != nil {
-		return errors.New("Code Scan Pipeline Pre-Run Failed. See log for details.")
+		return errors.New("Code Scan Pipeline Pre-Run Failed.")
 	}
 
 	exitCode := shell.DockerPush(
@@ -64,7 +64,7 @@ func (p *ImagePublish) Run() error {
 	)
 	if exitCode != shell.ExitOK {
 		slog.Error("failed to push image tag to registry", "image_tag", p.config.ImageBuild.Tag)
-		return errors.New("Image Publish Pipeline failed. See log for details.")
+		return errors.New("Image Publish Pipeline failed.")
 	}
 
 	image, bundle := p.config.ImagePublish.ArtifactsImage, p.runtime.bundleFilename
@@ -75,7 +75,7 @@ func (p *ImagePublish) Run() error {
 
 	if exitCode != shell.ExitOK {
 		slog.Error("failed to push image artifact bundle to registry", "image_tag", image, "bundle_filename", bundle)
-		return errors.New("Image Publish Pipeline failed. See log for details.")
+		return errors.New("Image Publish Pipeline failed.")
 	}
 
 	return nil

@@ -78,12 +78,12 @@ func runConfigInit(cmd *cobra.Command, _ []string) error {
 
 	if err := viper.Unmarshal(config); err != nil {
 		slog.Error("viper unmarshal defaults into a new config object")
-		return errors.New("Config Init Failed. See log for details.")
+		return errors.New("Config Init Failed.")
 	}
 
 	if err := NewAbstractEncoder(targetWriter, config).Encode(format); err != nil {
 		slog.Error("cannot encode default config object to stdout", "format", format)
-		return errors.New("Config Init Failed. See log for details.")
+		return errors.New("Config Init Failed.")
 	}
 
 	return nil

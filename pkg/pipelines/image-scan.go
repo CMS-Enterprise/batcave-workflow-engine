@@ -61,7 +61,7 @@ func (p *ImageScan) preRun() error {
 
 	if err := MakeDirectoryP(p.config.ArtifactsDir); err != nil {
 		slog.Error("failed to create artifact directory", "name", p.config.ArtifactsDir)
-		return errors.New("Code Scan Pipeline failed to run. See log for details.")
+		return errors.New("Code Scan Pipeline failed to run.")
 	}
 
 	p.runtime.sbomFilename = path.Join(p.config.ArtifactsDir, p.config.ImageScan.SyftFilename)
@@ -103,7 +103,7 @@ func (p *ImageScan) Run() error {
 	}
 
 	if err := p.preRun(); err != nil {
-		return errors.New("Code Scan Pipeline Pre-Run Failed. See log for details.")
+		return errors.New("Code Scan Pipeline Pre-Run Failed.")
 	}
 
 	fmt.Fprintln(p.Stdout, "******* Workflow Engine Image Scan Pipeline [Run] *******")
@@ -229,7 +229,7 @@ func (p *ImageScan) postRun() error {
 
 func RunClamScanJob(task *AsyncTask, reportDst io.Writer, options []shell.OptionFunc) {
 	defer task.stdErrPipeWriter.Close()
-	commonError := errors.New("Clam Scan Job Failed. See log for details.")
+	commonError := errors.New("Clam Scan Job Failed.")
 	// Create temporary image tar file for writing
 	slog.Debug("create temporary file for image tar, used for clam virus scan")
 	imageTarFile, err := os.CreateTemp(os.TempDir(), "*-image.tar")

@@ -67,14 +67,14 @@ func (p *ImageBuild) Run() error {
 	exitCode := shell.DockerInfo()
 
 	if exitCode != shell.ExitOK {
-		return errors.New("Image Build Pipeline ran but failed. See log for details.")
+		return errors.New("Image Build Pipeline ran but failed.")
 	}
 
 	opts = append(opts, shell.WithBuildImageOptions(buildOpts))
 	exitCode = shell.DockerBuild(opts...)
 
 	if exitCode != shell.ExitOK {
-		return errors.New("Image Build Pipeline ran but failed. See log for details.")
+		return errors.New("Image Build Pipeline ran but failed.")
 	}
 
 	return nil
