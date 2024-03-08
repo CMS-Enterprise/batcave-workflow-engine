@@ -34,7 +34,7 @@ func (p *ImageBuild) WithBuildConfig(config *Config) *ImageBuild {
 }
 
 func (p *ImageBuild) Run() error {
-	slog.Info("run image build pipeline", "dry_run_enabled", p.DryRunEnabled, "artifact_directory", p.config.ArtifactsDir, "alias", p.DockerAlias)
+	slog.Info("run image build pipeline", "dry_run_enabled", p.DryRunEnabled, "artifact_directory", p.config.ArtifactDir, "alias", p.DockerAlias)
 
 	alias := shell.DockerAliasDocker
 	// print the connection information, exit pipeline if failed

@@ -15,7 +15,7 @@ func (o *orasCmd) Version() *Command {
 }
 
 // PushBundle use the push command to push a gatecheck bundle
-// shell: `oras push --disable-path-validation --artifact-type ${BUNDLE_ARTIFACT_TYPE} ${SAST_ARTIFACTS_IMAGE} ${GATECHECK_BUNDLE} | tee log.txt`
+// shell: `oras push --disable-path-validation --artifact-type ${BUNDLE_ARTIFACT_TYPE} ${SAST_ARTIFACT_IMAGE} ${GATECHECK_BUNDLE} | tee log.txt`
 func (o *orasCmd) PushBundle(artifactImage string, bundleFilename string) *Command {
 	exe := o.InitCmd().WithArgs(
 		"push",

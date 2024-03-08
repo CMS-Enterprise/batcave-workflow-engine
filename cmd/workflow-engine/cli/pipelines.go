@@ -45,9 +45,6 @@ func newRunCommand() *cobra.Command {
 	// run image-scan
 	imageScanCmd := newBasicCommand("image-scan", "run security scans on an image", runImageScan)
 
-	imageScanCmd.Flags().String("artifact-directory", "", "the output directory for all artifacts generated in the pipeline")
-	_ = viper.BindPFlag("artifactsdir", imageScanCmd.Flags().Lookup("artifact-directory"))
-
 	imageScanCmd.Flags().String("sbom-filename", "", "the output filename for the syft SBOM")
 	_ = viper.BindPFlag("imagescan.syftfilename", imageScanCmd.Flags().Lookup("sbom-filename"))
 
@@ -87,10 +84,11 @@ func newRunCommand() *cobra.Command {
 	cmd.PersistentFlags().BoolP("dry-run", "n", false, "log commands to debug but don't execute")
 	cmd.PersistentFlags().StringP("config", "f", "", "workflow engine config file in json, yaml, or toml")
 	cmd.PersistentFlags().StringP("cli-interface", "i", "docker", "[docker|podman] CLI interface to use for image building")
+	cmd.PersistentFlags().String("artifact-dir", "", "the target output directory for security report artifacts")
+	_ = viper.BindPFlag("artifactdir", cmd.Flags().Lookup("artifact-dir"))
 
 	// Flag marks
 	_ = cmd.MarkFlagFilename("config", "json", "yaml", "yml", "toml")
-	_ = cmd.MarkFlagDirname("artifact-directory")
 	_ = cmd.MarkFlagDirname("build-dir")
 
 	// Other settings

@@ -8,7 +8,7 @@ imageBuild:
     target: ""
     cacheTo: ""
     cacheFrom: ""
-    squashLayers: true
+    squashLayers: false
     args: {}
     scanTarget: ""
 imageScan:
@@ -27,7 +27,7 @@ codeScan:
     semgrepRules: p/default
 imagePublish:
     enabled: true
-    artifactsImage: ""
+    artifactImage: ""
     pushLatest: true
 deploy:
     enabled: true

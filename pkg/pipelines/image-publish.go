@@ -43,7 +43,7 @@ func NewimagePublish(stdout io.Writer, stderr io.Writer) *ImagePublish {
 
 func (p *ImagePublish) preRun() error {
 	// numbers for date format is From the docs: https://go.dev/src/time/format.go
-	p.runtime.bundleFilename = path.Join(p.config.ArtifactsDir, p.config.GatecheckBundleFilename)
+	p.runtime.bundleFilename = path.Join(p.config.ArtifactDir, p.config.GatecheckBundleFilename)
 	return nil
 }
 
@@ -67,7 +67,7 @@ func (p *ImagePublish) Run() error {
 		return errors.New("Image Publish Pipeline failed.")
 	}
 
-	image, bundle := p.config.ImagePublish.ArtifactsImage, p.runtime.bundleFilename
+	image, bundle := p.config.ImagePublish.ArtifactImage, p.runtime.bundleFilename
 	exitCode = shell.OrasPushBundle(
 		shell.WithIO(nil, p.Stdout, p.Stderr),
 		shell.WithArtifactBundle(image, bundle),

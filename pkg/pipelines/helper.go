@@ -72,7 +72,7 @@ func InitGatecheckBundle(config *Config, stderr io.Writer, dryRunEnabled bool) e
 		return err
 	}
 
-	bundleFilename := path.Join(config.ArtifactsDir, config.GatecheckBundleFilename)
+	bundleFilename := path.Join(config.ArtifactDir, config.GatecheckBundleFilename)
 	opts := []shell.OptionFunc{
 		shell.WithDryRun(dryRunEnabled),
 		shell.WithBundleFile(bundleFilename, tempConfigFilename),

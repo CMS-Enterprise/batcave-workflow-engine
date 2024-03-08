@@ -18,7 +18,7 @@ type Config struct {
 	CodeScan                configCodeScan     `json:"codeScan"                toml:"codeScan"                yaml:"codeScan"`
 	ImagePublish            configImagePublish `json:"imagePublish"            toml:"imagePublish"            yaml:"imagePublish"`
 	Deploy                  configDeploy       `json:"deploy"                  toml:"deploy"                  yaml:"deploy"`
-	ArtifactsDir            string             `json:"artifactDir"             toml:"artifactDir"             yaml:"artifactDir"`
+	ArtifactDir             string             `json:"artifactDir"             toml:"artifactDir"             yaml:"artifactDir"`
 	GatecheckBundleFilename string             `json:"gatecheckBundleFilename" toml:"gatecheckBundleFilename" yaml:"gatecheckBundleFilename"`
 }
 
@@ -55,9 +55,9 @@ type configCodeScan struct {
 }
 
 type configImagePublish struct {
-	Enabled        bool   `json:"enabled"        toml:"enabled"        yaml:"enabled"`
-	ArtifactsImage string `json:"artifactsImage" toml:"artifactsImage" yaml:"artifactsImage"`
-	PushLatest     bool   `json:"pushLatest"     toml:"pushLatest"     yaml:"pushLatest"`
+	Enabled       bool   `json:"enabled"        toml:"enabled"        yaml:"enabled"`
+	ArtifactImage string `json:"artifactImage" toml:"artifactImage" yaml:"artifactImage"`
+	PushLatest    bool   `json:"pushLatest"     toml:"pushLatest"     yaml:"pushLatest"`
 }
 
 type configDeploy struct {
@@ -65,7 +65,7 @@ type configDeploy struct {
 }
 
 func BindEnvs(v *viper.Viper) {
-	v.MustBindEnv("artifactsdir", "WFE_ARTIFACTS_DIR")
+	v.MustBindEnv("artifactdir", "WFE_ARTIFACT_DIR")
 	v.MustBindEnv("gatecheckBundleFilename", "WFE_GATECHECK_BUNDLE_FILENAME")
 
 	v.MustBindEnv("imagebuild.enabled", "WFE_IMAGE_BUILD_ENABLED")
@@ -101,7 +101,7 @@ func BindEnvs(v *viper.Viper) {
 
 func SetDefaults(v *viper.Viper) {
 	v.SetDefault("version", "1")
-	v.SetDefault("artifactsdir", "artifacts")
+	v.SetDefault("artifactdir", "artifacts")
 
 	v.SetDefault("gatecheckBundleFilename", "gatecheck-bundle.tar.gz")
 
@@ -124,7 +124,7 @@ func SetDefaults(v *viper.Viper) {
 
 	v.SetDefault("imagepublish.enabled", "1")
 	v.SetDefault("imagepublish.pushlatest", "1")
-	v.SetDefault("iamgepublish.artifactsimage", "my-app/artifacts:latest")
+	v.SetDefault("iamgepublish.artifactimage", "my-app/artifact-bundle:latest")
 
 	v.SetDefault("deploy.enabled", "1")
 }
