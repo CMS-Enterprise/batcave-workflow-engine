@@ -44,7 +44,7 @@ func NewimagePublish(stdout io.Writer, stderr io.Writer) *ImagePublish {
 
 func (p *ImagePublish) preRun() error {
 	// numbers for date format is From the docs: https://go.dev/src/time/format.go
-	p.runtime.bundleFilename = path.Join(p.config.ArtifactsDir, p.config.GatecheckBundleFilename)
+	p.runtime.bundleFilename = path.Join(p.config.ArtifactDir, p.config.GatecheckBundleFilename)
 	return nil
 }
 
@@ -63,7 +63,7 @@ func (p *ImagePublish) Run() error {
 	}
 
 	if err := p.preRun(); err != nil {
-		return errors.New("Code Scan Pipeline Pre-Run Failed. See log for details.")
+		return errors.New("Code Scan Pipeline Pre-Run Failed.")
 	}
 
 	exitCode := shell.DockerPush(
@@ -71,13 +71,15 @@ func (p *ImagePublish) Run() error {
 		shell.WithDryRun(p.DryRunEnabled),
 		shell.WithImage(p.config.ImageBuild.Tag),
 		shell.WithStderr(p.Stderr),
+		shell.WithDockerAlias(alias),
 	)
+
 	if exitCode != shell.ExitOK {
 		slog.Error("failed to push image tag to registry", "image_tag", p.config.ImageBuild.Tag)
-		return errors.New("Image Publish Pipeline failed. See log for details.")
+		return errors.New("Image Publish Pipeline failed.")
 	}
 
-	image, bundle := p.config.ImagePublish.ArtifactsImage, p.runtime.bundleFilename
+	image, bundle := p.config.ImagePublish.ArtifactImage, p.runtime.bundleFilename
 	exitCode = shell.OrasPushBundle(
 		shell.WithIO(nil, p.Stdout, p.Stderr),
 		shell.WithArtifactBundle(image, bundle),
@@ -85,7 +87,7 @@ func (p *ImagePublish) Run() error {
 
 	if exitCode != shell.ExitOK {
 		slog.Error("failed to push image artifact bundle to registry", "image_tag", image, "bundle_filename", bundle)
-		return errors.New("Image Publish Pipeline failed. See log for details.")
+		return errors.New("Image Publish Pipeline failed.")
 	}
 
 	return nil

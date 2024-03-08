@@ -49,19 +49,19 @@ func NewCodeScan(stdout io.Writer, stderr io.Writer) *CodeScan {
 func (p *CodeScan) preRun() error {
 	var err error
 
-	if err := MakeDirectoryP(p.config.ArtifactsDir); err != nil {
-		slog.Error("failed to create artifact directory", "name", p.config.ArtifactsDir)
-		return errors.New("Code Scan Pipeline failed to run. See log for details.")
+	if err := MakeDirectoryP(p.config.ArtifactDir); err != nil {
+		slog.Error("failed to create artifact directory", "name", p.config.ArtifactDir)
+		return errors.New("Code Scan Pipeline failed to run.")
 	}
 
-	p.runtime.gitleaksFilename = path.Join(p.config.ArtifactsDir, p.config.CodeScan.GitleaksFilename)
+	p.runtime.gitleaksFilename = path.Join(p.config.ArtifactDir, p.config.CodeScan.GitleaksFilename)
 	p.runtime.gitleaksFile, err = OpenOrCreateFile(p.runtime.gitleaksFilename)
 	if err != nil {
 		slog.Error("cannot open gitleaks report file", "filename", p.runtime.gitleaksFile, "error", err)
 		return err
 	}
 
-	p.runtime.semgrepFilename = path.Join(p.config.ArtifactsDir, p.config.CodeScan.SemgrepFilename)
+	p.runtime.semgrepFilename = path.Join(p.config.ArtifactDir, p.config.CodeScan.SemgrepFilename)
 	p.runtime.semgrepFile, err = OpenOrCreateFile(p.runtime.semgrepFilename)
 	if err != nil {
 		slog.Error("cannot open semgrep report file", "filename", p.runtime.semgrepFilename, "error", err)
@@ -74,7 +74,7 @@ func (p *CodeScan) preRun() error {
 	}
 
 	p.runtime.postSummaryBuffer = new(bytes.Buffer)
-	p.runtime.bundleFilename = path.Join(p.config.ArtifactsDir, p.config.GatecheckBundleFilename)
+	p.runtime.bundleFilename = path.Join(p.config.ArtifactDir, p.config.GatecheckBundleFilename)
 
 	return nil
 }
@@ -86,7 +86,7 @@ func (p *CodeScan) Run() error {
 	}
 
 	if err := p.preRun(); err != nil {
-		return errors.New("Code Scan Pipeline Pre-Run Failed. See log for details.")
+		return errors.New("Code Scan Pipeline Pre-Run Failed.")
 	}
 
 	defer func() {
@@ -94,7 +94,7 @@ func (p *CodeScan) Run() error {
 		_ = p.runtime.semgrepFile.Close()
 	}()
 
-	slog.Info("run image scan pipeline", "dry_run_enabled", p.DryRunEnabled, "artifact_directory", p.config.ArtifactsDir)
+	slog.Info("run image scan pipeline", "dry_run_enabled", p.DryRunEnabled, "artifact_directory", p.config.ArtifactDir)
 
 	slog.Debug("open gatecheck bundle file for output", "filename", p.runtime.bundleFilename)
 
@@ -183,7 +183,7 @@ func (p *CodeScan) Run() error {
 	var postRunError error
 
 	if err := p.postRun(); err != nil {
-		postRunError = errors.New("Code Scan Pipeline Post-Run Failed. See log for details.")
+		postRunError = errors.New("Code Scan Pipeline Post-Run Failed.")
 	}
 
 	return errors.Join(gitleaksError, semgrepError, postRunError)

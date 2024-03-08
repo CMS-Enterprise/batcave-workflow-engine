@@ -59,26 +59,26 @@ func (p *ImageScan) preRun() error {
 	// In Memory Buffer
 	p.runtime.postSummaryBuffer = new(bytes.Buffer)
 
-	if err := MakeDirectoryP(p.config.ArtifactsDir); err != nil {
-		slog.Error("failed to create artifact directory", "name", p.config.ArtifactsDir)
-		return errors.New("Code Scan Pipeline failed to run. See log for details.")
+	if err := MakeDirectoryP(p.config.ArtifactDir); err != nil {
+		slog.Error("failed to create artifact directory", "name", p.config.ArtifactDir)
+		return errors.New("Code Scan Pipeline failed to run.")
 	}
 
-	p.runtime.sbomFilename = path.Join(p.config.ArtifactsDir, p.config.ImageScan.SyftFilename)
+	p.runtime.sbomFilename = path.Join(p.config.ArtifactDir, p.config.ImageScan.SyftFilename)
 	p.runtime.sbomFile, err = OpenOrCreateFile(p.runtime.sbomFilename)
 	if err != nil {
 		slog.Error("cannot open syft sbom file", "filename", p.runtime.sbomFilename, "error", err)
 		return err
 	}
 
-	p.runtime.grypeFilename = path.Join(p.config.ArtifactsDir, p.config.ImageScan.GrypeFullFilename)
+	p.runtime.grypeFilename = path.Join(p.config.ArtifactDir, p.config.ImageScan.GrypeFullFilename)
 	p.runtime.grypeFile, err = OpenOrCreateFile(p.runtime.grypeFilename)
 	if err != nil {
 		slog.Error("cannot open grype sbom file", "filename", p.runtime.grypeFilename, "error", err)
 		return err
 	}
 
-	p.runtime.clamavFilename = path.Join(p.config.ArtifactsDir, p.config.ImageScan.ClamavFilename)
+	p.runtime.clamavFilename = path.Join(p.config.ArtifactDir, p.config.ImageScan.ClamavFilename)
 	p.runtime.clamavFile, err = OpenOrCreateFile(p.runtime.clamavFilename)
 	if err != nil {
 		slog.Error("cannot open clam virus report file", "filename", p.runtime.clamavFilename, "error", err)
@@ -91,7 +91,7 @@ func (p *ImageScan) preRun() error {
 		return err
 	}
 
-	p.runtime.bundleFilename = path.Join(p.config.ArtifactsDir, p.config.GatecheckBundleFilename)
+	p.runtime.bundleFilename = path.Join(p.config.ArtifactDir, p.config.GatecheckBundleFilename)
 
 	return nil
 }
@@ -103,7 +103,7 @@ func (p *ImageScan) Run() error {
 	}
 
 	if err := p.preRun(); err != nil {
-		return errors.New("Code Scan Pipeline Pre-Run Failed. See log for details.")
+		return errors.New("Code Scan Pipeline Pre-Run Failed.")
 	}
 
 	fmt.Fprintln(p.Stdout, "******* Workflow Engine Image Scan Pipeline [Run] *******")
@@ -149,6 +149,8 @@ func (p *ImageScan) Run() error {
 		if exitCode != shell.ExitOK {
 			return exitCode.GetError("grype")
 		}
+		p.runtime.grypeJobSuccess = true
+		p.runtime.syftJobSuccess = true
 
 		opts = []shell.OptionFunc{
 			shell.WithDryRun(p.DryRunEnabled),
@@ -229,7 +231,7 @@ func (p *ImageScan) postRun() error {
 
 func RunClamScanJob(task *AsyncTask, reportDst io.Writer, options []shell.OptionFunc) {
 	defer task.stdErrPipeWriter.Close()
-	commonError := errors.New("Clam Scan Job Failed. See log for details.")
+	commonError := errors.New("Clam Scan Job Failed.")
 	// Create temporary image tar file for writing
 	slog.Debug("create temporary file for image tar, used for clam virus scan")
 	imageTarFile, err := os.CreateTemp(os.TempDir(), "*-image.tar")

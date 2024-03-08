@@ -32,7 +32,7 @@ func (p *Deploy) WithConfig(config *Config) *Deploy {
 }
 
 func (p *Deploy) preRun() error {
-	p.runtime.bundleFilename = path.Join(p.config.ArtifactsDir, p.config.GatecheckBundleFilename)
+	p.runtime.bundleFilename = path.Join(p.config.ArtifactDir, p.config.GatecheckBundleFilename)
 	return nil
 }
 

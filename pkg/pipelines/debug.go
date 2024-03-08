@@ -32,7 +32,7 @@ func (d *Debug) Run() error {
 	wd, err := os.Getwd()
 	if err != nil {
 		slog.Error("cannot get current working directory", "error", err)
-		return errors.New("Debug Pipeline failed to Run. See log for details.")
+		return errors.New("Debug Pipeline failed to Run.")
 	}
 	slog.Info(fmt.Sprintf("Current directory: %s", wd))
 

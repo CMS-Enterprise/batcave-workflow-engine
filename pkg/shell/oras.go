@@ -26,7 +26,7 @@ func OrasPushBundle(options ...OptionFunc) ExitCode {
 		"--disable-path-validation",
 		"--artifact-type",
 		"application/vnd.gatecheckdev.gatecheck.bundle.tar+gzip",
-		o.artifactsImage,
+		o.artifactImage,
 		o.gatecheck.bundleFilename,
 	)
 	return run(exe, o)
