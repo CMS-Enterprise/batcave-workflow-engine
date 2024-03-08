@@ -121,11 +121,17 @@ func ListConfig(w io.Writer, v *viper.Viper) error {
 // LoadOrDefault will use the default values in v if filename is blank
 //
 // Caller should pass in a new config object
-func LoadOrDefault(filename string, config *pipelines.Config, v *viper.Viper) error {
+func LoadOrDefault(filename string, config *pipelines.Config, v *viper.Viper, artifactDir string) error {
 	slog.Debug("load configuration from file", "filename", filename)
 	if filename == "" {
 		slog.Debug("no filename given, load from env, cli flags, and then defaults")
-		return loadWithoutConfigFile(config, v)
+		err := loadWithoutConfigFile(config, v)
+		// TODO: This is a bit of a hack to set the artifact directory global parameter here but it is done to
+		//       be able to override the viper defaults when setting the artifact directory on the command line.
+		if (artifactDir != "") {
+			config.ArtifactsDir = artifactDir
+		}
+		return err
 	}
 
 	v.SetConfigFile(filename)

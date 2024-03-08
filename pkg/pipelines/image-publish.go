@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"path"
+	"strings"
 	"workflow-engine/pkg/shell"
 )
 
@@ -53,11 +54,20 @@ func (p *ImagePublish) Run() error {
 		return nil
 	}
 
+	alias := shell.DockerAliasDocker
+	switch strings.ToLower(p.DockerAlias) {
+	case "podman":
+		alias = shell.DockerAliasPodman
+	case "docker":
+		alias = shell.DockerAliasDocker
+	}
+
 	if err := p.preRun(); err != nil {
 		return errors.New("Code Scan Pipeline Pre-Run Failed. See log for details.")
 	}
 
 	exitCode := shell.DockerPush(
+		shell.WithDockerAlias(alias),
 		shell.WithDryRun(p.DryRunEnabled),
 		shell.WithImage(p.config.ImageBuild.Tag),
 		shell.WithStderr(p.Stderr),

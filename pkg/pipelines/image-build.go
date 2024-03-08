@@ -64,7 +64,7 @@ func (p *ImageBuild) Run() error {
 		shell.WithDryRun(p.DryRunEnabled),
 	}
 
-	exitCode := shell.DockerInfo()
+	exitCode := shell.DockerInfo(opts...)
 
 	if exitCode != shell.ExitOK {
 		return errors.New("Image Build Pipeline ran but failed. See log for details.")

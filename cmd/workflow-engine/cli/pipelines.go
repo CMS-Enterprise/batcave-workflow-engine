@@ -45,9 +45,6 @@ func newRunCommand() *cobra.Command {
 	// run image-scan
 	imageScanCmd := newBasicCommand("image-scan", "run security scans on an image", runImageScan)
 
-	imageScanCmd.Flags().String("artifact-directory", "", "the output directory for all artifacts generated in the pipeline")
-	_ = viper.BindPFlag("artifactsdir", imageScanCmd.Flags().Lookup("artifact-directory"))
-
 	imageScanCmd.Flags().String("sbom-filename", "", "the output filename for the syft SBOM")
 	_ = viper.BindPFlag("imagescan.syftfilename", imageScanCmd.Flags().Lookup("sbom-filename"))
 
@@ -87,6 +84,7 @@ func newRunCommand() *cobra.Command {
 	cmd.PersistentFlags().BoolP("dry-run", "n", false, "log commands to debug but don't execute")
 	cmd.PersistentFlags().StringP("config", "f", "", "workflow engine config file in json, yaml, or toml")
 	cmd.PersistentFlags().StringP("cli-interface", "i", "docker", "[docker|podman] CLI interface to use for image building")
+	cmd.PersistentFlags().StringP("artifact-directory", "", "", "the output directory for all artifacts generated in the pipeline")
 
 	// Flag marks
 	_ = cmd.MarkFlagFilename("config", "json", "yaml", "yml", "toml")
@@ -112,9 +110,10 @@ func runDebug(cmd *cobra.Command, _ []string) error {
 func runDeploy(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
 	configFilename, _ := cmd.Flags().GetString("config")
+	artifactDir, _ := cmd.Flags().GetString("artifact-directory")
 
 	config := new(pipelines.Config)
-	if err := LoadOrDefault(configFilename, config, viper.GetViper()); err != nil {
+	if err := LoadOrDefault(configFilename, config, viper.GetViper(), artifactDir); err != nil {
 		return err
 	}
 
@@ -125,9 +124,10 @@ func runImageBuild(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
 	cliInterface, _ := cmd.Flags().GetString("cli-interface")
 	configFilename, _ := cmd.Flags().GetString("config")
+	artifactDir, _ := cmd.Flags().GetString("artifact-directory")
 
 	config := new(pipelines.Config)
-	if err := LoadOrDefault(configFilename, config, viper.GetViper()); err != nil {
+	if err := LoadOrDefault(configFilename, config, viper.GetViper(), artifactDir); err != nil {
 		return err
 	}
 
@@ -138,9 +138,10 @@ func runImageScan(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
 	cliInterface, _ := cmd.Flags().GetString("cli-interface")
 	configFilename, _ := cmd.Flags().GetString("config")
+	artifactDir, _ := cmd.Flags().GetString("artifact-directory")
 
 	config := new(pipelines.Config)
-	if err := LoadOrDefault(configFilename, config, viper.GetViper()); err != nil {
+	if err := LoadOrDefault(configFilename, config, viper.GetViper(), artifactDir); err != nil {
 		return err
 	}
 
@@ -151,11 +152,13 @@ func runimagePublish(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
 	configFilename, _ := cmd.Flags().GetString("config")
 	cliInterface, _ := cmd.Flags().GetString("cli-interface")
+	artifactDir, _ := cmd.Flags().GetString("artifact-directory")
 
 	config := new(pipelines.Config)
-	if err := LoadOrDefault(configFilename, config, viper.GetViper()); err != nil {
+	if err := LoadOrDefault(configFilename, config, viper.GetViper(), artifactDir); err != nil {
 		return err
 	}
+
 	return imagePublishPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled, cliInterface)
 }
 
@@ -163,9 +166,10 @@ func runCodeScan(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
 	configFilename, _ := cmd.Flags().GetString("config")
 	semgrepExperimental, _ := cmd.Flags().GetBool("semgrep-experimental")
+	artifactDir, _ := cmd.Flags().GetString("artifact-directory")
 
 	config := new(pipelines.Config)
-	if err := LoadOrDefault(configFilename, config, viper.GetViper()); err != nil {
+	if err := LoadOrDefault(configFilename, config, viper.GetViper(), artifactDir); err != nil {
 		return err
 	}
 
