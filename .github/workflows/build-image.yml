@@ -53,6 +53,7 @@ jobs:
           path: .
           dockerfile: ./Dockerfile
           build_target: workflow-engine-podman
+          workflow-engine-name: workflow-engine-podman-local
           image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:podman-latest
           repo_token: ${{ secrets.GITHUB_TOKEN }}
 
