@@ -85,7 +85,9 @@ func newRunCommand() *cobra.Command {
 	cmd.PersistentFlags().StringP("config", "f", "", "workflow engine config file in json, yaml, or toml")
 	cmd.PersistentFlags().StringP("cli-interface", "i", "docker", "[docker|podman] CLI interface to use for image building")
 	cmd.PersistentFlags().String("artifact-dir", "", "the target output directory for security report artifacts")
-	_ = viper.BindPFlag("artifactdir", cmd.Flags().Lookup("artifact-dir"))
+
+	// necessary for the persistent flags
+	_ = viper.BindPFlag("artifactdir", cmd.PersistentFlags().Lookup("artifact-dir"))
 
 	// Flag marks
 	_ = cmd.MarkFlagFilename("config", "json", "yaml", "yml", "toml")
