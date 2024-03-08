@@ -149,6 +149,8 @@ func (p *ImageScan) Run() error {
 		if exitCode != shell.ExitOK {
 			return exitCode.GetError("grype")
 		}
+		p.runtime.grypeJobSuccess = true
+		p.runtime.syftJobSuccess = true
 
 		opts = []shell.OptionFunc{
 			shell.WithDryRun(p.DryRunEnabled),
