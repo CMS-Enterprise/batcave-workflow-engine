@@ -16,8 +16,9 @@ const (
 	ExitOK               ExitCode = 0
 	ExitUnknown          ExitCode = 232
 	ExitContextCancel    ExitCode = 231
-	ExitKillFailure      ExitCode = 230
-	ExitBadConfiguration ExitCode = 299
+	ExitIOFailure        ExitCode = 230
+	ExitExecFailure      ExitCode = 229
+	ExitBadConfiguration ExitCode = 228
 )
 
 func (e ExitCode) GetError(name string) error {
@@ -232,6 +233,46 @@ func WithBuildImageOptions(options ImageBuildOptions) OptionFunc {
 	}
 }
 
+// gracefulExit handles errors from run
+//
+// 1. If commandError is nil, just return ExitOK
+// 2. Trigger the failTrigger function
+// 3. Dump stderr from stderrBuf if the command was configured to only send stderr on command fail
+// 4. Try to get the command native error code
+// 5. If nothing else works, log debugging information and return exitUnknown
+func gracefulExit(commandError error, failTrigger func(), dumpOnError bool, stderr io.Writer, stderrBuf *bytes.Buffer) ExitCode {
+	if commandError == nil {
+		return ExitOK
+	}
+
+	failTrigger()
+
+	var exitCodeError *exec.ExitError
+	var execError *exec.Error
+	errorType := fmt.Sprintf("%T", commandError)
+
+	switch {
+	case dumpOnError:
+		slog.Warn("a error occurred while running a command. Dumping logs to stderr")
+		_, err := io.Copy(stderr, stderrBuf)
+		if err != nil {
+			commandError = errors.Join(commandError, fmt.Errorf("cannot dump logs. reason: %v", err))
+		}
+	// this happens on a regular exit from a command that failed with something other than 0
+	case errors.As(commandError, &exitCodeError):
+		return ExitCode(exitCodeError.ExitCode())
+	case errors.As(commandError, &execError):
+		slog.Error("command execution", "error", commandError, "error_type", errorType)
+		return ExitExecFailure
+	}
+
+	// this would be a edge case
+	// We can get type information on the error for further inspection so we can review later
+	slog.Error("unknown", "error", commandError, "error_type", errorType)
+
+	return ExitUnknown
+}
+
 // run handles the execution of the command
 //
 // context will be set to background if not provided in the o.ctx
@@ -256,8 +297,9 @@ func run(cmd *exec.Cmd, o *Options) ExitCode {
 	}
 
 	if err := cmd.Start(); err != nil {
-		return ExitUnknown
+		return gracefulExit(err, o.failTriggerFunc, o.errorOnly, o.errorOnlyStderr, stdErrBuf)
 	}
+
 	if o.ctx == nil {
 		o.ctx = context.Background()
 	}
@@ -269,39 +311,17 @@ func run(cmd *exec.Cmd, o *Options) ExitCode {
 		doneChan <- struct{}{}
 	}()
 
-	var exitCode ExitCode
-
 	// Either context will cancel or the command will finish before
 	// capture the exit code
 	select {
 	case <-o.ctx.Done():
-		exitCode = ExitContextCancel
+		slog.Warn("command canceled", "command", cmd.String())
 		if err := cmd.Process.Kill(); err != nil {
-			exitCode = ExitKillFailure
+			err = fmt.Errorf("KILL signal failed: %v", err)
+			return gracefulExit(err, o.failTriggerFunc, o.errorOnly, o.errorOnlyStderr, stdErrBuf)
 		}
+		return gracefulExit(errors.New("command killed"), o.failTriggerFunc, o.errorOnly, o.errorOnlyStderr, stdErrBuf)
 	case <-doneChan:
-
-		exitCode = ExitOK
-
-		var exitCodeError *exec.ExitError
-		if errors.As(runError, &exitCodeError) {
-			exitCode = ExitCode(exitCodeError.ExitCode())
-			break
-		}
-		if runError != nil {
-			exitCode = ExitUnknown
-		}
+		return gracefulExit(runError, o.failTriggerFunc, o.errorOnly, o.errorOnlyStderr, stdErrBuf)
 	}
-
-	if exitCode != ExitOK {
-		o.failTriggerFunc()
-		if o.errorOnly {
-			slog.Info("non-zero exit and error only, dumping log")
-			if _, err := io.Copy(o.errorOnlyStderr, stdErrBuf); err != nil {
-				slog.Warn("cannot dump stderr to destination", "error", err)
-			}
-		}
-	}
-
-	return exitCode
 }
