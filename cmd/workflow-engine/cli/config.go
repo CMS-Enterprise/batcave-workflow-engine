@@ -47,7 +47,7 @@ func newConfigCommand() *cobra.Command {
 // Run Functions - Parsing flags and arguments at command runtime
 func runConfigInfo(cmd *cobra.Command, args []string) error {
 	config := new(pipelines.Config)
-	if err := LoadOrDefault(args[0], config, viper.GetViper(), ""); err != nil {
+	if err := LoadOrDefault(args[0], config, viper.GetViper()); err != nil {
 		return err
 	}
 	return ListConfig(cmd.OutOrStdout(), viper.GetViper())
@@ -138,7 +138,7 @@ func runConfigConvert(cmd *cobra.Command, args []string) error {
 
 	config := new(pipelines.Config)
 	// Force load without default configuration
-	if err := LoadOrDefault("", config, tempViper, ""); err != nil {
+	if err := LoadOrDefault("", config, tempViper); err != nil {
 		return err
 	}
 

@@ -115,7 +115,8 @@ func runDeploy(cmd *cobra.Command, _ []string) error {
 	artifactDir, _ := cmd.Flags().GetString("artifact-directory")
 
 	config := new(pipelines.Config)
-	if err := LoadOrDefault(configFilename, config, viper.GetViper(), artifactDir); err != nil {
+	config.ArtifactDir = artifactDir
+	if err := LoadOrDefault(configFilename, config, viper.GetViper()); err != nil {
 		return err
 	}
 
@@ -129,7 +130,8 @@ func runImageBuild(cmd *cobra.Command, _ []string) error {
 	artifactDir, _ := cmd.Flags().GetString("artifact-directory")
 
 	config := new(pipelines.Config)
-	if err := LoadOrDefault(configFilename, config, viper.GetViper(), artifactDir); err != nil {
+	config.ArtifactDir = artifactDir
+	if err := LoadOrDefault(configFilename, config, viper.GetViper()); err != nil {
 		return err
 	}
 
@@ -143,7 +145,8 @@ func runImageScan(cmd *cobra.Command, _ []string) error {
 	artifactDir, _ := cmd.Flags().GetString("artifact-directory")
 
 	config := new(pipelines.Config)
-	if err := LoadOrDefault(configFilename, config, viper.GetViper(), artifactDir); err != nil {
+	config.ArtifactDir = artifactDir
+	if err := LoadOrDefault(configFilename, config, viper.GetViper()); err != nil {
 		return err
 	}
 
@@ -157,7 +160,8 @@ func runimagePublish(cmd *cobra.Command, _ []string) error {
 	artifactDir, _ := cmd.Flags().GetString("artifact-directory")
 
 	config := new(pipelines.Config)
-	if err := LoadOrDefault(configFilename, config, viper.GetViper(), artifactDir); err != nil {
+	config.ArtifactDir = artifactDir
+	if err := LoadOrDefault(configFilename, config, viper.GetViper()); err != nil {
 		return err
 	}
 
@@ -171,7 +175,8 @@ func runCodeScan(cmd *cobra.Command, _ []string) error {
 	artifactDir, _ := cmd.Flags().GetString("artifact-directory")
 
 	config := new(pipelines.Config)
-	if err := LoadOrDefault(configFilename, config, viper.GetViper(), artifactDir); err != nil {
+	config.ArtifactDir = artifactDir
+	if err := LoadOrDefault(configFilename, config, viper.GetViper()); err != nil {
 		return err
 	}
 
