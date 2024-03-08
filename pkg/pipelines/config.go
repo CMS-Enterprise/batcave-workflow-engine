@@ -77,7 +77,6 @@ func BindEnvs(v *viper.Viper) {
 	v.MustBindEnv("imagebuild.cacheto", "WFE_IMAGE_BUILD_CACHE_TO")
 	v.MustBindEnv("imagebuild.cachefrom", "WFE_IMAGE_BUILD_CACHE_FROM")
 	v.MustBindEnv("imagebuild.squashlayers", "WFE_IMAGE_BUILD_SQUASH_LAYERS")
-	v.MustBindEnv("imagebuild.scantarget", "WFE_IMAGE_BUILD_SCAN_TARGET")
 
 	v.MustBindEnv("imagescan.enabled", "WFE_IMAGE_SCAN_ENABLED")
 	v.MustBindEnv("imagescan.clamavFilename", "WFE_IMAGE_SCAN_CLAMAV_FILENAME")
@@ -85,6 +84,7 @@ func BindEnvs(v *viper.Viper) {
 	v.MustBindEnv("imagescan.grypeConfigFilename", "WFE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME")
 	v.MustBindEnv("imagescan.grypeActiveFindingsFilename", "WFE_IMAGE_SCAN_GRYPE_ACTIVE_FINDINGS_FILENAME")
 	v.MustBindEnv("imagescan.grypeAllFindingsFilename", "WFE_IMAGE_SCAN_GRYPE_ALL_FINDINGS_FILENAME")
+	v.MustBindEnv("imagescan.targetimage", "WFE_IMAGE_SCAN_TARGET_IMAGE")
 
 	v.MustBindEnv("codescan.enabled", "WFE_CODE_SCAN_ENABLED")
 	v.MustBindEnv("codescan.gitleaksFilename", "WFE_CODE_SCAN_GITLEAKS_FILENAME")
