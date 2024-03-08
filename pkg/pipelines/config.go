@@ -23,17 +23,17 @@ type Config struct {
 }
 
 type configImageBuild struct {
-	Enabled      bool              `json:"enabled"      toml:"enabled"      yaml:"enabled"`
-	BuildDir     string            `json:"buildDir"     toml:"buildDir"     yaml:"buildDir"`
-	Dockerfile   string            `json:"dockerfile"   toml:"dockerfile"   yaml:"dockerfile"`
-	Tag          string            `json:"tag"          toml:"tag"          yaml:"tag"`
-	Platform     string            `json:"platform"     toml:"platform"     yaml:"platform"`
-	Target       string            `json:"target"       toml:"target"       yaml:"target"`
-	CacheTo      string            `json:"cacheTo"      toml:"cacheTo"      yaml:"cacheTo"`
-	CacheFrom    string            `json:"cacheFrom"    toml:"cacheFrom"    yaml:"cacheFrom"`
-	SquashLayers bool              `json:"squashLayers" toml:"squashLayers" yaml:"squashLayers"`
-	Args         map[string]string `json:"args"         toml:"args"         yaml:"args"`
-	ScanTarget   string            `json:"scanTarget"   toml:"scanTarget"   yaml:"scanTarget"`
+	Enabled      bool     `json:"enabled"      toml:"enabled"      yaml:"enabled"`
+	BuildDir     string   `json:"buildDir"     toml:"buildDir"     yaml:"buildDir"`
+	Dockerfile   string   `json:"dockerfile"   toml:"dockerfile"   yaml:"dockerfile"`
+	Tag          string   `json:"tag"          toml:"tag"          yaml:"tag"`
+	Platform     string   `json:"platform"     toml:"platform"     yaml:"platform"`
+	Target       string   `json:"target"       toml:"target"       yaml:"target"`
+	CacheTo      string   `json:"cacheTo"      toml:"cacheTo"      yaml:"cacheTo"`
+	CacheFrom    string   `json:"cacheFrom"    toml:"cacheFrom"    yaml:"cacheFrom"`
+	SquashLayers bool     `json:"squashLayers" toml:"squashLayers" yaml:"squashLayers"`
+	Args         []string `json:"args"         toml:"args"         yaml:"args"`
+	ScanTarget   string   `json:"scanTarget"   toml:"scanTarget"   yaml:"scanTarget"`
 }
 
 type configImageScan struct {
@@ -77,7 +77,6 @@ func BindEnvs(v *viper.Viper) {
 	v.MustBindEnv("imagebuild.cacheto", "WFE_IMAGE_BUILD_CACHE_TO")
 	v.MustBindEnv("imagebuild.cachefrom", "WFE_IMAGE_BUILD_CACHE_FROM")
 	v.MustBindEnv("imagebuild.squashlayers", "WFE_IMAGE_BUILD_SQUASH_LAYERS")
-	v.MustBindEnv("imagebuild.scantarget", "WFE_IMAGE_BUILD_SCAN_TARGET")
 
 	v.MustBindEnv("imagescan.enabled", "WFE_IMAGE_SCAN_ENABLED")
 	v.MustBindEnv("imagescan.clamavFilename", "WFE_IMAGE_SCAN_CLAMAV_FILENAME")
@@ -85,6 +84,7 @@ func BindEnvs(v *viper.Viper) {
 	v.MustBindEnv("imagescan.grypeConfigFilename", "WFE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME")
 	v.MustBindEnv("imagescan.grypeActiveFindingsFilename", "WFE_IMAGE_SCAN_GRYPE_ACTIVE_FINDINGS_FILENAME")
 	v.MustBindEnv("imagescan.grypeAllFindingsFilename", "WFE_IMAGE_SCAN_GRYPE_ALL_FINDINGS_FILENAME")
+	v.MustBindEnv("imagescan.targetimage", "WFE_IMAGE_SCAN_TARGET_IMAGE")
 
 	v.MustBindEnv("codescan.enabled", "WFE_CODE_SCAN_ENABLED")
 	v.MustBindEnv("codescan.gitleaksFilename", "WFE_CODE_SCAN_GITLEAKS_FILENAME")

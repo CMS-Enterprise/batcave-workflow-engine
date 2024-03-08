@@ -1,6 +1,7 @@
 package shell
 
 import (
+	"log/slog"
 	"os/exec"
 )
 
@@ -103,7 +104,7 @@ type ImageBuildOptions struct {
 	SquashLayers bool
 	CacheTo      string
 	CacheFrom    string
-	buildArgs    []string
+	BuildArgs    []string
 }
 
 func (o ImageBuildOptions) args() []string {
@@ -125,9 +126,10 @@ func (o ImageBuildOptions) args() []string {
 	}
 
 	// Special case for build arguments
-	for _, arg := range o.buildArgs {
+	for _, arg := range o.BuildArgs {
+		slog.Debug("docker build argument", "arg", arg)
 		if arg != "" {
-			args = append(args, arg)
+			args = append(args, "--build-arg", arg)
 		}
 	}
 

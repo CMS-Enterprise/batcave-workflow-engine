@@ -55,6 +55,7 @@ func (p *ImageBuild) Run() error {
 		SquashLayers: p.config.ImageBuild.SquashLayers,
 		CacheTo:      p.config.ImageBuild.CacheTo,
 		CacheFrom:    p.config.ImageBuild.CacheFrom,
+		BuildArgs:    p.config.ImageBuild.Args,
 	}
 
 	opts := []shell.OptionFunc{
@@ -62,6 +63,7 @@ func (p *ImageBuild) Run() error {
 		shell.WithStdout(p.Stdout),
 		shell.WithStderr(p.Stderr),
 		shell.WithDryRun(p.DryRunEnabled),
+		shell.WithBuildImageOptions(buildOpts),
 	}
 
 	exitCode := shell.DockerInfo(opts...)

@@ -1,6 +1,9 @@
 # Use the official Nginx image as a base
 FROM nginx:latest
 
+ARG KEY_1
+ARG KEY_2
+
 # Remove default Nginx configuration file
 RUN rm /etc/nginx/conf.d/default.conf
 
