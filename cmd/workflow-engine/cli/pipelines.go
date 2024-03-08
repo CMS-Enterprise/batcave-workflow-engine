@@ -21,7 +21,7 @@ func newRunCommand() *cobra.Command {
 	imageBuildCmd.Flags().String("dockerfile", viper.GetString("imagebuild.dockerfile"), "image build custom Dockerfile")
 	_ = viper.BindPFlag("image.dockerfile", imageBuildCmd.Flags().Lookup("dockerfile"))
 
-	imageBuildCmd.Flags().StringToString("build-arg", viper.GetStringMapString("imagebuild."), "A build argument passed to the container build command")
+	imageBuildCmd.Flags().StringArray("build-arg", make([]string, 0), "A build argument passed to the container build command")
 	_ = viper.BindPFlag("imagebuild.args", imageBuildCmd.Flags().Lookup("build-arg"))
 
 	imageBuildCmd.Flags().String("tag", "", "image build custom tag")

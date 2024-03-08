@@ -23,17 +23,17 @@ type Config struct {
 }
 
 type configImageBuild struct {
-	Enabled      bool              `json:"enabled"      toml:"enabled"      yaml:"enabled"`
-	BuildDir     string            `json:"buildDir"     toml:"buildDir"     yaml:"buildDir"`
-	Dockerfile   string            `json:"dockerfile"   toml:"dockerfile"   yaml:"dockerfile"`
-	Tag          string            `json:"tag"          toml:"tag"          yaml:"tag"`
-	Platform     string            `json:"platform"     toml:"platform"     yaml:"platform"`
-	Target       string            `json:"target"       toml:"target"       yaml:"target"`
-	CacheTo      string            `json:"cacheTo"      toml:"cacheTo"      yaml:"cacheTo"`
-	CacheFrom    string            `json:"cacheFrom"    toml:"cacheFrom"    yaml:"cacheFrom"`
-	SquashLayers bool              `json:"squashLayers" toml:"squashLayers" yaml:"squashLayers"`
-	Args         map[string]string `json:"args"         toml:"args"         yaml:"args"`
-	ScanTarget   string            `json:"scanTarget"   toml:"scanTarget"   yaml:"scanTarget"`
+	Enabled      bool     `json:"enabled"      toml:"enabled"      yaml:"enabled"`
+	BuildDir     string   `json:"buildDir"     toml:"buildDir"     yaml:"buildDir"`
+	Dockerfile   string   `json:"dockerfile"   toml:"dockerfile"   yaml:"dockerfile"`
+	Tag          string   `json:"tag"          toml:"tag"          yaml:"tag"`
+	Platform     string   `json:"platform"     toml:"platform"     yaml:"platform"`
+	Target       string   `json:"target"       toml:"target"       yaml:"target"`
+	CacheTo      string   `json:"cacheTo"      toml:"cacheTo"      yaml:"cacheTo"`
+	CacheFrom    string   `json:"cacheFrom"    toml:"cacheFrom"    yaml:"cacheFrom"`
+	SquashLayers bool     `json:"squashLayers" toml:"squashLayers" yaml:"squashLayers"`
+	Args         []string `json:"args"         toml:"args"         yaml:"args"`
+	ScanTarget   string   `json:"scanTarget"   toml:"scanTarget"   yaml:"scanTarget"`
 }
 
 type configImageScan struct {
