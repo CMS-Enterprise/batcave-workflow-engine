@@ -2,49 +2,35 @@ name: Scan Image
 description: Scans a Container Image using workflow-engine
 
 inputs:
-  workflow_engine_version:
-    description: "The version of workflow-engine to use (note: different versions of the workflow-engine image may not be compatible with this version of the GitHub action)."
-    default: "v0.0.1-rc.7"
-  image_tag:
-    description: The tag of the image being scanned (defaults to the repository name and current commit SHA).
-    default: ${{ github.repository }}:${{ github.sha }}
-  output_dir:
-    description: The output directory to store sbom and scan files
-    required: true
-  sbom_filename:
-    description: "The filename to use for the SBOM (default: syft-sbom-report.json)"
-    default: "syft-sbom-report.json"
-  grype_filename:
-    description: "The filename to use for the Grype scan (default: grype-vulnerability-report-full.json)"
-    default: "grype-vulnerability-report-full.json"
-  repo_token:
-    description: The GITHUB_TOKEN environment variable, used to authentication with the ghcr.io container registry.
-    required: true
+  config_file:
+    description: "The file location where the workflow-engine configuration is located"
+    default: ""
+  scan_target:
+    description: "The target for image scanning."
+  clamav_filename:
+    description: "Filename for ClamAV scan report."
+  syft_filename:
+    description: "Filename for Syft SBOM report."
+  grype_config_filename:
+    description: "Configuration file for Grype."
+  grype_active_findings_filename:
+    description: "Filename for Grype active findings report."
+  grype_all_findings_filename:
+    description: "Filename for Grype full findings report."
+  artifact_dir:
+    description: "The directory where image scan artifacts should be stored"
 
 runs:
-  using: composite
-  steps:
-    # This hack is necessary so long as the workflow-engine image is in a registry requiring
-    # authentication. However, there may be ather workarounds if we are using self-hosted runners
-    # where we can configure the runner to pre-authenticate with the registry
-    - uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ inputs.repo_token }}
-    - shell: bash
-      run: docker pull ghcr.io/cms-enterprise/batcave/workflow-engine:${{ inputs.workflow_engine_version }}
-    - shell: bash
-      run: |-
-        docker run --workdir /github/workspace -e HOME -e CI=true \
-          -v "/var/run/docker.sock":"/var/run/docker.sock" \
-          -v "$HOME":"/github/home" \
-          -v "$(pwd)":"/github/workspace" \
-          -v "$(readlink -f ${{ inputs.output_dir }})":"/github/output" \
-          ghcr.io/cms-enterprise/batcave/workflow-engine:${{ inputs.workflow_engine_version }} \
-          run image-scan \
-          --verbose \
-          --tag "${{ inputs.image_tag }}" \
-          --artifact-dir "/github/output" \
-          --sbom-filename "${{ inputs.sbom_filename }}" \
-          --grype-filename "${{ inputs.grype_filename }}"
+  using: docker
+  image: "docker://ghcr.io/cms-enterprise/batcave/workflow-engine:v0.0.1-rc.7"
+  args: [ "run", "image-scan", "--config", "${{inputs.config_file}}", "--verbose" ]
+  env:
+    # TODO: shouldn't this be WFE_IMAGE_SCAN_TARGET
+    WFE_IMAGE_BUILD_SCAN_TARGET: "${{inputs.scan_target}}"
+    WFE_IMAGE_SCAN_CLAMAV_FILENAME: "${{inputs.clamav_filename}}"
+    WFE_IMAGE_SCAN_SYFT_FILENAME: "${{inputs.syft_filename}}"
+    WFE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME: "${{inputs.grype_config_filename}}"
+    WFE_IMAGE_SCAN_GRYPE_ACTIVE_FINDINGS_FILENAME: "${{inputs.grype_active_findings_filename}}"
+    WFE_IMAGE_SCAN_GRYPE_ALL_FINDINGS_FILENAME: "${{inputs.grype_all_findings_filename}}"
+    WFE_ARTIFACT_DIR: "${{inputs.artifact_dir}}"
+
