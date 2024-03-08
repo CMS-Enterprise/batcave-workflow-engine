@@ -20,12 +20,13 @@ FROM ghcr.io/cms-enterprise/batcave/omnibus:v1.1.0-rc3 as workflow-engine-base
 
 COPY --from=build /app/bin/workflow-engine /usr/local/bin/workflow-engine
 
-# Set the environment variable for gatecheck to work properly
-ENV GATECHECK_FF_CLI_V1_ENABLED=1
 
 ENTRYPOINT ["workflow-engine"]
 
 FROM workflow-engine-base as workflow-engine-podman
+
+# enable the Gatecheck beta CLI
+ENV GATECHECK_FF_CLI_V1_ENABLED=1
 
 # Install docker and podman CLIs
 RUN apk update && apk add --no-cache podman fuse-overlayfs
@@ -52,6 +53,9 @@ LABEL org.opencontainers.image.description="A standalone CD engine for BatCAVE"
 LABEL io.artifacthub.package.readme-url="https://github.com/CMS-Enterprise/batcave-workflow-engine/blob/main/README.md"
 
 FROM workflow-engine-base
+
+# enable the Gatecheck beta CLI
+ENV GATECHECK_FF_CLI_V1_ENABLED=1
 
 # Install docker and podman CLIs
 RUN apk update && apk add --no-cache docker-cli-buildx
