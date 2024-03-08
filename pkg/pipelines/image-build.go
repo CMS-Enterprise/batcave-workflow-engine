@@ -47,7 +47,7 @@ func (p *ImageBuild) Run() error {
 
 	// "" values will be stripped out
 	buildOpts := shell.ImageBuildOptions{
-		ImageName:    p.config.ImageBuild.Tag,
+		Tag:          p.config.ImageBuild.Tag,
 		BuildDir:     p.config.ImageBuild.BuildDir,
 		Dockerfile:   p.config.ImageBuild.Dockerfile,
 		Target:       p.config.ImageBuild.Target,

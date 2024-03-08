@@ -96,7 +96,7 @@ func DockerInfo(optionFuncs ...OptionFunc) ExitCode {
 
 // ImageBuildOptions are specific to Docker builds
 type ImageBuildOptions struct {
-	ImageName    string
+	Tag          string
 	BuildDir     string
 	Dockerfile   string
 	Target       string
@@ -116,6 +116,7 @@ func (o ImageBuildOptions) args() []string {
 		"--platform":   o.Platform,
 		"--cache-to":   o.CacheTo,
 		"--cache-from": o.CacheFrom,
+		"--tag":        o.Tag,
 	}
 
 	// append to the args list if not ""
