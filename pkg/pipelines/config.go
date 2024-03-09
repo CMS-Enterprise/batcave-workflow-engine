@@ -55,9 +55,9 @@ type configCodeScan struct {
 }
 
 type configImagePublish struct {
-	Enabled              bool   `json:"enabled"        toml:"enabled"        yaml:"enabled"`
+	Enabled              bool   `json:"enabled"              toml:"enabled"              yaml:"enabled"`
 	BundlePublishEnabled bool   `json:"bundlePublishEnabled" toml:"bundlePublishEnabled" yaml:"bundlePublishEnabled"`
-	BundleTag            string `json:"bundleTag" toml:"bundleTag" yaml:"bundleTag"`
+	BundleTag            string `json:"bundleTag"            toml:"bundleTag"            yaml:"bundleTag"`
 }
 
 type configDeploy struct {

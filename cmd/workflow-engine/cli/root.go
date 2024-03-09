@@ -14,7 +14,6 @@ var (
 )
 
 func NewWorkflowEngineCommand() *cobra.Command {
-
 	viper.SetConfigName("workflow-engine")
 	pipelines.BindEnvs(viper.GetViper())
 	pipelines.SetDefaults(viper.GetViper())

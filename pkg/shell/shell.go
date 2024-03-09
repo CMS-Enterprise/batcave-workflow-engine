@@ -281,7 +281,6 @@ func gracefulExit(commandError error, failTrigger func(), dumpOnError bool, stde
 //
 // Setting the dry run option will always return ExitOK
 func run(cmd *exec.Cmd, o *Options) ExitCode {
-
 	slog.Info("shell exec", "dry_run", o.dryRunEnabled, "command", cmd.String(), "errors_only", o.errorOnly)
 	if o.dryRunEnabled {
 		return ExitOK
