@@ -56,7 +56,7 @@ type configCodeScan struct {
 
 type configImagePublish struct {
 	Enabled       bool   `json:"enabled"        toml:"enabled"        yaml:"enabled"`
-	ArtifactImage string `json:"artifactImage" toml:"artifactImage" yaml:"artifactImage"`
+	ArtifactImage string `json:"artifactImage"  toml:"artifactImage"  yaml:"artifactImage"`
 	PushLatest    bool   `json:"pushLatest"     toml:"pushLatest"     yaml:"pushLatest"`
 }
 

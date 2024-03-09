@@ -60,6 +60,9 @@ func newRunCommand() *cobra.Command {
 	// run image-publish
 	imagePublishCmd := newBasicCommand("image-publish", "publishes an image", runimagePublish)
 
+	imagePublishCmd.Flags().String("image-tag", "", "image tag to publish")
+	_ = viper.BindPFlag("imagepublish.artifactimage", imagePublishCmd.Flags().Lookup("image-tag"))
+
 	// run code-scan
 	codeScanCmd := newBasicCommand("code-scan", "run Static Application Security Tests (SAST) scans", runCodeScan)
 
