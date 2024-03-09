@@ -28,6 +28,10 @@ jobs:
       #       layers-${{ runner.os }}-${{ github.ref }}
       #       layers-${{ runner.os }}
 
+      - name: Set outputs
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
       # TODO combine all delivery jobs into a single action
       - name: Build container image
         uses: ./.github/actions/image-build
@@ -36,7 +40,7 @@ jobs:
           # TODO: the dockerfile path should be relative to the context path
           dockerfile: ./Dockerfile
           # TODO: add support for mixed case to workflow-engine (i.e. we should force container image tags to lowercase)
-          image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:v0.0.1-rc.4
+          image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.sha_short }}
           # cache_from: ./container-cache-in
           # cache_to: ./container-cache-out
           repo_token: ${{ secrets.GITHUB_TOKEN }}
@@ -47,10 +51,27 @@ jobs:
       #     path: ./container-cache-out
       #     key: layers-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('Dockerfile') }}
 
+      - name: Build podman container image
+        uses: ./.github/actions/image-build
+        with:
+          path: .
+          dockerfile: ./Dockerfile
+          build_target: workflow-engine-podman
+          workflow_engine_name: workflow-engine-podman-local
+          image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.sha_short }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Scan container image
         uses: ./.github/actions/image-scan
         with:
-          image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:v0.0.1-rc.4
+          image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.sha_short }}
+          output_dir: ./artifacts
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Scan podman container image
+        uses: ./.github/actions/image-scan
+        with:
+          image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.sha_short }}
           output_dir: ./artifacts
           repo_token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -59,7 +80,11 @@ jobs:
         # TODO: in the future push based on protected git tags
         # if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         shell: bash
-        run: docker push ghcr.io/cms-enterprise/batcave/workflow-engine:v0.0.1-rc.4
+        run: docker push ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.sha_short }}
+
+      - name: Push podman image
+        shell: bash
+        run: docker push ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.sha_short }}
 
       - name: Archive image scan outputs
         uses: actions/upload-artifact@v4
