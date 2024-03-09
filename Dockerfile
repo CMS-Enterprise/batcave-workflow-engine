@@ -20,7 +20,6 @@ FROM ghcr.io/cms-enterprise/batcave/omnibus:v1.1.0-rc3 as workflow-engine-base
 
 COPY --from=build /app/bin/workflow-engine /usr/local/bin/workflow-engine
 
-
 ENTRYPOINT ["workflow-engine"]
 
 FROM workflow-engine-base as workflow-engine-podman
@@ -45,6 +44,9 @@ RUN chown podman:podman -R /home/podman
 
 VOLUME /var/lib/containers
 VOLUME /home/podman/.local/share/containers
+
+RUN mkdir -p /var/lib/clamav
+RUN chown podman /var/lib/clamav
 
 USER podman
 
