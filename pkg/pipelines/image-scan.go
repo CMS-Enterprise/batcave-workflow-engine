@@ -274,6 +274,7 @@ func RunClamScanJob(task *AsyncTask, reportDst io.Writer, options []shell.Option
 			shell.WithCtx(ctx),
 			shell.WithFailTrigger(cancel),
 			shell.WithStdout(freshclamTask.stdErrPipeWriter),
+			shell.WithStderr(freshclamTask.stdErrPipeWriter),
 		)
 
 		exitCode := shell.Freshclam(opts...)
