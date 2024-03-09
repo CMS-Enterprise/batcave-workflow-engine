@@ -38,9 +38,7 @@ RUN addgroup -S podman && adduser -S podman -G podman && \
     echo podman:10000:5000 > /etc/subuid && \
     echo podman:10000:5000 > /etc/subgid
 
-# COPY docker/rootless-containers.conf /home/podman/.config/containers/containers.conf
-ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/containers.conf /etc/containers/containers.conf
-ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/podman-containers.conf /home/podman/.config/containers/containers.conf
+COPY docker/rootless-containers.conf /home/podman/.config/containers/containers.conf
 
 RUN mkdir -p /home/podman/.local/share/containers
 RUN chown podman:podman -R /home/podman
