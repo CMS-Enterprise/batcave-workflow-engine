@@ -24,8 +24,8 @@ inputs:
   cache_to:
     description: A remote container registry location to push intermediate layers for caching purposes.
   squash_layers:
-    description: When set to true, squashes the layers of the container image at the end of the build process.
-    default: "true"
+    description: "Deprecated: use layers; When set to true, squashes the layers of the container image at the end of the build process."
+    default: "false"
   repo_token:
     description: The GITHUB_TOKEN environment variable, used to authentication with the ghcr.io container registry.
     required: true
