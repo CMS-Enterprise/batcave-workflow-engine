@@ -1,9 +1,9 @@
 version: "1"
+imageTag: my-app:latest
 imageBuild:
     enabled: true
     buildDir: .
     dockerfile: Dockerfile
-    tag: my-app:latest
     platform: ""
     target: ""
     cacheTo: ""
@@ -18,7 +18,6 @@ imageScan:
     grypeActiveFilename: grype-vulnerability-report-active.json
     grypeFullFilename: grype-vulnerability-report-full.json
     clamavFilename: clamav-virus-report.txt
-    targetImage: ""
 codeScan:
     enabled: true
     gitleaksFilename: gitleaks-secrets-report.json
