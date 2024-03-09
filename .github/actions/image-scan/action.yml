@@ -42,6 +42,6 @@ runs:
           ghcr.io/cms-enterprise/batcave/workflow-engine:${{ inputs.workflow_engine_version }} \
           run image-scan \
           --tag "${{ inputs.image_tag }}" \
-          --artifact-directory "/github/output" \
+          --artifact-dir "/github/output" \
           --sbom-filename "${{ inputs.sbom_filename }}" \
           --grype-filename "${{ inputs.grype_filename }}"
