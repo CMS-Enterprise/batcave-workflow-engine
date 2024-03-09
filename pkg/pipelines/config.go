@@ -55,9 +55,9 @@ type configCodeScan struct {
 }
 
 type configImagePublish struct {
-	Enabled       bool   `json:"enabled"        toml:"enabled"        yaml:"enabled"`
-	ArtifactImage string `json:"artifactImage" toml:"artifactImage" yaml:"artifactImage"`
-	PushLatest    bool   `json:"pushLatest"     toml:"pushLatest"     yaml:"pushLatest"`
+	Enabled              bool   `json:"enabled"        toml:"enabled"        yaml:"enabled"`
+	BundlePublishEnabled bool   `json:"bundlePublishEnabled" toml:"bundlePublishEnabled" yaml:"bundlePublishEnabled"`
+	BundleTag            string `json:"bundleTag" toml:"bundleTag" yaml:"bundleTag"`
 }
 
 type configDeploy struct {
@@ -93,8 +93,8 @@ func BindEnvs(v *viper.Viper) {
 	v.MustBindEnv("codescan.semgrepRules", "WFE_CODE_SCAN_SEMGREP_RULES")
 
 	v.MustBindEnv("imagepublish.enabled", "WFE_IMAGE_PUBLISH_ENABLED")
-	v.MustBindEnv("imagepublish.artifactimage", "WFE_IMAGE_PUBLISH_ARTIFACT_IMAGE")
-	v.MustBindEnv("imagepublish.pushlatest", "WFE_IMAGE_PUSH_LATEST")
+	v.MustBindEnv("imagepublish.bundlepublishenabled", "WFE_IMAGE_PUBLISH_BUNDLE_PUBLISH_ENABLED")
+	v.MustBindEnv("imagepublish.bundletag", "WFE_BUNDLE_TAG")
 
 	v.MustBindEnv("deploy.enabled", "WFE_DEPLOY_ENABLED")
 }
@@ -123,8 +123,8 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault("codescan.semgrepRules", "p/default")
 
 	v.SetDefault("imagepublish.enabled", "1")
-	v.SetDefault("imagepublish.pushlatest", "1")
-	v.SetDefault("iamgepublish.artifactimage", "my-app/artifact-bundle:latest")
+	v.SetDefault("imagepublish.bundlepublishenabled", "1")
+	v.SetDefault("imagepublish.bundletag", "my-app/artifact-bundle:latest")
 
 	v.SetDefault("deploy.enabled", "1")
 }

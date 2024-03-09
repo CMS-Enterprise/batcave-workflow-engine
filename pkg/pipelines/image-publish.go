@@ -45,7 +45,8 @@ func NewimagePublish(stdout io.Writer, stderr io.Writer) *ImagePublish {
 func (p *ImagePublish) preRun() error {
 	// numbers for date format is From the docs: https://go.dev/src/time/format.go
 	p.runtime.bundleFilename = path.Join(p.config.ArtifactDir, p.config.GatecheckBundleFilename)
-	return nil
+	err := InitGatecheckBundle(p.config, p.Stderr, p.DryRunEnabled)
+	return err
 }
 
 func (p *ImagePublish) Run() error {
@@ -78,14 +79,25 @@ func (p *ImagePublish) Run() error {
 		return errors.New("Image Publish Pipeline failed.")
 	}
 
-	image, bundle := p.config.ImagePublish.ArtifactImage, p.runtime.bundleFilename
+	if !p.config.ImagePublish.BundlePublishEnabled {
+		slog.Warn("bundle image publish is disabled, skip")
+		return nil
+
+	}
+
+	if p.config.ImagePublish.BundleTag == "" {
+		return errors.New("Image Publish Pipeline failed: no artifact image defined for image publish")
+	}
+
+	imageTag, bundle := p.config.ImagePublish.BundleTag, p.runtime.bundleFilename
 	exitCode = shell.OrasPushBundle(
+		shell.WithDryRun(p.DryRunEnabled),
 		shell.WithIO(nil, p.Stdout, p.Stderr),
-		shell.WithArtifactBundle(image, bundle),
+		shell.WithBundleImage(imageTag, bundle),
 	)
 
 	if exitCode != shell.ExitOK {
-		slog.Error("failed to push image artifact bundle to registry", "image_tag", image, "bundle_filename", bundle)
+		slog.Error("failed to push image artifact bundle to registry", "image_tag", imageTag, "bundle_filename", bundle)
 		return errors.New("Image Publish Pipeline failed.")
 	}
 

@@ -51,7 +51,7 @@ type Options struct {
 	dockerAlias     DockerAlias
 	imageName       string
 	reportType      string
-	artifactImage   string
+	bundleTag       string
 
 	imageBuildOptions ImageBuildOptions
 
@@ -200,9 +200,9 @@ func WithReportType(reportType string) OptionFunc {
 	}
 }
 
-func WithArtifactBundle(artifactImage string, bundleFilename string) OptionFunc {
+func WithBundleImage(bundleTag string, bundleFilename string) OptionFunc {
 	return func(o *Options) {
-		o.artifactImage = artifactImage
+		o.bundleTag = bundleTag
 		o.gatecheck.bundleFilename = bundleFilename
 	}
 }

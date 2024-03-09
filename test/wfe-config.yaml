@@ -9,7 +9,7 @@ imageBuild:
     cacheTo: ""
     cacheFrom: ""
     squashLayers: false
-    args: {}
+    args: []
     scanTarget: ""
 imageScan:
     enabled: true
@@ -27,8 +27,8 @@ codeScan:
     semgrepRules: p/default
 imagePublish:
     enabled: true
-    artifactImage: ""
-    pushLatest: true
+    bundlePublishEnabled: true
+    bundleTag: my-app/artifact-bundle:latest
 deploy:
     enabled: true
 artifactDir: artifacts
