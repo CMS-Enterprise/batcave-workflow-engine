@@ -43,7 +43,6 @@ jobs:
           path: .
           # TODO: the dockerfile path should be relative to the context path
           dockerfile: ./Dockerfile
-          # TODO: add support for mixed case to workflow-engine (i.e. we should force container image tags to lowercase)
           image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}
           # cache_from: ./container-cache-in
           # cache_to: ./container-cache-out

@@ -4,7 +4,7 @@ description: Scans a Container Image using workflow-engine
 inputs:
   workflow_engine_version:
     description: "The version of workflow-engine to use (note: different versions of the workflow-engine image may not be compatible with this version of the GitHub action)."
-    default: "v0.0.1-rc.3"
+    default: "33b5170"
   image_tag:
     description: The tag of the image being scanned (defaults to the repository name and current commit SHA).
     default: ${{ github.repository }}:${{ github.sha }}
