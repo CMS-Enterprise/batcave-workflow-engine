@@ -46,10 +46,9 @@ type Options struct {
 	errorOnly       bool
 	ctx             context.Context
 	failTriggerFunc func()
-	scanImage       string
 	tarFilename     string
 	dockerAlias     DockerAlias
-	imageName       string
+	imageTag        string
 	reportType      string
 	bundleTag       string
 
@@ -138,12 +137,6 @@ func WithStderr(w io.Writer) OptionFunc {
 	}
 }
 
-func WithScanImage(image string) OptionFunc {
-	return func(o *Options) {
-		o.scanImage = image
-	}
-}
-
 func WithCtx(ctx context.Context) OptionFunc {
 	return func(o *Options) {
 		o.ctx = ctx
@@ -176,12 +169,12 @@ func WithDockerAlias(a DockerAlias) OptionFunc {
 	}
 }
 
-// WithImage can be used for multiple commands to define a target image as a parameter
+// WithImageTag can be used for multiple commands to define a target image as a parameter
 //
 // This will include the full image and tag for example `alpine:latest`
-func WithImage(image string) OptionFunc {
+func WithImageTag(imageTag string) OptionFunc {
 	return func(o *Options) {
-		o.imageName = image
+		o.imageTag = imageTag
 	}
 }
 

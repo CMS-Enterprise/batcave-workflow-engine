@@ -23,10 +23,10 @@ func DockerSave(optionFuncs ...OptionFunc) ExitCode {
 	o := newOptions(optionFuncs...)
 	switch o.dockerAlias {
 	case DockerAliasDocker:
-		cmd := exec.Command("docker", "save", o.imageName)
+		cmd := exec.Command("docker", "save", o.imageTag)
 		return run(cmd, o)
 	case DockerAliasPodman:
-		cmd := exec.Command("podman", "save", o.imageName)
+		cmd := exec.Command("podman", "save", o.imageTag)
 		return run(cmd, o)
 	default:
 		return ExitBadConfiguration
@@ -64,10 +64,10 @@ func DockerPush(optionFuncs ...OptionFunc) ExitCode {
 	// this parses argument values to determine the flags
 	switch o.dockerAlias {
 	case DockerAliasDocker:
-		cmd := exec.Command("docker", "push", o.imageName)
+		cmd := exec.Command("docker", "push", o.imageTag)
 		return run(cmd, o)
 	case DockerAliasPodman:
-		cmd := exec.Command("podman", "push", o.imageName)
+		cmd := exec.Command("podman", "push", o.imageTag)
 		return run(cmd, o)
 	default:
 		return ExitBadConfiguration

@@ -19,6 +19,6 @@ func SyftVersion(options ...OptionFunc) ExitCode {
 // Ouputs: A JSON vulnerability Report to STDOUT
 func SyftScanImage(options ...OptionFunc) ExitCode {
 	o := newOptions(options...)
-	cmd := exec.Command("syft", "--scope=squashed", "-o", "cyclonedx-json", o.scanImage)
+	cmd := exec.Command("syft", "--scope=squashed", "-o", "cyclonedx-json", o.imageTag)
 	return run(cmd, o)
 }

@@ -13,6 +13,7 @@ import (
 // Config contains all parameters for the various pipelines
 type Config struct {
 	Version                 string             `json:"version"                 toml:"version"                 yaml:"version"`
+	ImageTag                string             `json:"imageTag"                toml:"imageTag"                yaml:"imageTag"`
 	ImageBuild              configImageBuild   `json:"imageBuild"              toml:"imageBuild"              yaml:"imageBuild"`
 	ImageScan               configImageScan    `json:"imageScan"               toml:"imageScan"               yaml:"imageScan"`
 	CodeScan                configCodeScan     `json:"codeScan"                toml:"codeScan"                yaml:"codeScan"`
@@ -26,7 +27,6 @@ type configImageBuild struct {
 	Enabled      bool     `json:"enabled"      toml:"enabled"      yaml:"enabled"`
 	BuildDir     string   `json:"buildDir"     toml:"buildDir"     yaml:"buildDir"`
 	Dockerfile   string   `json:"dockerfile"   toml:"dockerfile"   yaml:"dockerfile"`
-	Tag          string   `json:"tag"          toml:"tag"          yaml:"tag"`
 	Platform     string   `json:"platform"     toml:"platform"     yaml:"platform"`
 	Target       string   `json:"target"       toml:"target"       yaml:"target"`
 	CacheTo      string   `json:"cacheTo"      toml:"cacheTo"      yaml:"cacheTo"`
@@ -43,7 +43,6 @@ type configImageScan struct {
 	GrypeActiveFilename string `json:"grypeActiveFilename" toml:"grypeActiveFilename" yaml:"grypeActiveFilename"`
 	GrypeFullFilename   string `json:"grypeFullFilename"   toml:"grypeFullFilename"   yaml:"grypeFullFilename"`
 	ClamavFilename      string `json:"clamavFilename"      toml:"clamavFilename"      yaml:"clamavFilename"`
-	TargetImage         string `json:"targetImage"         toml:"targetImage"         yaml:"targetImage"`
 }
 
 type configCodeScan struct {
@@ -67,11 +66,11 @@ type configDeploy struct {
 func BindEnvs(v *viper.Viper) {
 	v.MustBindEnv("artifactdir", "WFE_ARTIFACT_DIR")
 	v.MustBindEnv("gatecheckBundleFilename", "WFE_GATECHECK_BUNDLE_FILENAME")
+	v.MustBindEnv("imagetag", "WFE_IMAGE_TAG")
 
 	v.MustBindEnv("imagebuild.enabled", "WFE_IMAGE_BUILD_ENABLED")
 	v.MustBindEnv("imagebuild.builddir", "WFE_IMAGE_BUILD_DIR")
 	v.MustBindEnv("imagebuild.dockerfile", "WFE_IMAGE_BUILD_DOCKERFILE")
-	v.MustBindEnv("imagebuild.tag", "WFE_IMAGE_BUILD_TAG")
 	v.MustBindEnv("imagebuild.platform", "WFE_BUILD_IMAGE_PLATFORM")
 	v.MustBindEnv("imagebuild.target", "WFE_IMAGE_BUILD_TARGET")
 	v.MustBindEnv("imagebuild.cacheto", "WFE_IMAGE_BUILD_CACHE_TO")
@@ -84,7 +83,6 @@ func BindEnvs(v *viper.Viper) {
 	v.MustBindEnv("imagescan.grypeConfigFilename", "WFE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME")
 	v.MustBindEnv("imagescan.grypeActiveFindingsFilename", "WFE_IMAGE_SCAN_GRYPE_ACTIVE_FINDINGS_FILENAME")
 	v.MustBindEnv("imagescan.grypeAllFindingsFilename", "WFE_IMAGE_SCAN_GRYPE_ALL_FINDINGS_FILENAME")
-	v.MustBindEnv("imagescan.targetimage", "WFE_IMAGE_SCAN_TARGET_IMAGE")
 
 	v.MustBindEnv("codescan.enabled", "WFE_CODE_SCAN_ENABLED")
 	v.MustBindEnv("codescan.gitleaksFilename", "WFE_CODE_SCAN_GITLEAKS_FILENAME")
@@ -102,13 +100,13 @@ func BindEnvs(v *viper.Viper) {
 func SetDefaults(v *viper.Viper) {
 	v.SetDefault("version", "1")
 	v.SetDefault("artifactdir", "artifacts")
+	v.SetDefault("imagetag", "my-app:latest")
 
 	v.SetDefault("gatecheckBundleFilename", "gatecheck-bundle.tar.gz")
 
 	v.SetDefault("imagebuild.enabled", "1")
 	v.SetDefault("imagebuild.builddir", ".")
 	v.SetDefault("imagebuild.dockerfile", "Dockerfile")
-	v.SetDefault("imagebuild.tag", "my-app:latest")
 
 	v.SetDefault("imagescan.enabled", "1")
 	v.SetDefault("imagescan.clamavFilename", "clamav-virus-report.txt")

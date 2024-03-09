@@ -69,13 +69,13 @@ func (p *ImagePublish) Run() error {
 
 	exitCode := shell.DockerPush(
 		shell.WithDryRun(p.DryRunEnabled),
-		shell.WithImage(p.config.ImageBuild.Tag),
+		shell.WithImageTag(p.config.ImageTag),
 		shell.WithStderr(p.Stderr),
 		shell.WithDockerAlias(alias),
 	)
 
 	if exitCode != shell.ExitOK {
-		slog.Error("failed to push image tag to registry", "image_tag", p.config.ImageBuild.Tag)
+		slog.Error("failed to push image tag to registry", "image_tag", p.config.ImageTag)
 		return errors.New("Image Publish Pipeline failed.")
 	}
 

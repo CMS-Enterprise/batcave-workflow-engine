@@ -24,9 +24,6 @@ func newRunCommand() *cobra.Command {
 	imageBuildCmd.Flags().StringArray("build-arg", make([]string, 0), "A build argument passed to the container build command")
 	_ = viper.BindPFlag("imagebuild.args", imageBuildCmd.Flags().Lookup("build-arg"))
 
-	imageBuildCmd.Flags().String("tag", "", "image build custom tag")
-	_ = viper.BindPFlag("imagebuild.tag", imageBuildCmd.Flags().Lookup("tag"))
-
 	imageBuildCmd.Flags().String("platform", "", "image build custom platform option")
 	_ = viper.BindPFlag("imagebuild.platform", imageBuildCmd.Flags().Lookup("platform"))
 
@@ -54,15 +51,8 @@ func newRunCommand() *cobra.Command {
 	imageScanCmd.Flags().String("clamav-filename", "", "the output filename for the ClamAV scan report")
 	_ = viper.BindPFlag("imagescan.clamavfilename", imageScanCmd.Flags().Lookup("clamav-filename"))
 
-	imageScanCmd.Flags().String("scan-image-target", "", "scan a specific image")
-	_ = viper.BindPFlag("imagescan.targetimage", imageScanCmd.Flags().Lookup("scan-image-target"))
-
 	// run image-publish
 	imagePublishCmd := newBasicCommand("image-publish", "publishes an image", runimagePublish)
-
-	imagePublishCmd.Flags().String("tag", "", "image build custom tag")
-	// this is imagebuild.tag on purpose to reduce duplication
-	_ = viper.BindPFlag("imagebuild.tag", imagePublishCmd.Flags().Lookup("tag"))
 
 	imagePublishCmd.Flags().String("bundle-tag", "", "image for the bundle bundle")
 	_ = viper.BindPFlag("imagepublish.bundletag", imagePublishCmd.Flags().Lookup("bundle-tag"))
@@ -92,9 +82,11 @@ func newRunCommand() *cobra.Command {
 	cmd.PersistentFlags().StringP("config", "f", "", "workflow engine config file in json, yaml, or toml")
 	cmd.PersistentFlags().StringP("cli-interface", "i", "docker", "[docker|podman] CLI interface to use for image building")
 	cmd.PersistentFlags().String("artifact-dir", "", "the target output directory for security report artifacts")
+	cmd.PersistentFlags().String("tag", "", "the target image tag (ex. alpine:latest)")
 
 	// necessary for the persistent flags
 	_ = viper.BindPFlag("artifactdir", cmd.PersistentFlags().Lookup("artifact-dir"))
+	_ = viper.BindPFlag("imagetag", cmd.PersistentFlags().Lookup("tag"))
 
 	// Flag marks
 	_ = cmd.MarkFlagFilename("config", "json", "yaml", "yml", "toml")

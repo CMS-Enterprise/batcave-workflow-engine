@@ -122,8 +122,7 @@ func (p *ImageScan) Run() error {
 	mw := io.MultiWriter(p.runtime.clamavFile, p.runtime.postSummaryBuffer)
 	opts := []shell.OptionFunc{
 		shell.WithDryRun(p.DryRunEnabled),
-		shell.WithScanImage(p.config.ImageScan.TargetImage), // clamscan target
-		shell.WithImage(p.config.ImageScan.TargetImage),     // Docker save image
+		shell.WithImageTag(p.config.ImageTag), // clamscan target
 		shell.WithDockerAlias(alias),
 	}
 	go RunClamScanJob(clamscanTask, mw, opts)
@@ -132,7 +131,7 @@ func (p *ImageScan) Run() error {
 	syftGrypeError := func() error {
 		syftBuf := new(bytes.Buffer)
 		opts := []shell.OptionFunc{
-			shell.WithScanImage(p.config.ImageScan.TargetImage),
+			shell.WithImageTag(p.config.ImageTag),
 			shell.WithDryRun(p.DryRunEnabled),
 			shell.WithStdout(io.MultiWriter(syftBuf, p.runtime.sbomFile)),
 			shell.WithStderr(p.Stderr),
