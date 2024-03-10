@@ -2,10 +2,11 @@ package pipelines
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"path"
-	"workflow-engine/pkg/shell/legacy"
+	"workflow-engine/pkg/shell"
 )
 
 type Deploy struct {
@@ -47,10 +48,13 @@ func (p *Deploy) Run() error {
 
 	slog.Warn("deployment pipeline is a beta feature. Only gatecheck validation will be conducted.")
 
-	cmd := shell.GatecheckCommand(nil, p.Stdout, p.Stderr).Validate(p.runtime.bundleFilename)
-
-	if err := cmd.WithDryRun(p.DryRunEnabled).Run(); err != nil {
-		return errors.New("Deploy Pipeline failed. See logs for details.")
+	err := shell.GatecheckValidate(
+		shell.WithDryRun(p.DryRunEnabled),
+		shell.WithStderr(p.Stderr),
+		shell.WithStdout(p.Stdout),
+	)
+	if err != nil {
+		return fmt.Errorf("Deployment Validation failed: %w", err)
 	}
 
 	return nil

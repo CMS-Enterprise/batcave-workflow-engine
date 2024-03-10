@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"os"
 	"path"
-	"sync"
 	"workflow-engine/pkg/shell"
 )
 
@@ -27,7 +26,6 @@ type CodeScan struct {
 		gitleaksFilename  string
 		semgrepFilename   string
 		postSummaryBuffer *bytes.Buffer
-		summaryMutex      sync.Mutex
 	}
 }
 
@@ -86,117 +84,182 @@ func (p *CodeScan) Run() error {
 	}
 
 	if err := p.preRun(); err != nil {
-		return errors.New("Code Scan Pipeline Pre-Run Failed.")
+		return fmt.Errorf("Code Scan Pipeline Pre-Run Failed: %v", err)
 	}
 
-	defer func() {
-		_ = p.runtime.gitleaksFile.Close()
-		_ = p.runtime.semgrepFile.Close()
-	}()
+	fmt.Fprintln(p.Stdout, "******* Workflow Engine Code Scan Pipeline [Run] *******")
 
-	slog.Info("run image scan pipeline", "dry_run_enabled", p.DryRunEnabled, "artifact_directory", p.config.ArtifactDir)
-
-	slog.Debug("open gatecheck bundle file for output", "filename", p.runtime.bundleFilename)
-
-	// Add a new line to separate the reports
-	fmt.Fprintln(p.runtime.postSummaryBuffer, "")
-
+	// Create async tasks
 	semgrepTask := NewAsyncTask("semgrep")
-	go func() {
-		defer semgrepTask.stdErrPipeWriter.Close()
-		buf := new(bytes.Buffer)
-		mw := io.MultiWriter(p.runtime.semgrepFile, buf)
-		exitCode := shell.SemgrepScan(
-			shell.WithDryRun(p.DryRunEnabled),
-			shell.WithIO(nil, mw, semgrepTask.stdErrPipeWriter),
-			shell.WithSemgrep(p.config.CodeScan.SemgrepRules, p.SemgrepExperimental),
-		)
-		switch exitCode {
-		case shell.ExitOK:
-			semgrepTask.logger.Debug("no semgrep findings")
-		case 1:
-			semgrepTask.logger.Debug("semgrep findings, suppress error")
-		default:
-			// Don't gatecheck list
-			semgrepTask.exitError = exitCode.GetError("semgrep")
-			return
-		}
-		// locking prevents writing at the same time
-		p.runtime.summaryMutex.Lock()
-		defer p.runtime.summaryMutex.Unlock()
-
-		fmt.Fprintf(p.runtime.postSummaryBuffer, "%50s\n", "Semgrep Findings")
-		// list report
-		exitCode = shell.GatecheckList(
-			shell.WithDryRun(p.DryRunEnabled),
-			shell.WithIO(buf, p.runtime.postSummaryBuffer, nil),
-			shell.WithReportType("semgrep"),
-			shell.WithErrorOnly(semgrepTask.stdErrPipeWriter),
-		)
-		// Join errors, will be nil or both are nil
-		semgrepTask.exitError = errors.Join(semgrepTask.exitError, exitCode.GetError("gatcheck list"))
-	}()
-
 	gitleaksTask := NewAsyncTask("gitleaks")
-	go func() {
-		defer gitleaksTask.stdErrPipeWriter.Close()
-		exitCode := shell.GitLeaksDetect(
-			shell.WithDryRun(p.DryRunEnabled),
-			shell.WithStderr(gitleaksTask.stdErrPipeWriter),
-			shell.WithGitleaks(p.config.CodeScan.GitleaksSrcDir, p.runtime.gitleaksFilename),
-		)
 
-		gitleaksTask.exitError = exitCode.GetError("gitleaks")
+	listTask := NewAsyncTask("gatecheck list")
+	bundleTask := NewAsyncTask("gatecheck bundle")
+	postRunTask := NewAsyncTask("post-run")
 
-		// Gitleaks annoyingly doesn't output the json to stdout, so no piping into gatecheck list
-		_ = p.runtime.gitleaksFile.Close()
+	// Run all jobs in the background
 
-		if gitleaksTask.exitError != nil {
-			return
+	go p.semgrepJob(semgrepTask)
+	go p.gitleaksJob(gitleaksTask)
+
+	go p.gatecheckListJob(listTask, semgrepTask, gitleaksTask)
+	go p.gatecheckBundleJob(bundleTask, semgrepTask, gitleaksTask)
+
+	go p.postRunJob(postRunTask, semgrepTask, gitleaksTask, listTask, bundleTask)
+
+	// Stream Task results to stderr and block until the task completes
+	// The order here is the stderr stream order, not the execution order.
+	// execution order is sudo random because of the goroutines however,
+	// dependencies are defined and handle by the jobs.
+
+	allTasks := []*AsyncTask{
+		semgrepTask,
+		gitleaksTask,
+		listTask,
+		bundleTask,
+		postRunTask,
+	}
+
+	allErrors := make([]error, 0)
+
+	for _, task := range allTasks {
+		err := task.StreamTo(p.Stderr)
+		if err != nil {
+			allErrors = append(allErrors, fmt.Errorf("%s task failed. reason: %w", task.Name, err))
 		}
-
-		// locking prevents writing at the same time
-		p.runtime.summaryMutex.Lock()
-		defer p.runtime.summaryMutex.Unlock()
-		fmt.Fprintf(p.runtime.postSummaryBuffer, "%30s\n", "Gitleaks Findings")
-		// list report
-		exitCode = shell.GatecheckList(
-			shell.WithDryRun(p.DryRunEnabled),
-			shell.WithIO(nil, p.runtime.postSummaryBuffer, nil),
-			shell.WithListTarget(p.runtime.gitleaksFilename),
-			shell.WithErrorOnly(semgrepTask.stdErrPipeWriter),
-		)
-		gitleaksTask.exitError = exitCode.GetError("gatecheck list gitleaks report")
-	}()
-
-	var gitleaksError, semgrepError error
-
-	// Wait order determines the stderr print order
-	if err := semgrepTask.Wait(p.Stderr); err != nil {
-		semgrepError = fmt.Errorf("semgrep run failure: %v", err)
 	}
 
-	if err := gitleaksTask.Wait(p.Stderr); err != nil {
-		semgrepError = fmt.Errorf("gitleaks run failure: %v", err)
+	if len(allErrors) > 0 {
+		return errors.Join(allErrors...)
 	}
-
-	var postRunError error
-
-	if err := p.postRun(); err != nil {
-		postRunError = errors.New("Code Scan Pipeline Post-Run Failed.")
-	}
-
-	return errors.Join(gitleaksError, semgrepError, postRunError)
+	return nil
 }
 
-func (p *CodeScan) postRun() error {
-	files := []string{p.runtime.gitleaksFilename, p.runtime.semgrepFilename}
-	err := RunGatecheckBundleAdd(p.runtime.bundleFilename, p.Stderr, p.DryRunEnabled, files...)
-	if err != nil {
-		slog.Error("cannot run gatecheck bundle add", "error", err)
+func (p *CodeScan) semgrepJob(task *AsyncTask) {
+	defer task.Close()
+	defer p.runtime.semgrepFile.Close()
+
+	task.Logger.Debug("run semgrep sast scan")
+
+	reportWriter := io.MultiWriter(p.runtime.semgrepFile, task.StdoutBuf)
+	// using the syftscan pipe reader will block this job until syft is done
+	task.ExitError = shell.SemgrepScan(
+		shell.WithDryRun(p.DryRunEnabled),
+		shell.WithLogger(task.Logger),
+		shell.WithStdout(reportWriter), // where the report goes
+		shell.WithStderr(task.StderrPipeWriter),
+
+		shell.WithSemgrep(p.config.CodeScan.SemgrepRules, p.SemgrepExperimental),
+	)
+
+	var commandError *shell.ErrCommand
+
+	switch {
+	case task.ExitError == nil:
+		return
+	case errors.As(task.ExitError, &commandError):
+		// check for exit code 1 which means a "blocking" finding
+		slog.Error("semgrep has findings", "exit status", commandError.Error())
+		task.ExitError = nil
+		return
+	default:
+		task.ExitError = fmt.Errorf("cannot inspect shell command error: %w", task.ExitError)
+	}
+}
+
+func (p *CodeScan) gitleaksJob(task *AsyncTask) {
+	defer task.Close()
+	defer p.runtime.gitleaksFile.Close()
+
+	task.Logger.Debug("gitleaks secret detection")
+
+	// Gitleaks doesn't put it's report to STDOUT, we have to open
+	// the file afterwards and dump to the tasks stdout
+	task.ExitError = shell.GitLeaksDetect(
+		shell.WithDryRun(p.DryRunEnabled),
+		shell.WithLogger(task.Logger),
+		shell.WithStderr(task.StderrPipeWriter),
+		shell.WithGitleaks(p.config.CodeScan.GitleaksSrcDir, p.runtime.gitleaksFilename),
+	)
+
+	if task.ExitError != nil {
+		os.Remove(p.runtime.gitleaksFilename)
+		return
+	}
+}
+
+func (p *CodeScan) gatecheckListJob(task *AsyncTask, semgrepTask *AsyncTask, gitleaksTask *AsyncTask) {
+	defer task.Close()
+
+	opts := []shell.OptionFunc{
+		shell.WithDryRun(p.DryRunEnabled),
+		shell.WithLogger(task.Logger),
+		shell.WithErrorOnly(task.StderrPipeWriter),
+		shell.WithStdout(p.runtime.postSummaryBuffer), // where the summary goes
+	}
+	semgrepOpts := append(
+		opts,
+		shell.WithWaitFunc(semgrepTask.Wait),
+		shell.WithStdin(semgrepTask.StdoutBuf),
+		shell.WithReportType("semgrep"),
+	)
+	gitleaksOpts := append(
+		opts,
+		shell.WithWaitFunc(gitleaksTask.Wait),
+		shell.WithListTarget(p.runtime.gitleaksFilename),
+		shell.WithReportType("gitleaks"),
+	)
+
+	task.Logger.Debug("list semgrep report after semgrep completes")
+	semgrepListError := shell.GatecheckList(semgrepOpts...)
+
+	fmt.Fprintln(task.StderrPipeWriter)
+
+	task.Logger.Debug("list gitleaks report after gitleaks completes")
+	gitleaksError := shell.GatecheckList(gitleaksOpts...)
+
+	task.ExitError = errors.Join(semgrepListError, gitleaksError)
+}
+
+func (p *CodeScan) gatecheckBundleJob(task *AsyncTask, semgrep *AsyncTask, gitleaksTask *AsyncTask) {
+	defer task.Close()
+
+	opts := []shell.OptionFunc{
+		shell.WithDryRun(p.DryRunEnabled),
+		shell.WithLogger(task.Logger),
+		shell.WithStdout(p.Stdout),
+		shell.WithErrorOnly(task.StderrPipeWriter),
 	}
 
-	// print the Gatecheck List Content
+	semgrepOpts := append(opts, shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.semgrepFilename), shell.WithWaitFunc(semgrep.Wait))
+	err := shell.GatecheckBundleAdd(semgrepOpts...)
+	task.ExitError = errors.Join(task.ExitError, err)
+
+	gitleaksOpts := append(opts, shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.gitleaksFilename), shell.WithWaitFunc(gitleaksTask.Wait))
+	err = shell.GatecheckBundleAdd(gitleaksOpts...)
+	task.ExitError = errors.Join(task.ExitError, err)
+}
+
+func (p *CodeScan) postRunJob(task *AsyncTask, allTasks ...*AsyncTask) {
+	defer task.Close()
+
+	for _, task := range allTasks {
+		task.Wait()
+	}
+
+	opts := []shell.OptionFunc{
+		shell.WithDryRun(p.DryRunEnabled),
+		shell.WithLogger(task.Logger),
+		shell.WithStdout(p.Stdout),
+		shell.WithErrorOnly(task.StderrPipeWriter),
+		shell.WithStdout(p.runtime.postSummaryBuffer),
+		shell.WithListTarget(p.runtime.bundleFilename),
+	}
+
+	// Add the bundle summary output to the summary buffer before dumping
+	err := shell.GatecheckList(opts...)
+	task.ExitError = errors.Join(task.ExitError, err)
+
+	// print clamAV Report and grype summary
 	_, _ = p.runtime.postSummaryBuffer.WriteTo(p.Stdout)
-	return err
 }

@@ -7,7 +7,7 @@ import "os/exec"
 // Requirements: N/A
 //
 // Output: version to STDOUT
-func OrasVersion(options ...OptionFunc) ExitCode {
+func OrasVersion(options ...OptionFunc) error {
 	o := newOptions(options...)
 	exe := exec.Command("oras", "version")
 	return run(exe, o)
@@ -18,7 +18,7 @@ func OrasVersion(options ...OptionFunc) ExitCode {
 // Requirements: WithArtifactBundle
 //
 // Output: debug information to STDERR
-func OrasPushBundle(options ...OptionFunc) ExitCode {
+func OrasPushBundle(options ...OptionFunc) error {
 	o := newOptions(options...)
 	exe := exec.Command(
 		"oras",

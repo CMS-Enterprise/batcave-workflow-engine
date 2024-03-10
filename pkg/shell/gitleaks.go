@@ -7,7 +7,7 @@ import "os/exec"
 // Requirements: N/A
 //
 // Output: version to STDOUT
-func GitLeaksVersion(options ...OptionFunc) ExitCode {
+func GitLeaksVersion(options ...OptionFunc) error {
 	o := newOptions(options...)
 	exe := exec.Command("gitleaks", "version")
 	return run(exe, o)
@@ -18,7 +18,7 @@ func GitLeaksVersion(options ...OptionFunc) ExitCode {
 // Requirements: WithGitleaks
 //
 // Output: debug to STDERR
-func GitLeaksDetect(options ...OptionFunc) ExitCode {
+func GitLeaksDetect(options ...OptionFunc) error {
 	o := newOptions(options...)
 	exe := exec.Command("gitleaks",
 		"detect",

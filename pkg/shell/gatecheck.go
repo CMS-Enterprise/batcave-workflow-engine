@@ -7,7 +7,7 @@ import "os/exec"
 // Requirement: N/A
 //
 // Output: to STDOUT
-func GatecheckVersion(options ...OptionFunc) ExitCode {
+func GatecheckVersion(options ...OptionFunc) error {
 	o := newOptions(options...)
 	cmd := exec.Command("gatecheck", "version")
 	return run(cmd, o)
@@ -18,7 +18,7 @@ func GatecheckVersion(options ...OptionFunc) ExitCode {
 // Requirement: supported report from STDIN WithReportType
 //
 // Output: table to STDOUT
-func GatecheckList(options ...OptionFunc) ExitCode {
+func GatecheckList(options ...OptionFunc) error {
 	o := newOptions(options...)
 	cmd := exec.Command("gatecheck", "list", "--input-type", o.reportType)
 	if o.listTargetFilename != "" {
@@ -32,7 +32,7 @@ func GatecheckList(options ...OptionFunc) ExitCode {
 // Requirement: supported report from STDIN
 //
 // Output: table to STDOUT
-func GatecheckListAll(options ...OptionFunc) ExitCode {
+func GatecheckListAll(options ...OptionFunc) error {
 	o := newOptions(options...)
 	cmd := exec.Command("gatecheck", "list", "--all", "--input-type", o.reportType)
 	return run(cmd, o)
@@ -43,7 +43,7 @@ func GatecheckListAll(options ...OptionFunc) ExitCode {
 // Requirement: WithBundleFile
 //
 // Output: debug to STDERR
-func GatecheckBundleAdd(options ...OptionFunc) ExitCode {
+func GatecheckBundleAdd(options ...OptionFunc) error {
 	o := newOptions(options...)
 	cmd := exec.Command("gatecheck", "bundle", "add",
 		o.gatecheck.bundleFilename, o.gatecheck.targetFile)
@@ -55,9 +55,20 @@ func GatecheckBundleAdd(options ...OptionFunc) ExitCode {
 // Requirement: WithBundleFile
 //
 // Output: debug to STDERR
-func GatecheckBundleCreate(options ...OptionFunc) ExitCode {
+func GatecheckBundleCreate(options ...OptionFunc) error {
 	o := newOptions(options...)
 	cmd := exec.Command("gatecheck", "bundle", "create",
 		o.gatecheck.bundleFilename, o.gatecheck.targetFile)
+	return run(cmd, o)
+}
+
+// GatecheckValidate validates artifacts in a bundle
+//
+// Requirement: WithTargetFilename
+//
+// Output: debug to STDERR
+func GatecheckValidate(options ...OptionFunc) error {
+	o := newOptions(options...)
+	cmd := exec.Command("gatecheck", "validate", o.targetFilename)
 	return run(cmd, o)
 }

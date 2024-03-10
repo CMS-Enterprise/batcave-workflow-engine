@@ -1,5 +1,9 @@
 FROM golang:alpine3.19 as build
 
+ARG VERSION
+ARG GIT_COMMIT
+ARG GIT_DESCRIPTION
+
 # install build dependencies
 RUN apk update && apk add git --no-cache
 
@@ -14,7 +18,7 @@ COPY cmd ./cmd
 COPY pkg ./pkg
 
 RUN mkdir -p ../bin && \
-    go build -ldflags="-X 'main.cliVersion=v0.0.0-source-build' -X 'main.gitCommit=$(git rev-parse HEAD)' -X 'main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=$(git log -1 --pretty=%B)'" -o ../bin/workflow-engine ./cmd/workflow-engine
+    go build -ldflags="-X 'main.cliVersion=${VERSION}' -X 'main.gitCommit=${GIT_COMMIT}' -X 'main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=${GIT_DESCRIPTION}'" -o ../bin/workflow-engine ./cmd/workflow-engine
 
 FROM ghcr.io/cms-enterprise/batcave/omnibus:v1.1.0-rc3 as workflow-engine-base
 

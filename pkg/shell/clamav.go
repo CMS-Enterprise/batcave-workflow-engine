@@ -7,7 +7,7 @@ import "os/exec"
 // Requirements: N/A
 //
 // Outputs: version information to STDOUT
-func ClamScanVersion(optionFuncs ...OptionFunc) ExitCode {
+func ClamScanVersion(optionFuncs ...OptionFunc) error {
 	o := newOptions(optionFuncs...)
 	cmd := exec.Command("clamscan", "--version")
 	return run(cmd, o)
@@ -18,7 +18,7 @@ func ClamScanVersion(optionFuncs ...OptionFunc) ExitCode {
 // Requirements: N/A
 //
 // Outputs: version information to STDOUT
-func FreshClamVersion(optionFuncs ...OptionFunc) ExitCode {
+func FreshClamVersion(optionFuncs ...OptionFunc) error {
 	o := newOptions(optionFuncs...)
 	cmd := exec.Command("freshclam", "--version")
 	return run(cmd, o)
@@ -29,7 +29,7 @@ func FreshClamVersion(optionFuncs ...OptionFunc) ExitCode {
 // Requirements: WithTarFilename() option
 //
 // Outputs: Virus Report to STDOUT
-func Clamscan(optionFuncs ...OptionFunc) ExitCode {
+func Clamscan(optionFuncs ...OptionFunc) error {
 	o := newOptions(optionFuncs...)
 	cmd := exec.Command(
 		"clamscan",
@@ -49,7 +49,7 @@ func Clamscan(optionFuncs ...OptionFunc) ExitCode {
 // Requirements: N/A
 //
 // Outputs: Debugging information to STDOUT
-func Freshclam(optionFuncs ...OptionFunc) ExitCode {
+func Freshclam(optionFuncs ...OptionFunc) error {
 	o := newOptions(optionFuncs...)
 	cmd := exec.Command("freshclam")
 	return run(cmd, o)

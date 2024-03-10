@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 	"workflow-engine/pkg/shell"
 )
 
@@ -24,17 +25,19 @@ type ImageScan struct {
 	config        *Config
 	DockerAlias   string
 	runtime       struct {
-		sbomFile          *os.File
+		syftFile          *os.File
 		grypeFile         *os.File
 		clamavFile        *os.File
-		sbomFilename      string
+		tarImageFile      *os.File
+		syftFilename      string
 		grypeFilename     string
 		clamavFilename    string
 		bundleFilename    string
-		syftJobSuccess    bool
-		grypeJobSuccess   bool
-		clamJobSuccess    bool
+		tarImageFilename  string
 		postSummaryBuffer *bytes.Buffer
+		dockerAlias       shell.DockerAlias
+		ctx               context.Context
+		cancelFunc        func()
 	}
 }
 
@@ -59,15 +62,18 @@ func (p *ImageScan) preRun() error {
 	// In Memory Buffer
 	p.runtime.postSummaryBuffer = new(bytes.Buffer)
 
+	// Early cancel context for certain tasks
+	p.runtime.ctx, p.runtime.cancelFunc = context.WithCancel(context.Background())
+
 	if err := MakeDirectoryP(p.config.ArtifactDir); err != nil {
 		slog.Error("failed to create artifact directory", "name", p.config.ArtifactDir)
 		return errors.New("Code Scan Pipeline failed to run.")
 	}
 
-	p.runtime.sbomFilename = path.Join(p.config.ArtifactDir, p.config.ImageScan.SyftFilename)
-	p.runtime.sbomFile, err = OpenOrCreateFile(p.runtime.sbomFilename)
+	p.runtime.syftFilename = path.Join(p.config.ArtifactDir, p.config.ImageScan.SyftFilename)
+	p.runtime.syftFile, err = OpenOrCreateFile(p.runtime.syftFilename)
 	if err != nil {
-		slog.Error("cannot open syft sbom file", "filename", p.runtime.sbomFilename, "error", err)
+		slog.Error("cannot open syft sbom file", "filename", p.runtime.syftFilename, "error", err)
 		return err
 	}
 
@@ -85,6 +91,15 @@ func (p *ImageScan) preRun() error {
 		return err
 	}
 
+	// Create temporary image tar file for writing
+	slog.Debug("create temporary file for image tar, used for clam virus scan")
+	p.runtime.tarImageFile, err = os.CreateTemp(os.TempDir(), "*-image.tar")
+	if err != nil {
+		slog.Error("cannot create temp image tar file", "temp_dir", os.TempDir())
+		return err
+	}
+	p.runtime.tarImageFilename = p.runtime.tarImageFile.Name()
+
 	// create gatecheck bundle file
 	if err := InitGatecheckBundle(p.config, p.Stderr, p.DryRunEnabled); err != nil {
 		slog.Error("cannot initialize gatecheck bundle", "error", err)
@@ -92,6 +107,15 @@ func (p *ImageScan) preRun() error {
 	}
 
 	p.runtime.bundleFilename = path.Join(p.config.ArtifactDir, p.config.GatecheckBundleFilename)
+
+	p.runtime.dockerAlias = shell.DockerAliasDocker
+	// print the connection information, exit pipeline if failed
+	switch strings.ToLower(p.DockerAlias) {
+	case "podman":
+		p.runtime.dockerAlias = shell.DockerAliasPodman
+	case "docker":
+		p.runtime.dockerAlias = shell.DockerAliasDocker
+	}
 
 	return nil
 }
@@ -103,206 +127,271 @@ func (p *ImageScan) Run() error {
 	}
 
 	if err := p.preRun(); err != nil {
-		return errors.New("Code Scan Pipeline Pre-Run Failed.")
+		return fmt.Errorf("Image Scan Pipeline Pre-Run Failed: %v", err)
 	}
 
 	fmt.Fprintln(p.Stdout, "******* Workflow Engine Image Scan Pipeline [Run] *******")
 
-	alias := shell.DockerAliasDocker
-	// print the connection information, exit pipeline if failed
-	switch strings.ToLower(p.DockerAlias) {
-	case "podman":
-		alias = shell.DockerAliasPodman
-	case "docker":
-		alias = shell.DockerAliasDocker
+	// Create async tasks
+	freshclamTask := NewAsyncTask("freshclam")
+	dockerSaveTask := NewAsyncTask("docker save")
+	clamscanTask := NewAsyncTask("clamscan")
+	syftTask := NewAsyncTask("syft")
+	grypeTask := NewAsyncTask("grype")
+	listTask := NewAsyncTask("gatecheck list")
+	bundleTask := NewAsyncTask("gatecheck bundle")
+	postRunTask := NewAsyncTask("cleanup")
+
+	// Run all jobs in the background
+	go p.freshclamJob(freshclamTask)
+	go p.dockerSaveJob(dockerSaveTask)
+	go p.clamscanJob(clamscanTask, dockerSaveTask, freshclamTask)
+
+	go p.syftJob(syftTask, dockerSaveTask)
+	go p.grypeJob(grypeTask, syftTask)
+
+	go p.gatecheckListJob(listTask, grypeTask)
+	go p.gatecheckBundleJob(bundleTask, syftTask, grypeTask, clamscanTask)
+
+	go p.postRunJob(postRunTask, syftTask, grypeTask, clamscanTask)
+
+	// Stream Task results to stderr and block until the task completes
+	// The order here is the stderr stream order, not the execution order.
+	// execution order is sudo random because of the goroutines however,
+	// dependencies are defined and handle by the jobs.
+
+	allTasks := []*AsyncTask{
+		freshclamTask,
+		dockerSaveTask,
+		syftTask,
+		grypeTask,
+		clamscanTask,
+		listTask,
+		bundleTask,
+		postRunTask,
 	}
 
-	// Run in the background since this task takes a log time, we can stream the log after other jobs run
-	clamscanTask := NewAsyncTask("clamscan")
-	mw := io.MultiWriter(p.runtime.clamavFile, p.runtime.postSummaryBuffer)
+	allErrors := make([]error, 0)
+
+	for _, task := range allTasks {
+		err := task.StreamTo(p.Stderr)
+		if err != nil {
+			allErrors = append(allErrors, fmt.Errorf("%s task failed. reason: %w", task.Name, err))
+		}
+	}
+
+	if len(allErrors) > 0 {
+		return errors.Join(allErrors...)
+	}
+	return nil
+}
+
+func (p *ImageScan) dockerSaveJob(task *AsyncTask) {
+	defer task.Close()
+	defer p.runtime.tarImageFile.Close()
+	ctx, cancel := context.WithCancel(p.runtime.ctx)
+	// Report to the log every few seconds while the command is running
+	// docker save doesn't have a progress meter or anything so
+	// when it runs for a long time, it seems like the pipeline freezes
+	go func() {
+		for {
+			after := time.After(time.Second * 5)
+			select {
+			case <-ctx.Done():
+				break
+			case <-after:
+				task.Logger.Debug("docker save running...")
+			}
+		}
+	}()
+
+	go func() {
+		defer cancel()
+		task.ExitError = shell.DockerSave(
+			shell.WithDryRun(p.DryRunEnabled),
+			shell.WithCtx(p.runtime.ctx), // runtime ctx, not internal function ctx
+			shell.WithFailTrigger(p.runtime.cancelFunc),
+			shell.WithErrorOnly(task.StderrPipeWriter),
+			shell.WithLogger(task.Logger),
+			shell.WithImageTag(p.config.ImageTag),
+			shell.WithDockerAlias(p.runtime.dockerAlias),
+			shell.WithStdout(p.runtime.tarImageFile),
+			shell.WithStderr(task.StderrPipeWriter),
+		)
+	}()
+
+	<-ctx.Done()
+
+	if task.ExitError != nil {
+		_ = os.Remove(p.runtime.tarImageFilename)
+	}
+}
+
+func (p *ImageScan) freshclamJob(task *AsyncTask) {
+	defer task.Close()
+
+	task.Logger.Debug("update clamav virus definitions database")
+
+	task.ExitError = shell.Freshclam(
+		shell.WithDryRun(p.DryRunEnabled),
+		shell.WithCtx(p.runtime.ctx),
+		shell.WithFailTrigger(p.runtime.cancelFunc),
+		shell.WithErrorOnly(task.StderrPipeWriter),
+		shell.WithLogger(task.Logger),
+		shell.WithStdout(task.StderrPipeWriter), // this is on purpose, we don't want fresh clam in stdout
+		shell.WithStderr(task.StderrPipeWriter),
+	)
+}
+
+func (p *ImageScan) clamscanJob(task *AsyncTask, dockerSaveTask *AsyncTask, freshClamTask *AsyncTask) {
+	defer task.Close()
+	defer p.runtime.clamavFile.Close()
+
+	task.Logger.Debug("run clamav virus scan after freshclam and docker save complete")
+
+	err := dockerSaveTask.Wait()
+	if err != nil {
+		task.Logger.Debug("docker save task failed before clamscan could run")
+		task.ExitError = errors.New("clamscan task canceled")
+		return
+	}
+
+	err = freshClamTask.Wait()
+	if err != nil {
+		task.Logger.Debug("freshclam task failed before clamscan could run")
+		task.ExitError = errors.New("clamscan task canceled")
+		return
+	}
+	ctx, cancel := context.WithCancel(p.runtime.ctx)
+	// Report to the log every few seconds while the command is running
+	go func() {
+		for {
+			after := time.After(time.Second * 5)
+			select {
+			case <-ctx.Done():
+				break
+			case <-after:
+				task.Logger.Debug("clamscan running...")
+			}
+		}
+	}()
+
+	go func() {
+		defer cancel()
+		reportWriter := io.MultiWriter(p.runtime.clamavFile, p.runtime.postSummaryBuffer)
+		task.ExitError = shell.Clamscan(
+			shell.WithDryRun(p.DryRunEnabled),
+			shell.WithLogger(task.Logger),
+			shell.WithStdout(reportWriter), // where the report goes
+			shell.WithStderr(task.StderrPipeWriter),
+			shell.WithTarFilename(p.runtime.tarImageFilename),
+		)
+	}()
+	<-ctx.Done()
+	if task.ExitError != nil {
+		_ = os.Remove(p.runtime.clamavFilename)
+	}
+}
+
+func (p *ImageScan) syftJob(task *AsyncTask, dockerSaveTask *AsyncTask) {
+	defer task.Close()
+	task.Logger.Debug("run syft sbom scan after image tar is created")
+
+	reportWriter := io.MultiWriter(p.runtime.syftFile, task.StdoutBuf)
+	task.ExitError = shell.SyftScanImage(
+		shell.WithDryRun(p.DryRunEnabled),
+		shell.WithLogger(task.Logger),
+		shell.WithWaitFunc(dockerSaveTask.Wait),           // defines a dependency
+		shell.WithStdout(reportWriter),                    // where the report goes
+		shell.WithStderr(p.Stderr),                        // bypass the async stderr, wait function will prevent stderr collisions
+		shell.WithStdin(new(bytes.Buffer)),                // This prevents stdin blocking in certain environments
+		shell.WithTarFilename(p.runtime.tarImageFilename), // target docker archive to scan
+	)
+
+	if task.ExitError != nil {
+		_ = os.Remove(p.runtime.syftFilename)
+	}
+}
+
+func (p *ImageScan) grypeJob(task *AsyncTask, syftTask *AsyncTask) {
+	defer task.Close()
+	defer p.runtime.grypeFile.Close()
+
+	task.Logger.Debug("run grype vulnerability scan after syft sbom is created")
+
+	reportWriter := io.MultiWriter(p.runtime.syftFile, task.StdoutBuf)
+	// using the syftscan pipe reader will block this job until syft is done
+	task.ExitError = shell.GrypeScanSBOM(
+		shell.WithDryRun(p.DryRunEnabled),
+		shell.WithWaitFunc(syftTask.Wait), // defines a dependency
+		shell.WithLogger(task.Logger),
+		shell.WithStdin(syftTask.StdoutBuf), // Where the syft SBOM will come from
+		shell.WithStdout(reportWriter),      // where the report goes
+		shell.WithStderr(p.Stderr),
+	)
+	if task.ExitError != nil {
+		_ = os.Remove(p.runtime.grypeFilename)
+	}
+}
+
+func (p *ImageScan) gatecheckListJob(task *AsyncTask, grypeTask *AsyncTask) {
+	defer task.Close()
+
+	task.Logger.Debug("run gatecheck list after grype report is created")
+	task.ExitError = shell.GatecheckListAll(
+		shell.WithDryRun(p.DryRunEnabled),
+		shell.WithLogger(task.Logger),
+		shell.WithWaitFunc(grypeTask.Wait),
+		shell.WithStdin(grypeTask.StdoutBuf),
+		shell.WithStdout(p.runtime.postSummaryBuffer), // where the report goes
+		shell.WithErrorOnly(task.StderrPipeWriter),
+		shell.WithReportType("grype"),
+	)
+}
+
+func (p *ImageScan) gatecheckBundleJob(task *AsyncTask, syftTask *AsyncTask, grypeTask *AsyncTask, clamscanTask *AsyncTask) {
+	defer task.Close()
+
 	opts := []shell.OptionFunc{
 		shell.WithDryRun(p.DryRunEnabled),
-		shell.WithImageTag(p.config.ImageTag), // clamscan target
-		shell.WithDockerAlias(alias),
-	}
-	go RunClamScanJob(clamscanTask, mw, opts)
-
-	// Scope this way in-order to return without returning the entire run function
-	syftGrypeError := func() error {
-		syftBuf := new(bytes.Buffer)
-		emptyBuf := new(bytes.Buffer)
-		opts := []shell.OptionFunc{
-			shell.WithImageTag(p.config.ImageTag),
-			shell.WithDryRun(p.DryRunEnabled),
-			shell.WithStdin(emptyBuf),
-			shell.WithStdout(io.MultiWriter(syftBuf, p.runtime.sbomFile)),
-			shell.WithStderr(p.Stderr),
-		}
-		exitCode := shell.SyftScanImage(opts...)
-		if exitCode != shell.ExitOK {
-			return exitCode.GetError("syft") // just return to syftGrypeError
-		}
-		grypeBuf := new(bytes.Buffer)
-		exitCode = shell.GrypeScanSBOM(
-			shell.WithDryRun(p.DryRunEnabled),
-			shell.WithIO(syftBuf, io.MultiWriter(p.runtime.grypeFile, grypeBuf), p.Stderr),
-		)
-		if exitCode != shell.ExitOK {
-			return exitCode.GetError("grype")
-		}
-		p.runtime.grypeJobSuccess = true
-		p.runtime.syftJobSuccess = true
-
-		opts = []shell.OptionFunc{
-			shell.WithDryRun(p.DryRunEnabled),
-			shell.WithReportType("grype"),
-			shell.WithIO(grypeBuf, p.runtime.postSummaryBuffer, nil),
-			// Reduce the logging noise to only essential tasks, only dump stderr for errors
-			shell.WithErrorOnly(clamscanTask.stdErrPipeWriter),
-		}
-
-		// List Report
-		exitCode = shell.GatecheckListAll(opts...)
-		fmt.Fprintln(p.runtime.postSummaryBuffer)
-
-		if exitCode != shell.ExitOK {
-			return exitCode.GetError("gatecheck list")
-		}
-
-		return nil
-	}() // Call function immediately
-
-	// The stream order of tasks is important to prevent the log from gettings mangled
-	// By reading from each task reader, it will block until the task is complete
-	clamScanError := clamscanTask.Wait(p.Stdout)
-
-	if clamScanError == nil {
-		p.runtime.clamJobSuccess = true
+		shell.WithLogger(task.Logger),
+		shell.WithWaitFunc(grypeTask.Wait),
+		shell.WithStdout(p.Stdout),
+		shell.WithErrorOnly(task.StderrPipeWriter),
 	}
 
-	postRunError := p.postRun()
+	syftOpts := append(opts, shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.syftFilename), shell.WithWaitFunc(syftTask.Wait))
+	task.ExitError = errors.Join(task.ExitError, shell.GatecheckBundleAdd(syftOpts...))
 
-	return errors.Join(clamScanError, syftGrypeError, postRunError)
+	grypeOpts := append(opts, shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.grypeFilename), shell.WithWaitFunc(grypeTask.Wait))
+	task.ExitError = errors.Join(task.ExitError, shell.GatecheckBundleAdd(grypeOpts...))
+
+	clamavOpts := append(opts, shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.clamavFilename), shell.WithWaitFunc(clamscanTask.Wait))
+	task.ExitError = errors.Join(task.ExitError, shell.GatecheckBundleAdd(clamavOpts...))
 }
 
-func (p *ImageScan) postRun() error {
-	fmt.Fprintln(p.Stdout, "\n******* Workflow Engine Image Scan Pipeline [Post-Run] *******")
-	cleanUpFiles := []string{}
-	bundleFiles := []string{}
+func (p *ImageScan) postRunJob(task *AsyncTask, allTasks ...*AsyncTask) {
+	defer task.Close()
 
-	_ = p.runtime.sbomFile.Close()
-	_ = p.runtime.grypeFile.Close()
-	_ = p.runtime.clamavFile.Close()
-
-	if p.runtime.syftJobSuccess {
-		bundleFiles = append(bundleFiles, p.runtime.sbomFilename)
-	} else {
-		cleanUpFiles = append(cleanUpFiles, p.runtime.sbomFilename)
+	for _, task := range allTasks {
+		task.Wait()
 	}
 
-	if p.runtime.grypeJobSuccess {
-		bundleFiles = append(bundleFiles, p.runtime.grypeFilename)
-	} else {
-		cleanUpFiles = append(cleanUpFiles, p.runtime.grypeFilename)
+	_ = os.Remove(p.runtime.tarImageFilename)
+
+	opts := []shell.OptionFunc{
+		shell.WithDryRun(p.DryRunEnabled),
+		shell.WithLogger(task.Logger),
+		shell.WithStdout(p.Stdout),
+		shell.WithErrorOnly(task.StderrPipeWriter),
+		shell.WithStdout(p.runtime.postSummaryBuffer),
+		shell.WithListTarget(p.runtime.bundleFilename),
 	}
 
-	if p.runtime.clamJobSuccess {
-		bundleFiles = append(bundleFiles, p.runtime.clamavFilename)
-	} else {
-		cleanUpFiles = append(cleanUpFiles, p.runtime.clamavFilename)
-	}
+	// Add the bundle summary output to the summary buffer before dumping
+	err := shell.GatecheckList(opts...)
+	task.ExitError = errors.Join(task.ExitError, err)
 
-	// delete temporary or incomplete file
-	for _, filename := range cleanUpFiles {
-		if err := os.RemoveAll(filename); err != nil {
-			slog.Warn("during post run, file could not be removed", "filename", filename, "error", err)
-		}
-	}
-
-	errBuf := new(bytes.Buffer)
-	err := RunGatecheckBundleAdd(p.runtime.bundleFilename, errBuf, p.DryRunEnabled, bundleFiles...)
-	if err != nil {
-		slog.Error("cannot run gatecheck bundle add, dumping logs", "error", err)
-		_, _ = io.Copy(p.Stderr, errBuf)
-	}
-	// print clamAV Report and grype summary
+	// print gatecheck list summary content
 	_, _ = p.runtime.postSummaryBuffer.WriteTo(p.Stdout)
-	return err
-}
-
-func RunClamScanJob(task *AsyncTask, reportDst io.Writer, options []shell.OptionFunc) {
-	defer task.stdErrPipeWriter.Close()
-	commonError := errors.New("Clam Scan Job Failed.")
-	// Create temporary image tar file for writing
-	slog.Debug("create temporary file for image tar, used for clam virus scan")
-	imageTarFile, err := os.CreateTemp(os.TempDir(), "*-image.tar")
-	if err != nil {
-		task.logger.Error("cannot create temp image tar file", "temp_dir", os.TempDir())
-		task.exitError = commonError
-		return
-	}
-	imageTarFilename := imageTarFile.Name()
-
-	// Clean up to run before function scope ends
-	defer func() {
-		_ = imageTarFile.Close()
-		_ = os.Remove(imageTarFilename)
-	}()
-
-	dockerSaveTask := NewAsyncTask("docker save")
-	freshclamTask := NewAsyncTask("freshclam")
-	ctx, cancel := context.WithCancel(context.Background())
-
-	// Run the docker save task in the background with the option to termination early
-	// logging will be sent to the async task.
-	// If the command fails, it will call cancel to trigger an interupt on the freshclam job
-	go func() {
-		defer dockerSaveTask.stdErrPipeReader.Close()
-		opts := append(
-			options,
-			shell.WithCtx(ctx),
-			shell.WithFailTrigger(cancel),
-			shell.WithStdout(imageTarFile),
-			shell.WithStderr(dockerSaveTask.stdErrPipeWriter),
-		)
-		exitCode := shell.DockerSave(opts...)
-		dockerSaveTask.exitError = exitCode.GetError("docker save")
-	}()
-
-	go func() {
-		defer freshclamTask.stdErrPipeReader.Close()
-		opts := append(
-			options,
-			shell.WithCtx(ctx),
-			shell.WithFailTrigger(cancel),
-			shell.WithStdout(freshclamTask.stdErrPipeWriter),
-			shell.WithStderr(freshclamTask.stdErrPipeWriter),
-		)
-
-		exitCode := shell.Freshclam(opts...)
-		freshclamTask.exitError = exitCode.GetError("freshclam")
-	}()
-
-	task.logger.Debug("clamscan wait for freshclam update and docker save to complete")
-	defer task.stdErrPipeWriter.Close()
-	// Wait until these tasks finish first, streaming their outputs in order to this tasks logger
-	_ = dockerSaveTask.Wait(task.stdErrPipeWriter)
-	_ = freshclamTask.Wait(task.stdErrPipeWriter)
-
-	// determine if both tasks passed before moving on
-	prescanErrors := errors.Join(dockerSaveTask.exitError, freshclamTask.exitError)
-	if err := errors.Join(prescanErrors); err != nil {
-		task.logger.Error("cannot run clamscan without image tar and freshclam update")
-		task.exitError = prescanErrors
-		return
-	}
-
-	opts := append(
-		options,
-		shell.WithTarFilename(imageTarFilename),
-		shell.WithIO(nil, reportDst, task.stdErrPipeWriter),
-	)
-	exitCode := shell.Clamscan(opts...)
-
-	task.exitError = exitCode.GetError("clamscan")
 }

@@ -43,6 +43,7 @@ runs:
           -v "$(readlink -f ${{ inputs.output_dir }})":"/github/output" \
           ghcr.io/cms-enterprise/batcave/workflow-engine:${{ inputs.workflow_engine_version }} \
           run image-scan \
+          --verbose \
           --tag "${{ inputs.image_tag }}" \
           --artifact-dir "/github/output" \
           --sbom-filename "${{ inputs.sbom_filename }}" \

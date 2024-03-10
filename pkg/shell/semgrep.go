@@ -7,7 +7,7 @@ import "os/exec"
 // Requirements: N/A
 //
 // Output: version to STDOUT
-func SemgrepVersion(options ...OptionFunc) ExitCode {
+func SemgrepVersion(options ...OptionFunc) error {
 	o := newOptions(options...)
 	exe := exec.Command("semgrep", "--version")
 	if o.semgrep.experimental {
@@ -21,7 +21,7 @@ func SemgrepVersion(options ...OptionFunc) ExitCode {
 // Requirements: WithSemgrep
 //
 // Output: JSON report to STDOUT
-func SemgrepScan(options ...OptionFunc) ExitCode {
+func SemgrepScan(options ...OptionFunc) error {
 	o := newOptions(options...)
 	exe := exec.Command("semgrep", "ci", "--json", "--config", o.semgrep.rules)
 	if o.semgrep.experimental {
