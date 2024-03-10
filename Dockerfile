@@ -24,14 +24,18 @@ FROM ghcr.io/cms-enterprise/batcave/omnibus:v1.4.1 as workflow-engine-base
 
 COPY --from=build /app/bin/workflow-engine /usr/local/bin/workflow-engine
 
-ENTRYPOINT ["workflow-engine"]
-
-FROM workflow-engine-base as workflow-engine-podman
-
 # enable the Gatecheck beta CLI
 ENV GATECHECK_FF_CLI_V1_ENABLED=1
 
-# Install docker and podman CLIs
+ENTRYPOINT ["workflow-engine"]
+
+LABEL org.opencontainers.image.title="workflow-engine-docker"
+LABEL org.opencontainers.image.description="A standalone CD engine for BatCAVE"
+LABEL io.artifacthub.package.readme-url="https://github.com/CMS-Enterprise/batcave-workflow-engine/blob/main/README.md"
+
+FROM workflow-engine-base as workflow-engine-podman
+
+# Install podman CLIs
 RUN apk update && apk add --no-cache podman fuse-overlayfs
 
 COPY docker/storage.conf /etc/containers/
@@ -51,20 +55,12 @@ VOLUME /home/podman/.local/share/containers
 
 RUN mkdir -p /var/lib/clamav
 RUN chown podman /var/lib/clamav && chown podman /etc/clamav
-USER podman
 
 LABEL org.opencontainers.image.title="workflow-engine-podman"
-LABEL org.opencontainers.image.description="A standalone CD engine for BatCAVE"
-LABEL io.artifacthub.package.readme-url="https://github.com/CMS-Enterprise/batcave-workflow-engine/blob/main/README.md"
 
 FROM workflow-engine-base
 
-# enable the Gatecheck beta CLI
-ENV GATECHECK_FF_CLI_V1_ENABLED=1
-
-# Install docker and podman CLIs
+# Install docker CLI
 RUN apk update && apk add --no-cache docker-cli-buildx
 
 LABEL org.opencontainers.image.title="workflow-engine-docker"
-LABEL org.opencontainers.image.description="A standalone CD engine for BatCAVE"
-LABEL io.artifacthub.package.readme-url="https://github.com/CMS-Enterprise/batcave-workflow-engine/blob/main/README.md"
