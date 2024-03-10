@@ -130,9 +130,11 @@ func (p *ImageScan) Run() error {
 	// Scope this way in-order to return without returning the entire run function
 	syftGrypeError := func() error {
 		syftBuf := new(bytes.Buffer)
+		emptyBuf := new(bytes.Buffer)
 		opts := []shell.OptionFunc{
 			shell.WithImageTag(p.config.ImageTag),
 			shell.WithDryRun(p.DryRunEnabled),
+			shell.WithStdin(emptyBuf),
 			shell.WithStdout(io.MultiWriter(syftBuf, p.runtime.sbomFile)),
 			shell.WithStderr(p.Stderr),
 		}
