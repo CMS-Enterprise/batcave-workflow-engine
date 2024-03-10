@@ -4,7 +4,7 @@ description: Scans a Container Image using workflow-engine
 inputs:
   workflow_engine_version:
     description: "The version of workflow-engine to use (note: different versions of the workflow-engine image may not be compatible with this version of the GitHub action)."
-    default: "33b5170"
+    default: "v0.0.1-rc.3"
   image_tag:
     description: The tag of the image being scanned (defaults to the repository name and current commit SHA).
     default: ${{ github.repository }}:${{ github.sha }}
@@ -12,9 +12,11 @@ inputs:
     description: The output directory to store sbom and scan files
     required: true
   sbom_filename:
-    description: "The filename to use for the SBOM (default: sbom.json)"
+    description: "The filename to use for the SBOM (default: syft-sbom-report.json)"
+    default: "syft-sbom-report.json"
   grype_filename:
-    description: "The filename to use for the Grype scan (default: scan.json)"
+    description: "The filename to use for the Grype scan (default: grype-vulnerability-report-full.json)"
+    default: "grype-vulnerability-report-full.json"
   repo_token:
     description: The GITHUB_TOKEN environment variable, used to authentication with the ghcr.io container registry.
     required: true
@@ -41,7 +43,7 @@ runs:
           -v "$(readlink -f ${{ inputs.output_dir }})":"/github/output" \
           ghcr.io/cms-enterprise/batcave/workflow-engine:${{ inputs.workflow_engine_version }} \
           run image-scan \
-          --tag "${{ inputs.image_tag }}" \
-          --artifact-dir "/github/output" \
+          --scan-image-target "${{ inputs.image_tag }}" \
+          --artifact-directory "/github/output" \
           --sbom-filename "${{ inputs.sbom_filename }}" \
           --grype-filename "${{ inputs.grype_filename }}"

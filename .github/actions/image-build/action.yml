@@ -4,7 +4,7 @@ description: Builds a Container Image using workflow-engine
 inputs:
   workflow_engine_version:
     description: "The version of workflow-engine to use (note: different versions of the workflow-engine image may not be compatible with this version of the GitHub action)."
-    default: "33b5170"
+    default: "v0.0.1-rc.3"
   workflow_engine_name:
     description: "The name of the workflow engine local image."
     default: "workflow_engine_local"
