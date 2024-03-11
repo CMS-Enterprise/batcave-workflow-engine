@@ -198,7 +198,7 @@ func (p *ImageScan) dockerSaveJob(task *AsyncTask) {
 			after := time.After(time.Second * 5)
 			select {
 			case <-ctx.Done():
-				break
+				return
 			case <-after:
 				task.Logger.Debug("docker save running...")
 			}
@@ -269,7 +269,7 @@ func (p *ImageScan) clamscanJob(task *AsyncTask, dockerSaveTask *AsyncTask, fres
 			after := time.After(time.Second * 5)
 			select {
 			case <-ctx.Done():
-				break
+				return
 			case <-after:
 				task.Logger.Debug("clamscan running...")
 			}
