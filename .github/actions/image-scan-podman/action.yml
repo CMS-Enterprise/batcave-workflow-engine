@@ -1,4 +1,4 @@
-name: Scan Image
+name: Scan Image Podman
 description: Scans a Container Image using workflow-engine
 
 inputs:
@@ -22,8 +22,8 @@ inputs:
 
 runs:
   using: docker
-  image: "docker://ghcr.io/cms-enterprise/batcave/workflow-engine:v0.0.1-rc.9"
-  args: [ "run", "image-scan", "--config", "${{inputs.config_file}}", "--verbose" ]
+  image: "docker://ghcr.io/cms-enterprise/batcave/workflow-engine:podman-v0.0.1-rc.9"
+  args: [ "run", "image-scan", "--config", "${{inputs.config_file}}", "-i", "podman" ]
   env:
     WFE_IMAGE_TAG: "${{inputs.tag}}"
     WFE_IMAGE_SCAN_CLAMAV_FILENAME: "${{inputs.clamav_filename}}"
@@ -32,4 +32,3 @@ runs:
     WFE_IMAGE_SCAN_GRYPE_ACTIVE_FINDINGS_FILENAME: "${{inputs.grype_active_findings_filename}}"
     WFE_IMAGE_SCAN_GRYPE_ALL_FINDINGS_FILENAME: "${{inputs.grype_all_findings_filename}}"
     WFE_ARTIFACT_DIR: "${{inputs.artifact_dir}}"
-

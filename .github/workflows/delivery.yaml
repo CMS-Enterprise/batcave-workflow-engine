@@ -43,13 +43,9 @@ jobs:
       - name: Build container image
         uses: ./.github/actions/image-build
         with:
-          path: .
-          # TODO: the dockerfile path should be relative to the context path
-          dockerfile: ./Dockerfile
-          image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}
+          tag: ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}
           # cache_from: ./container-cache-in
           # cache_to: ./container-cache-out
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
           args: "VERSION=${{ env.VERSION }},GIT_COMMIT=${{ env.GIT_COMMIT }},GIT_DESCRIPTION=${{ env.GIT_DESCRIPTION }}"
 
       # - name: Save image layer cache
@@ -61,26 +57,26 @@ jobs:
       - name: Build podman container image
         uses: ./.github/actions/image-build
         with:
-          path: .
-          dockerfile: ./Dockerfile
-          build_target: workflow-engine-podman
-          workflow_engine_name: workflow-engine-podman-local
-          image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          target: workflow-engine-podman
+          tag: ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}
 
       - name: Scan container image
         uses: ./.github/actions/image-scan
         with:
-          image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}
-          output_dir: ./artifacts
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}
+          artifact_dir: ./artifacts
 
       - name: Scan podman container image
         uses: ./.github/actions/image-scan
         with:
-          image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}
-          output_dir: ./artifacts
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}
+          artifact_dir: ./artifacts/podman
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       # TODO: this should be something workflow-engine does as apart of the delivery pipeline
       - name: Push image
@@ -97,5 +93,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: image-scan-results
-          path: ./artifacts/*.json
+          path: |
+            ./artifacts/**/*.json
+            ./artifacts/**/*.txt
           if-no-files-found: error

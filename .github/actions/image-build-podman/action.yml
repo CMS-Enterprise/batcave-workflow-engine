@@ -1,4 +1,4 @@
-name: Build Image
+name: Build Image Podman
 description: Builds a Container Image using workflow-engine
 
 inputs:
@@ -27,8 +27,8 @@ inputs:
 
 runs:
   using: docker
-  image: "docker://ghcr.io/cms-enterprise/batcave/workflow-engine:v0.0.1-rc.9"
-  args: [ "run", "image-build", "--config", "${{inputs.config_file}}", "--verbose" ]
+  image: "docker://ghcr.io/cms-enterprise/batcave/workflow-engine:podman-v0.0.1-rc.9"
+  args: [ "run", "image-build", "--config", "${{inputs.config_file}}", "-i", "podman" ]
   env:
     WFE_IMAGE_BUILD_DIR: "${{inputs.build_dir}}"
     WFE_IMAGE_BUILD_DOCKERFILE: "${{inputs.dockerfile}}"
@@ -38,4 +38,3 @@ runs:
     WFE_IMAGE_BUILD_TARGET: "${{inputs.target}}"
     WFE_IMAGE_BUILD_CACHE_TO: "${{inputs.cache_to}}"
     WFE_IMAGE_BUILD_CACHE_FROM: "${{inputs.cache_from}}"
-    WFE_IMAGE_BUILD_SQUASH_LAYERS: "${{inputs.squash_layers}}"
