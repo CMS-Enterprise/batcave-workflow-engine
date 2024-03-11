@@ -13,10 +13,6 @@ import (
 func SyftVersion(options ...OptionFunc) error {
 	o := newOptions(options...)
 	cmd := exec.Command("syft", "version")
-	pr, err := cmd.StderrPipe()
-	io.Copy(os.Stderr, pr)
-	if err != nil {
-	}
 	return run(cmd, o)
 }
 
