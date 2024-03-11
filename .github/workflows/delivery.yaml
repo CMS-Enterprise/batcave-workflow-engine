@@ -37,7 +37,7 @@ jobs:
           fi
           echo "VERSION=$(git describe --tags)" >> $GITHUB_ENV
           echo "GIT_COMMIT=$(git rev-parse HEAD)" >> $GITHUB_ENV
-          echo "GIT_DESCRIPTION=$(git log -1 --pretty=%B)" >> $GITHUB_ENV
+          echo "GIT_DESCRIPTION=$(git log -1 --pretty=%B | head -n 1)" >> $GITHUB_ENV
 
       # TODO combine all delivery jobs into a single action
       - name: Build container image
