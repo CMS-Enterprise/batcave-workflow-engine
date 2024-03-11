@@ -50,8 +50,7 @@ VOLUME /var/lib/containers
 VOLUME /home/podman/.local/share/containers
 
 RUN mkdir -p /var/lib/clamav
-RUN chown podman /var/lib/clamav && chown podman /etc/clamav/freshclam.conf
-
+RUN chown podman /var/lib/clamav && chown podman /etc/clamav
 USER podman
 
 LABEL org.opencontainers.image.title="workflow-engine-podman"
