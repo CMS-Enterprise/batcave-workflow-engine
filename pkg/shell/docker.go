@@ -1,6 +1,7 @@
 package shell
 
 import (
+	"fmt"
 	"log/slog"
 	"os/exec"
 )
@@ -19,8 +20,8 @@ const (
 //   - WithImage option
 //
 // Outputs: image tar archive to STDOUT
-func DockerSave(optionFuncs ...OptionFunc) ExitCode {
-	o := newOptions(optionFuncs...)
+func DockerSave(options ...OptionFunc) error {
+	o := newOptions(options...)
 	switch o.dockerAlias {
 	case DockerAliasDocker:
 		cmd := exec.Command("docker", "save", o.imageTag)
@@ -29,7 +30,7 @@ func DockerSave(optionFuncs ...OptionFunc) ExitCode {
 		cmd := exec.Command("podman", "save", o.imageTag)
 		return run(cmd, o)
 	default:
-		return ExitBadConfiguration
+		return fmt.Errorf("only docker/podman aliases are supported: %w", ErrBadParameters)
 	}
 }
 
@@ -38,7 +39,7 @@ func DockerSave(optionFuncs ...OptionFunc) ExitCode {
 // Requirements: WithImageBuildOptions, optional WithDockerAlias
 //
 // Outputs: debug to STDERR
-func DockerBuild(optionFuncs ...OptionFunc) ExitCode {
+func DockerBuild(optionFuncs ...OptionFunc) error {
 	o := newOptions(optionFuncs...)
 	// this parses argument values to determine the flags
 	args := o.imageBuildOptions.args()
@@ -50,7 +51,7 @@ func DockerBuild(optionFuncs ...OptionFunc) ExitCode {
 		cmd := exec.Command("podman", args...)
 		return run(cmd, o)
 	default:
-		return ExitBadConfiguration
+		return fmt.Errorf("only docker/podman aliases are supported: %w", ErrBadParameters)
 	}
 }
 
@@ -59,7 +60,7 @@ func DockerBuild(optionFuncs ...OptionFunc) ExitCode {
 // Requirements: WithImageName
 //
 // Outputs: debug to STDERR
-func DockerPush(optionFuncs ...OptionFunc) ExitCode {
+func DockerPush(optionFuncs ...OptionFunc) error {
 	o := newOptions(optionFuncs...)
 	// this parses argument values to determine the flags
 	switch o.dockerAlias {
@@ -70,7 +71,7 @@ func DockerPush(optionFuncs ...OptionFunc) ExitCode {
 		cmd := exec.Command("podman", "push", o.imageTag)
 		return run(cmd, o)
 	default:
-		return ExitBadConfiguration
+		return fmt.Errorf("only docker/podman aliases are supported: %w", ErrBadParameters)
 	}
 }
 
@@ -79,7 +80,7 @@ func DockerPush(optionFuncs ...OptionFunc) ExitCode {
 // Requirements: optional WithDockerAlias
 //
 // Outputs: debug to STDERR
-func DockerInfo(optionFuncs ...OptionFunc) ExitCode {
+func DockerInfo(optionFuncs ...OptionFunc) error {
 	o := newOptions(optionFuncs...)
 	// this parses argument values to determine the flags
 	switch o.dockerAlias {
@@ -90,7 +91,7 @@ func DockerInfo(optionFuncs ...OptionFunc) ExitCode {
 		cmd := exec.Command("podman", "info")
 		return run(cmd, o)
 	default:
-		return ExitBadConfiguration
+		return fmt.Errorf("only docker/podman aliases are supported: %w", ErrBadParameters)
 	}
 }
 

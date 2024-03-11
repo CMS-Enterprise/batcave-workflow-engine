@@ -15,11 +15,11 @@ func newRunCommand() *cobra.Command {
 	// run image-build
 	imageBuildCmd := newBasicCommand("image-build", "builds an image", runImageBuild)
 
-	imageBuildCmd.Flags().String("build-dir", viper.GetString("imagebuild.builddir"), "image build context directory")
+	imageBuildCmd.Flags().String("build-dir", "", "image build context directory")
 	_ = viper.BindPFlag("imagebuild.builddir", imageBuildCmd.Flags().Lookup("build-dir"))
 
-	imageBuildCmd.Flags().String("dockerfile", viper.GetString("imagebuild.dockerfile"), "image build custom Dockerfile")
-	_ = viper.BindPFlag("image.dockerfile", imageBuildCmd.Flags().Lookup("dockerfile"))
+	imageBuildCmd.Flags().String("dockerfile", "", "image build custom Dockerfile")
+	_ = viper.BindPFlag("imagebuild.dockerfile", imageBuildCmd.Flags().Lookup("dockerfile"))
 
 	imageBuildCmd.Flags().StringArray("build-arg", make([]string, 0), "A build argument passed to the container build command")
 	_ = viper.BindPFlag("imagebuild.args", imageBuildCmd.Flags().Lookup("build-arg"))
@@ -83,6 +83,7 @@ func newRunCommand() *cobra.Command {
 	cmd.PersistentFlags().StringP("cli-interface", "i", "docker", "[docker|podman] CLI interface to use for image building")
 	cmd.PersistentFlags().String("artifact-dir", "", "the target output directory for security report artifacts")
 	cmd.PersistentFlags().String("tag", "", "the target image tag (ex. alpine:latest)")
+	// cmd.PersistentFlags().String("template", "t", "", "workflow engine config template that will be auto rendered")
 
 	// necessary for the persistent flags
 	_ = viper.BindPFlag("artifactdir", cmd.PersistentFlags().Lookup("artifact-dir"))

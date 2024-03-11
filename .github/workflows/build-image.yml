@@ -33,8 +33,11 @@ jobs:
         run: |
           echo "tag_name=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT 
           if [[ $GITHUB_REF == refs/tags/v* ]]; then
-            echo "tag_name=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT  
+            echo "tag_name=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
           fi
+          echo "VERSION=$(git describe --tags)" >> $GITHUB_ENV
+          echo "GIT_COMMIT=$(git rev-parse HEAD)" >> $GITHUB_ENV
+          echo "GIT_DESCRIPTION=$(git log -1 --pretty=%B)" >> $GITHUB_ENV
 
       # TODO combine all delivery jobs into a single action
       - name: Build container image
@@ -47,6 +50,7 @@ jobs:
           # cache_from: ./container-cache-in
           # cache_to: ./container-cache-out
           repo_token: ${{ secrets.GITHUB_TOKEN }}
+          args: "VERSION=${{ env.VERSION }},GIT_COMMIT=${{ env.GIT_COMMIT }},GIT_DESCRIPTION=${{ env.GIT_DESCRIPTION }}"
 
       # - name: Save image layer cache
       #   uses: actions/cache/save@v4

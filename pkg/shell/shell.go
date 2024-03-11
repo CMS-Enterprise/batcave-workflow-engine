@@ -10,22 +10,34 @@ import (
 	"os/exec"
 )
 
-type ExitCode int
-
-const (
-	ExitOK               ExitCode = 0
-	ExitUnknown          ExitCode = 232
-	ExitContextCancel    ExitCode = 231
-	ExitIOFailure        ExitCode = 230
-	ExitExecFailure      ExitCode = 229
-	ExitBadConfiguration ExitCode = 228
+var (
+	ErrInterupt      = errors.New("command interupted (SIGINT)")
+	ErrInteruptFail  = errors.New("command interupted (SIGINT) requested but failed")
+	ErrNotStarted    = errors.New("command canceled before run")
+	ErrBadParameters = errors.New("command has invalid parameters")
 )
 
-func (e ExitCode) GetError(name string) error {
-	if e == ExitOK {
-		return nil
+const exitCodeOther = 300
+
+type ErrCommand struct {
+	Err         error
+	ExitCode    int
+	CommandName string
+}
+
+func (e *ErrCommand) Error() string {
+	if e.Err != nil {
+		return fmt.Sprintf("[shell:%s] %v", e.CommandName, e.Err)
 	}
-	return fmt.Errorf("%s non-zero exit code: %d", name, e)
+	return ""
+}
+
+func NewCommandError(err error, cmdName string, exitCode int) *ErrCommand {
+	return &ErrCommand{
+		Err:         err,
+		ExitCode:    exitCode,
+		CommandName: cmdName,
+	}
 }
 
 // Command is any function that accepts optionFuncs and returns an exit code
@@ -34,23 +46,31 @@ func (e ExitCode) GetError(name string) error {
 // parses the options to configure the exec.Cmd
 //
 // It also handles early termination of the command with a context and logging
-type Command func(...OptionFunc) ExitCode
+type Command func(...OptionFunc) error
 
 // Options are flexible parameters for any command
 type Options struct {
-	dryRunEnabled   bool
-	stdin           io.Reader
-	stdout          io.Writer
-	stderr          io.Writer
-	errorOnlyStderr io.Writer
-	errorOnly       bool
-	ctx             context.Context
-	failTriggerFunc func()
-	tarFilename     string
-	dockerAlias     DockerAlias
-	imageTag        string
-	reportType      string
-	bundleTag       string
+	dryRunEnabled      bool
+	stdin              io.Reader
+	stdout             io.Writer
+	stderr             io.Writer
+	errorOnlyStderr    io.Writer
+	errorOnlyStderrBuf *bytes.Buffer
+	errorOnly          bool
+	ctx                context.Context
+	failTriggerFunc    func()
+	waitFunc           func() error
+	tarFilename        string
+	dockerAlias        DockerAlias
+	imageTag           string
+	reportType         string
+	bundleTag          string
+	targetFilename     string
+	metadata           struct {
+		commandName string
+	}
+
+	logger *slog.Logger
 
 	imageBuildOptions ImageBuildOptions
 
@@ -83,6 +103,10 @@ func (o *Options) apply(options ...OptionFunc) {
 func newOptions(options ...OptionFunc) *Options {
 	o := new(Options)
 	o.failTriggerFunc = func() {}
+	o.waitFunc = func() error {
+		return nil
+	}
+	o.logger = slog.Default()
 	o.apply(options...)
 	return o
 }
@@ -137,12 +161,14 @@ func WithStderr(w io.Writer) OptionFunc {
 	}
 }
 
+// WithCtx enables a command to be interruptable
 func WithCtx(ctx context.Context) OptionFunc {
 	return func(o *Options) {
 		o.ctx = ctx
 	}
 }
 
+// WithGitleaks specific parameters
 func WithGitleaks(targetDirectory string, reportPath string) OptionFunc {
 	return func(o *Options) {
 		o.gitleaks.targetDirectory = targetDirectory
@@ -187,12 +213,14 @@ func WithTarFilename(filename string) OptionFunc {
 	}
 }
 
+// WithReportType used in Gatecheck List to define the input type for piped content
 func WithReportType(reportType string) OptionFunc {
 	return func(o *Options) {
 		o.reportType = reportType
 	}
 }
 
+// WithBundleImage gatecheck bundle specific parameters
 func WithBundleImage(bundleTag string, bundleFilename string) OptionFunc {
 	return func(o *Options) {
 		o.bundleTag = bundleTag
@@ -200,6 +228,7 @@ func WithBundleImage(bundleTag string, bundleFilename string) OptionFunc {
 	}
 }
 
+// WithBundleFile gatecheck bundle specific parameters
 func WithBundleFile(bundleFilename string, targetFilename string) OptionFunc {
 	return func(o *Options) {
 		o.gatecheck.bundleFilename = bundleFilename
@@ -207,6 +236,14 @@ func WithBundleFile(bundleFilename string, targetFilename string) OptionFunc {
 	}
 }
 
+// WithTargetFile generic parameter that needs a specific filename
+func WithTargetFile(filename string) OptionFunc {
+	return func(o *Options) {
+		o.targetFilename = filename
+	}
+}
+
+// WithSemgrep specific parameters
 func WithSemgrep(rules string, experimental bool) OptionFunc {
 	return func(o *Options) {
 		o.semgrep.rules = rules
@@ -214,15 +251,33 @@ func WithSemgrep(rules string, experimental bool) OptionFunc {
 	}
 }
 
+// WithListTarget gatecheck list a specific filen by name
 func WithListTarget(filename string) OptionFunc {
 	return func(o *Options) {
 		o.listTargetFilename = filename
 	}
 }
 
+// WithBuildImageOptions apply docker build options before command execution
 func WithBuildImageOptions(options ImageBuildOptions) OptionFunc {
 	return func(o *Options) {
 		o.imageBuildOptions = options
+	}
+}
+
+// WithLogger use a specific logger for command debugging
+func WithLogger(logger *slog.Logger) OptionFunc {
+	return func(o *Options) {
+		o.logger = logger
+	}
+}
+
+// WithWaitFunc at runtime, this function will be called, if error, it will auto fail the command
+//
+// The default behavoir is to return nil immediately
+func WithWaitFunc(f func() error) OptionFunc {
+	return func(o *Options) {
+		o.waitFunc = f
 	}
 }
 
@@ -233,37 +288,31 @@ func WithBuildImageOptions(options ImageBuildOptions) OptionFunc {
 // 3. Dump stderr from stderrBuf if the command was configured to only send stderr on command fail
 // 4. Try to get the command native error code
 // 5. If nothing else works, log debugging information and return exitUnknown
-func gracefulExit(commandError error, failTrigger func(), dumpOnError bool, stderr io.Writer, stderrBuf *bytes.Buffer) ExitCode {
+func gracefulExit(commandError error, o *Options) error {
 	if commandError == nil {
-		return ExitOK
+		return nil
 	}
 
-	failTrigger()
+	o.failTriggerFunc()
 
 	var exitCodeError *exec.ExitError
 	var execError *exec.Error
-	errorType := fmt.Sprintf("%T", commandError)
 
 	switch {
-	case dumpOnError:
-		slog.Warn("a error occurred while running a command. Dumping logs to stderr")
-		_, err := io.Copy(stderr, stderrBuf)
+	case o.errorOnly:
+		o.logger.Warn("a error occurred while running a command. Dumping logs to stderr")
+		_, err := io.Copy(o.errorOnlyStderr, o.errorOnlyStderrBuf)
 		if err != nil {
 			commandError = errors.Join(commandError, fmt.Errorf("cannot dump logs. reason: %v", err))
 		}
 	// this happens on a regular exit from a command that failed with something other than 0
 	case errors.As(commandError, &exitCodeError):
-		return ExitCode(exitCodeError.ExitCode())
+		return NewCommandError(exitCodeError, o.metadata.commandName, exitCodeError.ExitCode())
 	case errors.As(commandError, &execError):
-		slog.Error("command execution", "error", commandError, "error_type", errorType)
-		return ExitExecFailure
+		return NewCommandError(execError, o.metadata.commandName, exitCodeOther)
 	}
 
-	// this would be a edge case
-	// We can get type information on the error for further inspection so we can review later
-	slog.Error("unknown", "error", commandError, "error_type", errorType)
-
-	return ExitUnknown
+	return NewCommandError(commandError, o.metadata.commandName, exitCodeOther)
 }
 
 // run handles the execution of the command
@@ -273,23 +322,31 @@ func gracefulExit(commandError error, failTrigger func(), dumpOnError bool, stde
 // if ctx fires done.
 //
 // Setting the dry run option will always return ExitOK
-func run(cmd *exec.Cmd, o *Options) ExitCode {
-	slog.Info("shell exec", "dry_run", o.dryRunEnabled, "command", cmd.String(), "errors_only", o.errorOnly)
-	if o.dryRunEnabled {
-		return ExitOK
+func run(cmd *exec.Cmd, o *Options) error {
+	o.logger.Info("shell exec", "dry_run", o.dryRunEnabled, "command", cmd.String(), "errors_only", o.errorOnly)
+
+	o.metadata.commandName = cmd.Args[0]
+
+	o.errorOnlyStderrBuf = new(bytes.Buffer)
+	if o.errorOnly {
+		cmd.Stderr = o.errorOnlyStderrBuf
+	}
+
+	err := o.waitFunc() // will block if defined by caller
+	if err != nil {
+		return gracefulExit(fmt.Errorf("%w: %v", ErrNotStarted, err), o)
 	}
 
 	cmd.Stdin = o.stdin
 	cmd.Stdout = o.stdout
 	cmd.Stderr = o.stderr
 
-	stdErrBuf := new(bytes.Buffer)
-	if o.errorOnly {
-		cmd.Stderr = stdErrBuf
+	if o.dryRunEnabled {
+		return gracefulExit(nil, o)
 	}
 
 	if err := cmd.Start(); err != nil {
-		return gracefulExit(err, o.failTriggerFunc, o.errorOnly, o.errorOnlyStderr, stdErrBuf)
+		return gracefulExit(err, o)
 	}
 
 	if o.ctx == nil {
@@ -307,13 +364,13 @@ func run(cmd *exec.Cmd, o *Options) ExitCode {
 	// capture the exit code
 	select {
 	case <-o.ctx.Done():
-		slog.Warn("command canceled", "command", cmd.String())
+		o.logger.Warn("command canceled", "command", cmd.String())
 		if err := cmd.Process.Kill(); err != nil {
-			err = fmt.Errorf("KILL signal failed: %v", err)
-			return gracefulExit(err, o.failTriggerFunc, o.errorOnly, o.errorOnlyStderr, stdErrBuf)
+			err = fmt.Errorf("%w: %w", ErrInteruptFail, err)
+			return gracefulExit(err, o)
 		}
-		return gracefulExit(errors.New("command killed"), o.failTriggerFunc, o.errorOnly, o.errorOnlyStderr, stdErrBuf)
+		return gracefulExit(ErrInterupt, o)
 	case <-doneChan:
-		return gracefulExit(runError, o.failTriggerFunc, o.errorOnly, o.errorOnlyStderr, stdErrBuf)
+		return gracefulExit(runError, o)
 	}
 }

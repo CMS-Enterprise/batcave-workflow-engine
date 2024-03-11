@@ -22,6 +22,9 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - moved shell package to legacy
 - image scan execution flow
 - docker build argument strategy for shell
+- shell command errors instead of exit codes
+- shell command rich errors
+- async task wraps stderr for cleaner log output
 
 ### Added
 

@@ -29,7 +29,9 @@ inputs:
   repo_token:
     description: The GITHUB_TOKEN environment variable, used to authentication with the ghcr.io container registry.
     required: true
-
+  args:
+    description: optional build arguments for the image build. Should be passed as comma seperated env values like "key1=value1,key2=value2"
+    
 runs:
   using: composite
   steps:
@@ -46,6 +48,7 @@ runs:
     - shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.repo_token }}
+        WFE_IMAGE_BUILD_ARGS: ${{ inputs.args }}
       run: |-
         # login with ghcr *inside* the workflow-engine container
         # TODO: Make this dynamic and configurable (the user may need to authenticate with multiple registries besides ghcr.io)
@@ -60,6 +63,7 @@ runs:
           --entrypoint workflow-engine \
           ${{ inputs.workflow_engine_name }} \
           run image-build \
+          --verbose \
           --build-dir "${{ inputs.path }}" \
           --dockerfile "${{ inputs.dockerfile }}" \
           --tag "${{ inputs.image_tag }}" \

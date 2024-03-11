@@ -7,7 +7,7 @@ import "os/exec"
 // Requirements: N/A
 //
 // Ouputs: CLI Version information to STDOUT
-func GrypeVersion(options ...OptionFunc) ExitCode {
+func GrypeVersion(options ...OptionFunc) error {
 	o := newOptions(options...)
 	cmd := exec.Command("grype", "version")
 	return run(cmd, o)
@@ -18,7 +18,7 @@ func GrypeVersion(options ...OptionFunc) ExitCode {
 // Requirements: Syft SBOM from STDIN
 //
 // Ouputs: A JSON vulnerability Report to STDOUT
-func GrypeScanSBOM(options ...OptionFunc) ExitCode {
+func GrypeScanSBOM(options ...OptionFunc) error {
 	o := newOptions(options...)
 	cmd := exec.Command("grype", "--add-cpes-if-none", "--by-cve", "-o", "json")
 	return run(cmd, o)

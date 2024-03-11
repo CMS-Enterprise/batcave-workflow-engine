@@ -37,19 +37,6 @@ func OpenOrCreateFile(filename string) (*os.File, error) {
 
 // Common Shell Commands to Functions
 
-func RunGatecheckBundleAdd(bundleFilename string, stderr io.Writer, dryRunEnabled bool, filenames ...string) error {
-	for _, filename := range filenames {
-		opts := []shell.OptionFunc{
-			shell.WithDryRun(dryRunEnabled),
-			shell.WithBundleFile(bundleFilename, filename),
-			shell.WithErrorOnly(stderr),
-		}
-
-		return shell.GatecheckBundleAdd(opts...).GetError("gatecheck bundle add")
-	}
-	return nil
-}
-
 // InitGatecheckBundle will encode the config file to JSON and create a new bundle or add it to an existing one
 //
 // The stderr will be suppressed unless there is an non-zero exit code
@@ -82,12 +69,12 @@ func InitGatecheckBundle(config *Config, stderr io.Writer, dryRunEnabled bool) e
 		// The bundle file does not exist
 		if errors.Is(err, os.ErrNotExist) {
 			exitCode := shell.GatecheckBundleCreate(opts...)
-			return exitCode.GetError("gatecheck bundle create")
+			return exitCode
 		}
 		return err
 	}
 
 	exitCode := shell.GatecheckBundleAdd(opts...)
 
-	return exitCode.GetError("gatecheck bundle add")
+	return exitCode
 }

@@ -1,7 +1,6 @@
 package pipelines
 
 import (
-	"errors"
 	"io"
 	"log/slog"
 	"strings"
@@ -66,17 +65,16 @@ func (p *ImageBuild) Run() error {
 		shell.WithBuildImageOptions(buildOpts),
 	}
 
-	exitCode := shell.DockerInfo(opts...)
-
-	if exitCode != shell.ExitOK {
-		return errors.New("Image Build Pipeline ran but failed.")
+	err := shell.DockerInfo(opts...)
+	if err != nil {
+		return err
 	}
 
 	opts = append(opts, shell.WithBuildImageOptions(buildOpts))
-	exitCode = shell.DockerBuild(opts...)
+	err = shell.DockerBuild(opts...)
 
-	if exitCode != shell.ExitOK {
-		return errors.New("Image Build Pipeline ran but failed.")
+	if err != nil {
+		return err
 	}
 
 	return nil

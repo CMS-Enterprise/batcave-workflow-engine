@@ -1,10 +1,15 @@
 package pipelines
 
 import (
+	"bytes"
+	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
+	"time"
 
+	"github.com/fatih/color"
 	"github.com/lmittmann/tint"
 )
 
@@ -19,27 +24,65 @@ import (
 //
 // Any errors during should be directly set to exitError.
 type AsyncTask struct {
-	taskName         string
-	stdErrPipeReader *io.PipeReader
-	stdErrPipeWriter *io.PipeWriter
-	logger           *slog.Logger
-	exitError        error
+	Name string
+
+	StderrPipeReader *io.PipeReader
+	StderrPipeWriter *io.PipeWriter
+
+	StdoutBuf *bytes.Buffer
+
+	Logger    *slog.Logger
+	ExitError error
+
+	ctx context.Context
+
+	cancelFunc func()
 }
 
 func NewAsyncTask(name string) *AsyncTask {
-	pr, pw := io.Pipe()
-	return &AsyncTask{
-		taskName:         name,
-		logger:           slog.New(tint.NewHandler(pw, &tint.Options{Level: slog.LevelDebug})),
-		stdErrPipeReader: pr,
-		stdErrPipeWriter: pw,
-	}
+	task := new(AsyncTask)
+	task.Name = name
+	task.ctx, task.cancelFunc = context.WithCancel(context.Background())
+
+	task.StderrPipeReader, task.StderrPipeWriter = io.Pipe()
+	task.StdoutBuf = new(bytes.Buffer)
+
+	task.Logger = slog.New(tint.NewHandler(task.StderrPipeWriter, &tint.Options{Level: slog.LevelDebug, TimeFormat: time.TimeOnly}))
+
+	return task
 }
 
-// Wait enables stderr streaming until task is complete
+// StreamTo will stream stderr from the task until the task is marked complete
 //
-// The returned error is set by the task along with any possible read/write errors
-func (t *AsyncTask) Wait(stderrWriter io.Writer) error {
-	_, err := io.Copy(stderrWriter, t.stdErrPipeReader)
-	return errors.Join(err, t.exitError)
+// The return will be a combination of any IO error occured during the stream and the task.ExitError
+func (t *AsyncTask) StreamTo(stderrWriter io.Writer) error {
+	defer t.StderrPipeReader.Close()
+
+	fmt.Fprintf(stderrWriter, "[%s:stderr]   streaming stderr log...\n", t.Name)
+	start := time.Now()
+	_, writeError := io.Copy(stderrWriter, t.StderrPipeReader)
+	if writeError != nil {
+		writeError = fmt.Errorf("%s Async Task failed to write line to stderr: %v", t.Name, writeError)
+	}
+
+	c := color.New(color.FgRed)
+	if t.ExitError == nil {
+		c = color.New(color.FgGreen)
+	}
+	c.Fprintf(stderrWriter, "[%s:stderr]   %s \n\n", t.Name, time.Since(start))
+	return errors.Join(t.ExitError, writeError)
+}
+
+func (t *AsyncTask) Wait() error {
+	<-t.ctx.Done()
+	return t.ExitError
+}
+
+// Close closes the stdout and stderr writers, any reader would be unblocked after this function is called
+//
+// it should be defered at the top of a function scope to prevent dead locking
+func (t *AsyncTask) Close() {
+	t.StderrPipeWriter.Close()
+
+	t.cancelFunc() // end the context so Done will "release" other jobs
 }

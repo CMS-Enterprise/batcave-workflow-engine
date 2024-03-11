@@ -76,6 +76,7 @@ func BindEnvs(v *viper.Viper) {
 	v.MustBindEnv("imagebuild.cacheto", "WFE_IMAGE_BUILD_CACHE_TO")
 	v.MustBindEnv("imagebuild.cachefrom", "WFE_IMAGE_BUILD_CACHE_FROM")
 	v.MustBindEnv("imagebuild.squashlayers", "WFE_IMAGE_BUILD_SQUASH_LAYERS")
+	v.MustBindEnv("imagebuild.args", "WFE_IMAGE_BUILD_ARGS")
 
 	v.MustBindEnv("imagescan.enabled", "WFE_IMAGE_SCAN_ENABLED")
 	v.MustBindEnv("imagescan.clamavFilename", "WFE_IMAGE_SCAN_CLAMAV_FILENAME")
