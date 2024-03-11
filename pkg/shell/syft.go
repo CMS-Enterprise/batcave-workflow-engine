@@ -1,8 +1,6 @@
 package shell
 
 import (
-	"io"
-	"os"
 	"os/exec"
 )
 
