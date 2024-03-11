@@ -66,6 +66,7 @@ type Options struct {
 	reportType         string
 	bundleTag          string
 	targetFilename     string
+	configFilename     string
 	metadata           struct {
 		commandName string
 	}
@@ -240,6 +241,12 @@ func WithBundleFile(bundleFilename string, targetFilename string) OptionFunc {
 func WithTargetFile(filename string) OptionFunc {
 	return func(o *Options) {
 		o.targetFilename = filename
+	}
+}
+
+func WithConfigFile(filename string) OptionFunc {
+	return func(o *Options) {
+		o.configFilename = filename
 	}
 }
 

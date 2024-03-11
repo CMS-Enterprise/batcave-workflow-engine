@@ -69,6 +69,10 @@ func GatecheckBundleCreate(options ...OptionFunc) error {
 // Output: debug to STDERR
 func GatecheckValidate(options ...OptionFunc) error {
 	o := newOptions(options...)
-	cmd := exec.Command("gatecheck", "validate", o.targetFilename)
+	args := []string{"validate", o.targetFilename}
+	if o.configFilename != "" {
+		args = append(args, "--config", o.configFilename)
+	}
+	cmd := exec.Command("gatecheck", args...)
 	return run(cmd, o)
 }

@@ -52,6 +52,8 @@ func (p *Deploy) Run() error {
 		shell.WithDryRun(p.DryRunEnabled),
 		shell.WithStderr(p.Stderr),
 		shell.WithStdout(p.Stdout),
+		shell.WithTargetFile(p.runtime.bundleFilename),
+		shell.WithConfigFile(p.config.Deploy.GatecheckConfigFilename),
 	)
 	if err != nil {
 		return fmt.Errorf("Deployment Validation failed: %w", err)

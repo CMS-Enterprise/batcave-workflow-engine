@@ -60,7 +60,8 @@ type configImagePublish struct {
 }
 
 type configDeploy struct {
-	Enabled bool `json:"enabled" toml:"enabled" yaml:"enabled"`
+	Enabled                 bool   `json:"enabled" toml:"enabled" yaml:"enabled"`
+	GatecheckConfigFilename string `json:"gatecheckConfigFilename" toml:"gatecheckConfigFilename" yaml:"gatecheckConfigFilename"`
 }
 
 func BindEnvs(v *viper.Viper) {
@@ -96,6 +97,7 @@ func BindEnvs(v *viper.Viper) {
 	v.MustBindEnv("imagepublish.bundletag", "WFE_BUNDLE_TAG")
 
 	v.MustBindEnv("deploy.enabled", "WFE_DEPLOY_ENABLED")
+	v.MustBindEnv("deploy.gatecheckConfigFilename", "WFE_GATECHECK_CONFIG_FILENAME")
 }
 
 func SetDefaults(v *viper.Viper) {
