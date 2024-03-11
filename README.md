@@ -12,7 +12,7 @@ Install Prerequisites:
 
 - Container Engine
 - Docker or Podman CLI
-- Golang >= v1.21.5
+- Golang >= v1.22.0
 - Just (optional)
 
 ## Compiling Workflow Engine
@@ -66,6 +66,9 @@ Configuration Order-of-Precedence:
 
 Note: `(none)` means unset, left blank
 
+<!---
+TODO: update environment variables table
+
 | Env Variable                                  | Viper Key                             | Default Value                            | Description                                      |
 | --------------------------------------------- | ------------------------------------- | ---------------------------------------- | ------------------------------------------------ |
 | WFE_IMAGE_BUILD_ENABLED                       | imagebuild.enabled                    | 1                                        | Enables or disables the image build process.     |
@@ -90,6 +93,7 @@ Note: `(none)` means unset, left blank
 | WFE_CODE_SCAN_SEMGREP_FILENAME                | codescan.semgrepFilename              | "semgrep-sast-report.json"               | Filename for Semgrep SAST report.                |
 | WFE_CODE_SCAN_SEMGREP_RULES                   | codescan.semgrepRules                 | "p/default"                              | Rule set for Semgrep scan.                       |
 
+--->
 ## Running in Docker
 
 When running workflow-engine in a docker container there are some pipelines that need to run docker commands.
