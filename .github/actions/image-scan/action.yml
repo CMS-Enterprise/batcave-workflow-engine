@@ -22,7 +22,7 @@ inputs:
 
 runs:
   using: docker
-  image: "docker://ghcr.io/cms-enterprise/batcave/workflow-engine:v0.0.1-rc.7"
+  image: "docker://ghcr.io/cms-enterprise/batcave/workflow-engine:v0.0.1-rc.9"
   args: [ "run", "image-scan", "--config", "${{inputs.config_file}}", "--verbose" ]
   env:
     WFE_IMAGE_TAG: "${{inputs.tag}}"

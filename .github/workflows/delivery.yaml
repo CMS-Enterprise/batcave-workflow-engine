@@ -93,5 +93,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: image-scan-results
-          path: ./artifacts/**/*.json
+          path: |
+            ./artifacts/**/*.json
+            ./artifacts/**/*.txt
           if-no-files-found: error
