@@ -319,7 +319,7 @@ func (p *ImageScan) grypeJob(task *AsyncTask, syftTask *AsyncTask) {
 
 	task.Logger.Debug("run grype vulnerability scan after syft sbom is created")
 
-	reportWriter := io.MultiWriter(p.runtime.syftFile, task.StdoutBuf)
+	reportWriter := io.MultiWriter(p.runtime.grypeFile, task.StdoutBuf)
 	// using the syftscan pipe reader will block this job until syft is done
 	task.ExitError = shell.GrypeScanSBOM(
 		shell.WithDryRun(p.DryRunEnabled),
