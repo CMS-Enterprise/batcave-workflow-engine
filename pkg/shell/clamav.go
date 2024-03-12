@@ -1,6 +1,8 @@
 package shell
 
-import "os/exec"
+import (
+	"os/exec"
+)
 
 // ClamScanVersion print version information
 //
@@ -35,6 +37,7 @@ func Clamscan(optionFuncs ...OptionFunc) error {
 		"clamscan",
 		"--infected",
 		"--recursive",
+		"--archive-verbose",
 		"--scan-archive=yes",
 		"--max-filesize=1000M", // files larger will be skipped and assumed clean
 		"--max-scansize=1000M", // will only scan this much from each file
