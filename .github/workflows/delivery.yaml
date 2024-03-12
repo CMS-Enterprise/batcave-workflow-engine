@@ -96,8 +96,8 @@ jobs:
           echo "## Workflow Engine Image Delivery Summary" >> $GITHUB_STEP_SUMMARY
           echo ":white_check_mark: Workflow Engine Image Build" >> $GITHUB_STEP_SUMMARY
           echo ":white_check_mark: Workflow Engine Image Scan" >> $GITHUB_STEP_SUMMARY
-          echo ":white_check_mark: Image (Docker): ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
-          echo ":white_check_mark: Image (Podman): ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo ":white_check_mark: Image (Docker CLI): ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo ":white_check_mark: Image (Podman CLI): ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
       - name: Archive image scan outputs
         uses: actions/upload-artifact@v4
         with:
