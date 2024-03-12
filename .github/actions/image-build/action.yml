@@ -27,7 +27,7 @@ inputs:
 
 runs:
   using: docker
-  image: "docker://ghcr.io/cms-enterprise/batcave/workflow-engine:v0.0.1-rc.9"
+  image: "docker://ghcr.io/cms-enterprise/batcave/workflow-engine:56dca66a"
   args: [ "run", "image-build", "--config", "${{inputs.config_file}}", "--verbose" ]
   env:
     WFE_IMAGE_BUILD_DIR: "${{inputs.build_dir}}"
@@ -38,4 +38,3 @@ runs:
     WFE_IMAGE_BUILD_TARGET: "${{inputs.target}}"
     WFE_IMAGE_BUILD_CACHE_TO: "${{inputs.cache_to}}"
     WFE_IMAGE_BUILD_CACHE_FROM: "${{inputs.cache_from}}"
-    WFE_IMAGE_BUILD_SQUASH_LAYERS: "${{inputs.squash_layers}}"

@@ -22,7 +22,7 @@ inputs:
 
 runs:
   using: docker
-  image: "docker://ghcr.io/cms-enterprise/batcave/workflow-engine:podman-v0.0.1-rc.9"
+  image: "docker://ghcr.io/cms-enterprise/batcave/workflow-engine:podman-56dca66a"
   args: [ "run", "image-scan", "--config", "${{inputs.config_file}}", "-i", "podman" ]
   env:
     WFE_IMAGE_TAG: "${{inputs.tag}}"

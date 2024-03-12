@@ -1,6 +1,7 @@
 name: Build workflow-engine
 run-name: "Building workflow-engine Image: ${{ github.event.head_commit.message }}"
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
