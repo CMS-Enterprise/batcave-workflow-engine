@@ -81,7 +81,7 @@ var metaConfig = []metaConfigField{
 	{Key: "artifactdir", Env: "WFE_ARTIFACT_DIR", Default: "artifacts",
 		Description: "The target directory for all generated artifacts",
 	},
-	{Key: "gatecheckbundlefilename", Env: "WFE_GATECHECK_BUNDLE_FILENAME", Default: "artifacts/gatecheck-bundle.tar.gz",
+	{Key: "gatecheckbundlefilename", Env: "WFE_GATECHECK_BUNDLE_FILENAME", Default: "gatecheck-bundle.tar.gz",
 		Description: "The filename for the gatecheck bundle, a validatable archive of security artifacts",
 	},
 
@@ -235,7 +235,7 @@ func WriteGithubActionCodeScan(dst io.Writer, image string) error {
 	return writeAction(action, supportedFields, dst)
 }
 
-func WriteGithubActionImageBuild(dst io.Writer, image string) error {
+func WriteGithubActionImageBuild(dst io.Writer, image string, alias string) error {
 	supportedFields := []supportedField{
 		{key: "imagetag", inputField: "image_tag"},
 		{key: "artifactdir", inputField: "artifact_dir"},
@@ -262,7 +262,7 @@ func WriteGithubActionImageBuild(dst io.Writer, image string) error {
 		Runs: actionRunsConfig{
 			Using: "docker",
 			Image: image,
-			Args:  []string{"run", "image-build", "--config", "${{ inputs.config_file }}", "--verbose"},
+			Args:  []string{"run", "image-build", "--cli-interface", alias, "--config", "${{ inputs.config_file }}", "--verbose"},
 			Env:   map[string]string{},
 		},
 	}
@@ -270,9 +270,10 @@ func WriteGithubActionImageBuild(dst io.Writer, image string) error {
 	return writeAction(action, supportedFields, dst)
 }
 
-func WriteGithubActionImageScan(dst io.Writer, image string) error {
+func WriteGithubActionImageScan(dst io.Writer, image string, alias string) error {
 	supportedFields := []supportedField{
 		{key: "artifactdir", inputField: "artifact_dir"},
+		{key: "imagetag", inputField: "image_tag"},
 		{key: "gatecheckbundlefilename", inputField: "gatecheck_bundle_filename"},
 		{key: "imagescan.syftfilename", inputField: "syft_filename"},
 		{key: "imagescan.grypeconfigfilename", inputField: "grype_config_filename"},
@@ -292,7 +293,7 @@ func WriteGithubActionImageScan(dst io.Writer, image string) error {
 		Runs: actionRunsConfig{
 			Using: "docker",
 			Image: image,
-			Args:  []string{"run", "image-scan", "--config", "${{ inputs.config_file }}", "--verbose"},
+			Args:  []string{"run", "image-scan", "--cli-interface", alias, "--config", "${{ inputs.config_file }}", "--verbose"},
 			Env:   map[string]string{},
 		},
 	}
@@ -300,8 +301,9 @@ func WriteGithubActionImageScan(dst io.Writer, image string) error {
 	return writeAction(action, supportedFields, dst)
 }
 
-func WriteGithubActionImagePublish(dst io.Writer, image string) error {
+func WriteGithubActionImagePublish(dst io.Writer, image string, alias string) error {
 	supportedFields := []supportedField{
+		{key: "imagetag", inputField: "image_tag"},
 		{key: "imagepublish.bundletag", inputField: "bundle_tag"},
 		{key: "imagepublish.bundlepublishenabled", inputField: "bundle_publish_enabled"},
 	}
@@ -318,7 +320,7 @@ func WriteGithubActionImagePublish(dst io.Writer, image string) error {
 		Runs: actionRunsConfig{
 			Using: "docker",
 			Image: image,
-			Args:  []string{"run", "image-publish", "--config", "${{ inputs.config_file }}", "--verbose"},
+			Args:  []string{"run", "image-publish", "--cli-interface", alias, "--config", "${{ inputs.config_file }}", "--verbose"},
 			Env:   map[string]string{},
 		},
 	}

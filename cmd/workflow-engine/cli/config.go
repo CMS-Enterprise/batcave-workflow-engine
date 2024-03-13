@@ -37,9 +37,9 @@ func newConfigCommand() *cobra.Command {
 		Short:   "generate documentation or github action files",
 	}
 
+	genCmd.PersistentFlags().String("docker-alias", "docker", "an Docker CLI compatible alias [docker/podman]")
 	genCmd.PersistentFlags().StringP("image", "i", "", "workflow engine image name")
 	_ = genCmd.MarkFlagRequired("image")
-	genCmd.Flags().StringP("image", "i", "", "workflow engine image name")
 
 	codeScanActionCmd := newBasicCommand("code-scan-action", "generate a github action for the code scan pipeline outputs to STDOUT", runGenCodeScanAction)
 	imageBuildActionCmd := newBasicCommand("image-build-action", "generate a github action for the image build pipeline outputs to STDOUT", runGenImageBuildAction)
@@ -67,15 +67,18 @@ func runGenCodeScanAction(cmd *cobra.Command, args []string) error {
 }
 func runGenImageBuildAction(cmd *cobra.Command, args []string) error {
 	wfeImage, _ := cmd.Flags().GetString("image")
-	return pipelines.WriteGithubActionImageBuild(cmd.OutOrStdout(), wfeImage)
+	alias, _ := cmd.Flags().GetString("docker-alias")
+	return pipelines.WriteGithubActionImageBuild(cmd.OutOrStdout(), wfeImage, alias)
 }
 func runGenImageScanAction(cmd *cobra.Command, args []string) error {
 	wfeImage, _ := cmd.Flags().GetString("image")
-	return pipelines.WriteGithubActionImageScan(cmd.OutOrStdout(), wfeImage)
+	alias, _ := cmd.Flags().GetString("docker-alias")
+	return pipelines.WriteGithubActionImageScan(cmd.OutOrStdout(), wfeImage, alias)
 }
 func runGenImagePublishAction(cmd *cobra.Command, args []string) error {
 	wfeImage, _ := cmd.Flags().GetString("image")
-	return pipelines.WriteGithubActionImagePublish(cmd.OutOrStdout(), wfeImage)
+	alias, _ := cmd.Flags().GetString("docker-alias")
+	return pipelines.WriteGithubActionImagePublish(cmd.OutOrStdout(), wfeImage, alias)
 }
 func runGenDeployAction(cmd *cobra.Command, args []string) error {
 	wfeImage, _ := cmd.Flags().GetString("image")
