@@ -13,4 +13,4 @@ runs:
   image: "docker://ghcr.io/cms-enterprise/batcave/workflow-engine:v0.0.1-rc.9"
   args: [ "run", "code-scan", "--config", "${{inputs.config_file}}", "--verbose" ]
   env:
-    WFE_IMAGE_BUILD_ARGS: "${{ inputs.args }}"
+    WFE_CODE_SCAN_ARGS: "${{ inputs.args }}"
