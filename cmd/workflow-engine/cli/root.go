@@ -15,8 +15,7 @@ var (
 
 func NewWorkflowEngineCommand() *cobra.Command {
 	viper.SetConfigName("workflow-engine")
-	pipelines.BindEnvs(viper.GetViper())
-	pipelines.SetDefaults(viper.GetViper())
+	pipelines.BindViper(viper.GetViper())
 
 	versionCmd := newBasicCommand("version", "print version information", runVersion)
 	cmd := &cobra.Command{
