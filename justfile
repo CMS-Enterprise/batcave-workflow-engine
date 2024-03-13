@@ -22,3 +22,19 @@ fix:
 serve-docs:
 	mdbook serve
 
+gen-actions workflow-engine-image workflow-engine-podman-image:
+    mkdir -p .github/actions/code-scan/
+    workflow-engine config gen code-scan-action -i {{ workflow-engine-image }} > .github/actions/code-scan/action.yml
+    mkdir -p .github/actions/image-build/
+    workflow-engine config gen image-build-action -i {{ workflow-engine-image }} > .github/actions/image-build/action.yml
+    mkdir -p .github/actions/image-scan/
+    workflow-engine config gen image-scan-action -i {{ workflow-engine-image }} > .github/actions/image-scan/action.yml
+    mkdir -p .github/actions/image-publish/
+    workflow-engine config gen image-publish-action -i {{ workflow-engine-image }} > .github/actions/image-publish/action.yml
+    mkdir -p .github/actions/image-build-podman/
+
+    workflow-engine config gen image-build-action -i {{ workflow-engine-podman-image }} > .github/actions/image-build/action.yml
+    mkdir -p .github/actions/image-scan-podman/
+    workflow-engine config gen image-scan-action -i {{ workflow-engine-podman-image }} > .github/actions/image-scan/action.yml
+    mkdir -p .github/actions/image-publish-podman/
+    workflow-engine config gen image-publish-action -i {{ workflow-engine-podman-image }} > .github/actions/image-publish/action.yml

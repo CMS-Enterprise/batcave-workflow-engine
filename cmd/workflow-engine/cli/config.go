@@ -37,13 +37,19 @@ func newConfigCommand() *cobra.Command {
 		Short:   "generate documentation or github action files",
 	}
 
+	genCmd.PersistentFlags().StringP("image", "i", "", "workflow engine image name")
+	_ = genCmd.MarkFlagRequired("image")
+	genCmd.Flags().StringP("image", "i", "", "workflow engine image name")
+
+	codeScanActionCmd := newBasicCommand("code-scan-action", "generate a github action for the code scan pipeline outputs to STDOUT", runGenCodeScanAction)
 	imageBuildActionCmd := newBasicCommand("image-build-action", "generate a github action for the image build pipeline outputs to STDOUT", runGenImageBuildAction)
-	imageBuildActionCmd.Flags().StringP("image", "i", "", "workflow engine image name")
-	_ = imageBuildActionCmd.MarkFlagRequired("image")
+	imageScanActionCmd := newBasicCommand("image-scan-action", "generate a github action for the image scan pipeline outputs to STDOUT", runGenImageScanAction)
+	imagePublishActionCmd := newBasicCommand("image-publish-action", "generate a github action for the image publish pipeline outputs to STDOUT", runGenImagePublishAction)
+	deployActionCmd := newBasicCommand("deploy-action", "generate a github action for the deploy pipeline outputs to STDOUT", runGenDeployAction)
 
 	markdownCmd := newBasicCommand("markdown-table", "generate a markdown table with all of the keys, env variables, and defaults", runGenMarkdown)
 
-	genCmd.AddCommand(imageBuildActionCmd, markdownCmd)
+	genCmd.AddCommand(codeScanActionCmd, imageBuildActionCmd, imageScanActionCmd, imagePublishActionCmd, deployActionCmd, markdownCmd)
 
 	// config
 	cmd := &cobra.Command{Use: "config", Short: "manage the workflow engine config file"}
@@ -55,9 +61,25 @@ func newConfigCommand() *cobra.Command {
 }
 
 // Run Functions - Parsing flags and arguments at command runtime
+func runGenCodeScanAction(cmd *cobra.Command, args []string) error {
+	wfeImage, _ := cmd.Flags().GetString("image")
+	return pipelines.WriteGithubActionCodeScan(cmd.OutOrStdout(), wfeImage)
+}
 func runGenImageBuildAction(cmd *cobra.Command, args []string) error {
 	wfeImage, _ := cmd.Flags().GetString("image")
 	return pipelines.WriteGithubActionImageBuild(cmd.OutOrStdout(), wfeImage)
+}
+func runGenImageScanAction(cmd *cobra.Command, args []string) error {
+	wfeImage, _ := cmd.Flags().GetString("image")
+	return pipelines.WriteGithubActionImageScan(cmd.OutOrStdout(), wfeImage)
+}
+func runGenImagePublishAction(cmd *cobra.Command, args []string) error {
+	wfeImage, _ := cmd.Flags().GetString("image")
+	return pipelines.WriteGithubActionImagePublish(cmd.OutOrStdout(), wfeImage)
+}
+func runGenDeployAction(cmd *cobra.Command, args []string) error {
+	wfeImage, _ := cmd.Flags().GetString("image")
+	return pipelines.WriteGithubActionDeploy(cmd.OutOrStdout(), wfeImage)
 }
 
 func runConfigInfo(cmd *cobra.Command, args []string) error {

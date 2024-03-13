@@ -90,11 +90,12 @@ Note: `(none)` means unset, left blank
 | imagepublish.bundlepublishenabled | WFE_IMAGE_BUNDLE_PUBLISH_ENABLED     | 1                                    | Enable/Disable gatecheck artifact bundle publish task                              |
 | imagepublish.bundletag            | WFE_IMAGE_PUBLISH_BUNDLE_TAG         | my-app/artifact-bundle:latest        | The full image tag for the target gatecheck bundle image blob                      |
 | imagepublish.enabled              | WFE_IMAGE_PUBLISH_ENABLED            | 1                                    | Enable/Disable the image publish pipeline                                          |
-| imagescan.clamavFilename          | WFE_IMAGE_SCAN_CLAMAV_FILENAME       | clamav-virus-report.txt              | The filename for the clamscan virus report - must contain 'clamav'                 |
+| imagescan.clamavfilename          | WFE_IMAGE_SCAN_CLAMAV_FILENAME       | clamav-virus-report.txt              | The filename for the clamscan virus report - must contain 'clamav'                 |
 | imagescan.enabled                 | WFE_IMAGE_SCAN_ENABLED               | 1                                    | Enable/Disable the image scan pipeline                                             |
 | imagescan.grypeconfigfilename     | WFE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME | -                                    | The config filename for the grype vulnerability report                             |
 | imagescan.grypefilename           | WFE_IMAGE_SCAN_GRYPE_FILENAME        | grype-vulnerability-report-full.json | The filename for the grype vulnerability report - must contain 'grype'             |
 | imagescan.syftfilename            | WFE_IMAGE_SCAN_SYFT_FILENAME         | syft-sbom-report.json                | The filename for the syft SBOM report - must contain 'syft'                        |
+
 
 ## Running in Docker
 

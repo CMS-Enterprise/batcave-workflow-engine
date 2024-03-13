@@ -43,8 +43,7 @@ type configImageScan struct {
 	Enabled             bool   `mapstructure:"enabled"`
 	SyftFilename        string `mapstructure:"syftFilename"`
 	GrypeConfigFilename string `mapstructure:"grypeConfigFilename"`
-	GrypeActiveFilename string `mapstructure:"grypeActiveFilename"`
-	GrypeFullFilename   string `mapstructure:"grypeFullFilename"`
+	GrypeFilename       string `mapstructure:"grypeFilename"`
 	ClamavFilename      string `mapstructure:"clamavFilename"`
 }
 
@@ -126,7 +125,7 @@ var metaConfig = []metaConfigField{
 	{Key: "imagescan.grypefilename", Env: "WFE_IMAGE_SCAN_GRYPE_FILENAME", Default: "grype-vulnerability-report-full.json",
 		Description: "The filename for the grype vulnerability report - must contain 'grype'",
 	},
-	{Key: "imagescan.clamavFilename", Env: "WFE_IMAGE_SCAN_CLAMAV_FILENAME", Default: "clamav-virus-report.txt",
+	{Key: "imagescan.clamavfilename", Env: "WFE_IMAGE_SCAN_CLAMAV_FILENAME", Default: "clamav-virus-report.txt",
 		Description: "The filename for the clamscan virus report - must contain 'clamav'",
 	},
 
@@ -182,7 +181,7 @@ func BindViper(v *viper.Viper) {
 	}
 }
 
-type imageBuildAction struct {
+type githubAction struct {
 	Name        string                      `yaml:"name"`
 	Description string                      `yaml:"description"`
 	Inputs      map[string]actionInputField `yaml:"inputs"`
@@ -199,6 +198,214 @@ type actionRunsConfig struct {
 	Image string            `yaml:"image"`
 	Args  []string          `yaml:"args,flow"`
 	Env   map[string]string `yaml:"env"`
+}
+
+type supportedField struct {
+	key        string
+	inputField string
+}
+
+func WriteGithubActionCodeScan(dst io.Writer, image string) error {
+	supportedFields := []supportedField{
+		{key: "artifactdir", inputField: "artifact_dir"},
+		{key: "gatecheckbundlefilename", inputField: "gatecheck_bundle_filename"},
+		{key: "codescan.gitleaksfilename", inputField: "gitleaks_filename"},
+		{key: "codescan.gitleakssrcdir", inputField: "gitleaks_src_dir"},
+		{key: "codescan.semgrepfilename", inputField: "semgrep_filename"},
+		{key: "codescan.semgreprules", inputField: "semgrep_rules"},
+	}
+
+	action := githubAction{
+		Name:        "Code Scan",
+		Description: "Scan a code repository with Workflow Engine",
+		Inputs: map[string]actionInputField{
+			"config_file": {
+				Description: "The workflow engine config file name",
+				Default:     "",
+			},
+		},
+		Runs: actionRunsConfig{
+			Using: "docker",
+			Image: image,
+			Args:  []string{"run", "code-scan", "--config", "${{ inputs.config_file }}", "--verbose"},
+			Env:   map[string]string{},
+		},
+	}
+
+	return writeAction(action, supportedFields, dst)
+}
+
+func WriteGithubActionImageBuild(dst io.Writer, image string) error {
+	supportedFields := []supportedField{
+		{key: "imagetag", inputField: "image_tag"},
+		{key: "artifactdir", inputField: "artifact_dir"},
+		{key: "gatecheckbundlefilename", inputField: "gatecheck_bundle_filename"},
+		{key: "imagebuild.builddir", inputField: "build_dir"},
+		{key: "imagebuild.dockerfile", inputField: "dockerfile"},
+		{key: "imagebuild.args", inputField: "args"},
+		{key: "imagebuild.platform", inputField: "platform"},
+		{key: "imagebuild.target", inputField: "target"},
+		{key: "imagebuild.cacheto", inputField: "cache_to"},
+		{key: "imagebuild.cachefrom", inputField: "cache_from"},
+		{key: "imagebuild.squashlayers", inputField: "squash_layers"},
+	}
+
+	action := githubAction{
+		Name:        "Build Image",
+		Description: "Build a container image with Workflow Engine",
+		Inputs: map[string]actionInputField{
+			"config_file": {
+				Description: "The workflow engine config file name",
+				Default:     "",
+			},
+		},
+		Runs: actionRunsConfig{
+			Using: "docker",
+			Image: image,
+			Args:  []string{"run", "image-build", "--config", "${{ inputs.config_file }}", "--verbose"},
+			Env:   map[string]string{},
+		},
+	}
+
+	return writeAction(action, supportedFields, dst)
+}
+
+func WriteGithubActionImageScan(dst io.Writer, image string) error {
+	supportedFields := []supportedField{
+		{key: "artifactdir", inputField: "artifact_dir"},
+		{key: "gatecheckbundlefilename", inputField: "gatecheck_bundle_filename"},
+		{key: "imagescan.syftfilename", inputField: "syft_filename"},
+		{key: "imagescan.grypeconfigfilename", inputField: "grype_config_filename"},
+		{key: "imagescan.grypefilename", inputField: "grype_filename"},
+		{key: "imagescan.clamavfilename", inputField: "clamav_filename"},
+	}
+
+	action := githubAction{
+		Name:        "Image Scan",
+		Description: "Scan a container image with Workflow Engine",
+		Inputs: map[string]actionInputField{
+			"config_file": {
+				Description: "The workflow engine config file name",
+				Default:     "",
+			},
+		},
+		Runs: actionRunsConfig{
+			Using: "docker",
+			Image: image,
+			Args:  []string{"run", "image-scan", "--config", "${{ inputs.config_file }}", "--verbose"},
+			Env:   map[string]string{},
+		},
+	}
+
+	return writeAction(action, supportedFields, dst)
+}
+
+func WriteGithubActionImagePublish(dst io.Writer, image string) error {
+	supportedFields := []supportedField{
+		{key: "imagepublish.bundletag", inputField: "bundle_tag"},
+		{key: "imagepublish.bundlepublishenabled", inputField: "bundle_publish_enabled"},
+	}
+
+	action := githubAction{
+		Name:        "Image Publish",
+		Description: "Publish a container image with Workflow Engine",
+		Inputs: map[string]actionInputField{
+			"config_file": {
+				Description: "The workflow engine config file name",
+				Default:     "",
+			},
+		},
+		Runs: actionRunsConfig{
+			Using: "docker",
+			Image: image,
+			Args:  []string{"run", "image-publish", "--config", "${{ inputs.config_file }}", "--verbose"},
+			Env:   map[string]string{},
+		},
+	}
+
+	return writeAction(action, supportedFields, dst)
+}
+
+func WriteGithubActionDeploy(dst io.Writer, image string) error {
+	supportedFields := []supportedField{
+		{key: "deploy.gatecheckconfigfilename", inputField: "gatecheck_config_filename"},
+	}
+
+	action := githubAction{
+		Name:        "Deploy Validation",
+		Description: "Validate Artifacts with Workflow Engine for Deployment",
+		Inputs:      map[string]actionInputField{},
+		Runs: actionRunsConfig{
+			Using: "docker",
+			Image: image,
+			Args:  []string{"run", "deploy", "--verbose"},
+			Env:   map[string]string{},
+		},
+	}
+
+	return writeAction(action, supportedFields, dst)
+}
+
+func writeAction(action githubAction, supportedFields []supportedField, dst io.Writer) error {
+
+	for _, field := range supportedFields {
+		configField := metaConfigLookup(field.key)
+		defaultValue, ok := configField.Default.(string)
+		if !ok {
+			defaultValue = ""
+		}
+		action.Inputs[field.inputField] = actionInputField{
+			Description: configField.Description,
+			Default:     defaultValue,
+		}
+		action.Runs.Env[configField.Env] = fmt.Sprintf("${{ inputs.%s }}", field.inputField)
+	}
+
+	enc := yaml.NewEncoder(dst)
+	enc.SetIndent(2)
+	return enc.Encode(action)
+}
+
+func RenderTemplate(dst io.Writer, templateSrc io.Reader) error {
+	builtins, err := BuiltIns()
+	if err != nil {
+		return fmt.Errorf("template rendering failed: could not load built-in values: %w", err)
+	}
+	tmpl := template.New("workflow-engine config")
+
+	content, err := io.ReadAll(templateSrc)
+	if err != nil {
+		return fmt.Errorf("template rendering failed: could not load template content: %w", err)
+	}
+
+	tmpl, err = tmpl.Parse(string(content))
+	if err != nil {
+		return fmt.Errorf("template rendering failed: could not parse template input: %w", err)
+	}
+
+	return tmpl.Execute(dst, builtins)
+}
+
+func BuiltIns() (map[string]string, error) {
+	builtins := map[string]string{}
+
+	slog.Debug("open current repo", "step", "builtins")
+	r, err := git.PlainOpen(".")
+	if err != nil {
+		return builtins, err
+	}
+
+	slog.Debug("get repo HEAD")
+	ref, err := r.Head()
+	if err != nil {
+		return builtins, err
+	}
+
+	builtins["GitCommitSHA"] = ref.Hash().String()
+	builtins["GitCommitShortSHA"] = ref.Hash().String()[:8]
+	builtins["GitCommitBranch"] = ref.Name().Short()
+
+	return builtins, nil
 }
 
 func paddedMetaConfigData() [][4]string {
@@ -293,97 +500,4 @@ func WriteMarkdownEnv(dst io.Writer) error {
 		}
 	}
 	return nil
-}
-
-func WriteGithubActionImageBuild(dst io.Writer, image string) error {
-	supportedKeys := []struct {
-		key        string
-		inputField string
-	}{
-		{key: "imagebuild.builddir", inputField: "build_dir"},
-		{key: "imagebuild.dockerfile", inputField: "dockerfile"},
-		{key: "imagebuild.args", inputField: "args"},
-		{key: "imagetag", inputField: "image_tag"},
-		{key: "imagebuild.platform", inputField: "platform"},
-		{key: "imagebuild.target", inputField: "target"},
-		{key: "imagebuild.cacheto", inputField: "cache_to"},
-		{key: "imagebuild.cachefrom", inputField: "cache_from"},
-		{key: "imagebuild.squashlayers", inputField: "squash_layers"},
-	}
-
-	action := imageBuildAction{
-		Name:        "Build Image",
-		Description: "Build a container image with Workflow Engine",
-		Inputs: map[string]actionInputField{
-			"config_file": {
-				Description: "The workflow engine config file name",
-				Default:     "",
-			},
-		},
-		Runs: actionRunsConfig{
-			Using: "docker",
-			Image: image,
-			Args:  []string{"run", "image-build", "--config", "${{ inputs.config_file }}", "--verbose"},
-			Env:   map[string]string{},
-		},
-	}
-
-	for _, field := range supportedKeys {
-		configField := metaConfigLookup(field.key)
-		defaultValue, ok := configField.Default.(string)
-		if !ok {
-			defaultValue = ""
-		}
-		action.Inputs[field.inputField] = actionInputField{
-			Description: configField.Description,
-			Default:     defaultValue,
-		}
-		action.Runs.Env[configField.Env] = fmt.Sprintf("${{ inputs.%s }}", field.key)
-	}
-
-	enc := yaml.NewEncoder(dst)
-	enc.SetIndent(2)
-	return enc.Encode(action)
-}
-
-func RenderTemplate(dst io.Writer, templateSrc io.Reader) error {
-	builtins, err := BuiltIns()
-	if err != nil {
-		return fmt.Errorf("template rendering failed: could not load built-in values: %w", err)
-	}
-	tmpl := template.New("workflow-engine config")
-
-	content, err := io.ReadAll(templateSrc)
-	if err != nil {
-		return fmt.Errorf("template rendering failed: could not load template content: %w", err)
-	}
-
-	tmpl, err = tmpl.Parse(string(content))
-	if err != nil {
-		return fmt.Errorf("template rendering failed: could not parse template input: %w", err)
-	}
-
-	return tmpl.Execute(dst, builtins)
-}
-
-func BuiltIns() (map[string]string, error) {
-	builtins := map[string]string{}
-
-	slog.Debug("open current repo", "step", "builtins")
-	r, err := git.PlainOpen(".")
-	if err != nil {
-		return builtins, err
-	}
-
-	slog.Debug("get repo HEAD")
-	ref, err := r.Head()
-	if err != nil {
-		return builtins, err
-	}
-
-	builtins["GitCommitSHA"] = ref.Hash().String()
-	builtins["GitCommitShortSHA"] = ref.Hash().String()[:8]
-	builtins["GitCommitBranch"] = ref.Name().Short()
-
-	return builtins, nil
 }
