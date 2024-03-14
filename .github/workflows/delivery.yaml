@@ -61,17 +61,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish container image
-        uses: ./.github/actions/image-publish
-        with:
-          image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}
-          bundle_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}-bundle
+      - name: Push image
+        shell: bash
+        run: docker push ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}
 
-      - name: Publish podman container image
-        uses: ./.github/actions/image-publish
-        with:
-          image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}
-          bundle_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}-bundle
+      - name: Push podman image
+        shell: bash
+        run: docker push ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}
+      # TODO: figure out Login Authentication inside of a container
+      # - name: Publish container image
+      #   uses: ./.github/actions/image-publish
+      #   with:
+      #     image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}
+      #     bundle_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}-bundle
+
+      # - name: Publish podman container image
+      #   uses: ./.github/actions/image-publish
+      #   with:
+      #     image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}
+      #     bundle_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}-bundle
 
       - name: job summary
         shell: bash
