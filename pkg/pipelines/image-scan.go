@@ -77,7 +77,7 @@ func (p *ImageScan) preRun() error {
 		return err
 	}
 
-	p.runtime.grypeFilename = path.Join(p.config.ArtifactDir, p.config.ImageScan.GrypeFullFilename)
+	p.runtime.grypeFilename = path.Join(p.config.ArtifactDir, p.config.ImageScan.GrypeFilename)
 	p.runtime.grypeFile, err = OpenOrCreateFile(p.runtime.grypeFilename)
 	if err != nil {
 		slog.Error("cannot open grype sbom file", "filename", p.runtime.grypeFilename, "error", err)

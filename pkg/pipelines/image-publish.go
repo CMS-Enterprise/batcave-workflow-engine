@@ -52,7 +52,6 @@ func (p *ImagePublish) Run() error {
 		shell.WithStdout(p.Stdout),
 		shell.WithDockerAlias(alias),
 	)
-
 	if err != nil {
 		slog.Error("failed to push image tag to registry", "image_tag", p.config.ImageTag)
 		return errors.New("Image Publish Pipeline failed.")
