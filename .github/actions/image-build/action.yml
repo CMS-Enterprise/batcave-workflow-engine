@@ -1,40 +1,48 @@
 name: Build Image
-description: Builds a Container Image using workflow-engine
-
+description: Build a container image with Workflow Engine
 inputs:
-  config_file:
-    description: The file location where the workflow-engine configuration is located
-    default: ""
-  build_dir:
-    description: The directory where the image build takes place.
-  dockerfile:
-    description: The name/path of the Dockerfile.
   args:
-    description: optional build arguments for the image build. Should be passed as comma seperated env values like "key1=value1,key2=value2"
-  tag:
-    description: The tag to be applied to the built image.
-  platform:
-    description: The platform for the image build.
-  target:
-    description: The target build stage in the Dockerfile.
-  cache_to:
-    description: Specifies where to store build cache.
+    description: Comma seperated list of build time variables
+  artifact_dir:
+    description: The target directory for all generated artifacts
+    default: artifacts
+  build_dir:
+    description: The build directory to using during an image build
+    default: .
   cache_from:
-    description: Specifies where to load build cache from.
+    description: External cache sources (e.g., "user/app:cache", "type=local,src=path/to/dir")
+  cache_to:
+    description: Cache export destinations (e.g., "user/app:cache", "type=local,src=path/to/dir")
+  config_file:
+    description: The workflow engine config file name
+  dockerfile:
+    description: The Dockerfile/Containerfile to use during an image build
+    default: Dockerfile
+  gatecheck_bundle_filename:
+    description: The filename for the gatecheck bundle, a validatable archive of security artifacts
+    default: gatecheck-bundle.tar.gz
+  image_tag:
+    description: The full image tag for the target container image
+    default: my-app:latest
+  platform:
+    description: The target platform for build
   squash_layers:
-    description: "Deprecated: use layers; When set to true, squashes the layers of the container image at the end of the build process."
-    default: "false"
-
+    description: squash image layers - Only Supported with Podman CLI
+  target:
+    description: The target build stage to build (e.g., [linux/amd64])
 runs:
   using: docker
-  image: "docker://ghcr.io/cms-enterprise/batcave/workflow-engine:56dca66a"
-  args: [ "run", "image-build", "--config", "${{inputs.config_file}}", "--verbose" ]
+  image: ghcr.io/cms-enterprise/batcave/workflow-engine:v0.0.1-rc.11
+  args: [run, image-build, --cli-interface, docker, --config, '${{ inputs.config_file }}', --verbose]
   env:
-    WFE_IMAGE_BUILD_DIR: "${{inputs.build_dir}}"
-    WFE_IMAGE_BUILD_DOCKERFILE: "${{inputs.dockerfile}}"
-    WFE_IMAGE_BUILD_ARGS: "${{ inputs.args }}"
-    WFE_IMAGE_TAG: "${{inputs.tag}}"
-    WFE_BUILD_IMAGE_PLATFORM: "${{inputs.platform}}"
-    WFE_IMAGE_BUILD_TARGET: "${{inputs.target}}"
-    WFE_IMAGE_BUILD_CACHE_TO: "${{inputs.cache_to}}"
-    WFE_IMAGE_BUILD_CACHE_FROM: "${{inputs.cache_from}}"
+    WFE_ARTIFACT_DIR: ${{ inputs.artifact_dir }}
+    WFE_GATECHECK_BUNDLE_FILENAME: ${{ inputs.gatecheck_bundle_filename }}
+    WFE_IMAGE_BUILD_ARGS: ${{ inputs.args }}
+    WFE_IMAGE_BUILD_CACHE_FROM: ${{ inputs.cache_from }}
+    WFE_IMAGE_BUILD_CACHE_TO: ${{ inputs.cache_to }}
+    WFE_IMAGE_BUILD_DIR: ${{ inputs.build_dir }}
+    WFE_IMAGE_BUILD_DOCKERFILE: ${{ inputs.dockerfile }}
+    WFE_IMAGE_BUILD_PLATFORM: ${{ inputs.platform }}
+    WFE_IMAGE_BUILD_SQUASH_LAYERS: ${{ inputs.squash_layers }}
+    WFE_IMAGE_BUILD_TARGET: ${{ inputs.target }}
+    WFE_IMAGE_TAG: ${{ inputs.image_tag }}

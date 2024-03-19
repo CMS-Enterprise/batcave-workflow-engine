@@ -74,7 +74,7 @@ func newRunCommand() *cobra.Command {
 	// run deploy
 	deployCmd := newBasicCommand("deploy", "Beta Feature: VALIDATION ONLY - run gatecheck validate on artifacts from previous pipelines", runDeploy)
 	deployCmd.Flags().String("gatecheck-config", "", "gatecheck configuration file")
-	_ = viper.BindPFlag("deploy.gatecheckConfigFilename", deployCmd.Flags().Lookup("gatecheck-config"))
+	_ = viper.BindPFlag("deploy.gatecheckconfigfilename", deployCmd.Flags().Lookup("gatecheck-config"))
 
 	// run
 	cmd := &cobra.Command{Use: "run", Short: "run a pipeline"}

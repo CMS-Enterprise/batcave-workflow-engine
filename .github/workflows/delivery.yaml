@@ -18,17 +18,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # In order to support caching we need to make sure we are using the docker-container driver for builds
-      # - name: Restore image layer cache
-      #   uses: actions/cache/restore@v4
-      #   with:
-      #     path: ./container-cache-in
-      #     key: ${{ runner.os }}-
-      #     restore-keys: |
-      #       layers-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('Dockerfile') }}
-      #       layers-${{ runner.os }}-${{ github.ref }}
-      #       layers-${{ runner.os }}
-
       - name: Set outputs
         id: vars
         run: |
@@ -36,41 +25,34 @@ jobs:
           if [[ $GITHUB_REF == refs/tags/v* ]]; then
             echo "tag_name=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
           fi
-          echo "VERSION=$(git describe --tags)" >> $GITHUB_ENV
-          echo "GIT_COMMIT=$(git rev-parse HEAD)" >> $GITHUB_ENV
-          echo "GIT_DESCRIPTION=$(git log -1 --pretty=%B | head -n 1)" >> $GITHUB_ENV
+          echo "VERSION=$(git describe --tags)" >> $GITHUB_OUTPUT
+          echo "GIT_COMMIT=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          echo "GIT_DESCRIPTION=$(git log -1 --pretty=%B | head -n 1)" >> $GITHUB_OUTPUT
 
       # TODO combine all delivery jobs into a single action
       - name: Build container image
         uses: ./.github/actions/image-build
         with:
-          tag: ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}
-          # cache_from: ./container-cache-in
-          # cache_to: ./container-cache-out
-          args: "VERSION=${{ env.VERSION }},GIT_COMMIT=${{ env.GIT_COMMIT }},GIT_DESCRIPTION=${{ env.GIT_DESCRIPTION }}"
-
-      # - name: Save image layer cache
-      #   uses: actions/cache/save@v4
-      #   with:
-      #     path: ./container-cache-out
-      #     key: layers-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('Dockerfile') }}
+          image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}
+          args: "VERSION=${{ steps.vars.outputs.VERSION }},GIT_COMMIT=${{ steps.vars.outputs.GIT_COMMIT }},GIT_DESCRIPTION=${{ steps.vars.outputs.GIT_DESCRIPTION }}"
 
       - name: Build podman container image
         uses: ./.github/actions/image-build
         with:
           target: workflow-engine-podman
-          tag: ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}
+          image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}
+          args: "VERSION=${{ steps.vars.outputs.VERSION }},GIT_COMMIT=${{ steps.vars.outputs.GIT_COMMIT }},GIT_DESCRIPTION=${{ steps.vars.outputs.GIT_DESCRIPTION }}"
 
       - name: Scan container image
         uses: ./.github/actions/image-scan
         with:
-          tag: ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}
+          image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}
           artifact_dir: ./artifacts
 
       - name: Scan podman container image
         uses: ./.github/actions/image-scan
         with:
-          tag: ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}
+          image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}
           artifact_dir: ./artifacts/podman
 
       - uses: docker/login-action@v3
@@ -79,16 +61,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # TODO: this should be something workflow-engine does as apart of the delivery pipeline
       - name: Push image
-        # TODO: in the future push based on protected git tags
-        # if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         shell: bash
         run: docker push ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}
 
       - name: Push podman image
         shell: bash
         run: docker push ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}
+      # TODO: figure out Login Authentication inside of a container
+      # - name: Publish container image
+      #   uses: ./.github/actions/image-publish
+      #   with:
+      #     image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}
+      #     bundle_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}-bundle
+
+      # - name: Publish podman container image
+      #   uses: ./.github/actions/image-publish
+      #   with:
+      #     image_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}
+      #     bundle_tag: ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}-bundle
 
       - name: job summary
         shell: bash

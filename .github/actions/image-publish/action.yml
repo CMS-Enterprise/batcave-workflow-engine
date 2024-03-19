@@ -1,0 +1,21 @@
+name: Image Publish
+description: Publish a container image with Workflow Engine
+inputs:
+  bundle_publish_enabled:
+    description: Enable/Disable gatecheck artifact bundle publish task
+  bundle_tag:
+    description: The full image tag for the target gatecheck bundle image blob
+    default: my-app/artifact-bundle:latest
+  config_file:
+    description: The workflow engine config file name
+  image_tag:
+    description: The full image tag for the target container image
+    default: my-app:latest
+runs:
+  using: docker
+  image: ghcr.io/cms-enterprise/batcave/workflow-engine:v0.0.1-rc.11
+  args: [run, image-publish, --cli-interface, docker, --config, '${{ inputs.config_file }}', --verbose]
+  env:
+    WFE_IMAGE_BUNDLE_PUBLISH_ENABLED: ${{ inputs.bundle_publish_enabled }}
+    WFE_IMAGE_PUBLISH_BUNDLE_TAG: ${{ inputs.bundle_tag }}
+    WFE_IMAGE_TAG: ${{ inputs.image_tag }}
