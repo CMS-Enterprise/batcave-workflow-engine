@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -12,103 +14,79 @@ import (
 
 func newConfigCommand() *cobra.Command {
 	// config init
-	initCmd := newBasicCommand("init <CONFIG FILE>.[json|yaml|yml|toml]", "write the default configuration file", runConfigInit)
-	initCmd.Args = cobra.ExactArgs(1)
+	initCmd := newBasicCommand("init", "write the default configuration file", runConfigInit)
+	initCmd.Flags().StringP("output", "o", "yaml", "config output format (<format>=<file>) empty will write to STDOUT, formats=[json yaml yml toml]")
 
 	// config info
-	infoCmd := newBasicCommand("info <CONFIG FILE>.[json|yaml|yml|toml]", "print the loaded configuration values", runConfigInfo)
+	infoCmd := newBasicCommand("info <CONFIG FILE>", "print the loaded configuration values", runConfigInfo)
 	infoCmd.Args = cobra.ExactArgs(1)
 
 	// config vars
 	varsCmd := newBasicCommand("vars", "list supported builtin variables that can be used in templates", runConfigVars)
+	varsCmd.Flags().StringP("output", "o", "toml", "config output format (<format>=<file>) empty will write to STDOUT, formats=[json yaml yml toml]")
 
 	// config render
-	renderCmd := newBasicCommand("render <TO CONFIG FILE>.[json|yaml|yml|toml] <FROM TEMPLATE>.[json|yaml|yml|toml]", "render a configuration template config using builtin variables", runConfigRender)
-	renderCmd.Args = cobra.ExactArgs(2)
+	renderCmd := newBasicCommand("render", "render a configuration template config using builtin variables", runConfigRender)
+	renderCmd.Flags().StringP("render", "o", "yaml", "config output format (<format>=<file>) empty will write to STDOUT, formats=[json yaml yml toml]")
 
 	// config convert
-	convertCmd := newBasicCommand("convert <TO CONFIG FILE>.[json|yaml|yml|toml] <FROM CONFIG FILE>.[json|yaml|yml|toml]", "convert a configuration file", runConfigConvert)
-	convertCmd.Args = cobra.ExactArgs(2)
-
-	// config generate
-	genCmd := &cobra.Command{
-		Use:     "generate",
-		Aliases: []string{"gen"},
-		Short:   "generate documentation or github action files",
-	}
-
-	genCmd.PersistentFlags().String("docker-alias", "docker", "an Docker CLI compatible alias [docker/podman]")
-	genCmd.PersistentFlags().StringP("image", "i", "", "workflow engine image name")
-	_ = genCmd.MarkFlagRequired("image")
-
-	codeScanActionCmd := newBasicCommand("code-scan-action", "generate a github action for the code scan pipeline outputs to STDOUT", runGenCodeScanAction)
-	imageBuildActionCmd := newBasicCommand("image-build-action", "generate a github action for the image build pipeline outputs to STDOUT", runGenImageBuildAction)
-	imageScanActionCmd := newBasicCommand("image-scan-action", "generate a github action for the image scan pipeline outputs to STDOUT", runGenImageScanAction)
-	imagePublishActionCmd := newBasicCommand("image-publish-action", "generate a github action for the image publish pipeline outputs to STDOUT", runGenImagePublishAction)
-	deployActionCmd := newBasicCommand("deploy-action", "generate a github action for the deploy pipeline outputs to STDOUT", runGenDeployAction)
-
-	markdownCmd := newBasicCommand("markdown-table", "generate a markdown table with all of the keys, env variables, and defaults", runGenMarkdown)
-
-	genCmd.AddCommand(codeScanActionCmd, imageBuildActionCmd, imageScanActionCmd, imagePublishActionCmd, deployActionCmd, markdownCmd)
+	convertCmd := newBasicCommand("convert <TEMPLATE CONFIG FILE>", "convert a configuration file", runConfigConvert)
+	convertCmd.Flags().StringP("output", "o", "json", "config output format (<format>=<file>) empty will write to STDOUT, formats=[json yaml yml toml]")
+	_ = convertCmd.MarkFlagFilename("file")
+	convertCmd.Args = cobra.ExactArgs(1)
 
 	// config
 	cmd := &cobra.Command{Use: "config", Short: "manage the workflow engine config file"}
 
 	// add sub commands
-	cmd.AddCommand(infoCmd, initCmd, varsCmd, renderCmd, convertCmd, genCmd, markdownCmd)
+	cmd.AddCommand(infoCmd, initCmd, varsCmd, renderCmd, convertCmd)
 
 	return cmd
 }
 
 // Run Functions - Parsing flags and arguments at command runtime
-func runGenCodeScanAction(cmd *cobra.Command, args []string) error {
-	wfeImage, _ := cmd.Flags().GetString("image")
-	return pipelines.WriteGithubActionCodeScan(cmd.OutOrStdout(), wfeImage)
-}
-func runGenImageBuildAction(cmd *cobra.Command, args []string) error {
-	wfeImage, _ := cmd.Flags().GetString("image")
-	alias, _ := cmd.Flags().GetString("docker-alias")
-	return pipelines.WriteGithubActionImageBuild(cmd.OutOrStdout(), wfeImage, alias)
-}
-func runGenImageScanAction(cmd *cobra.Command, args []string) error {
-	wfeImage, _ := cmd.Flags().GetString("image")
-	alias, _ := cmd.Flags().GetString("docker-alias")
-	return pipelines.WriteGithubActionImageScan(cmd.OutOrStdout(), wfeImage, alias)
-}
-func runGenImagePublishAction(cmd *cobra.Command, args []string) error {
-	wfeImage, _ := cmd.Flags().GetString("image")
-	alias, _ := cmd.Flags().GetString("docker-alias")
-	return pipelines.WriteGithubActionImagePublish(cmd.OutOrStdout(), wfeImage, alias)
-}
-func runGenDeployAction(cmd *cobra.Command, args []string) error {
-	wfeImage, _ := cmd.Flags().GetString("image")
-	return pipelines.WriteGithubActionDeploy(cmd.OutOrStdout(), wfeImage)
-}
-
 func runConfigInfo(cmd *cobra.Command, args []string) error {
 	config := new(pipelines.Config)
-
 	if err := LoadOrDefault(args[0], config, viper.GetViper()); err != nil {
 		return err
 	}
 	return ListConfig(cmd.OutOrStdout(), viper.GetViper())
 }
 
-func runConfigInit(cmd *cobra.Command, args []string) error {
+func runConfigInit(cmd *cobra.Command, _ []string) error {
+	var targetWriter io.Writer
 
-	toConfigFilename := args[0]
+	output, _ := cmd.Flags().GetString("output")
+
+	format, filename := ParsedOutput(output)
+
+	switch {
+	case filename == "":
+		targetWriter = cmd.OutOrStdout()
+	default:
+		slog.Debug("open", "filename", filename)
+		f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0o644)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		targetWriter = f
+
+	}
 
 	config := new(pipelines.Config)
 
-	if err := LoadOrDefault(toConfigFilename, config, viper.GetViper()); err != nil {
-		return err
+	if err := viper.Unmarshal(config); err != nil {
+		slog.Error("viper unmarshal defaults into a new config object")
+		return errors.New("Config Init Failed.")
+	}
+
+	if err := NewAbstractEncoder(targetWriter, config).Encode(format); err != nil {
+		slog.Error("cannot encode default config object to stdout", "format", format)
+		return errors.New("Config Init Failed.")
 	}
 
 	return nil
-}
-
-func runGenMarkdown(cmd *cobra.Command, args []string) error {
-	return pipelines.WriteMarkdownEnv(cmd.OutOrStdout())
 }
 
 func runConfigVars(cmd *cobra.Command, _ []string) error {
@@ -128,24 +106,43 @@ func runConfigRender(cmd *cobra.Command, _ []string) error {
 }
 
 func runConfigConvert(cmd *cobra.Command, args []string) error {
-	toConfigFilename := args[0]
-	fromConfigFilename := args[1]
+	configFilename := args[0]
 
-	slog.Debug("config convert", "to_config_filename", toConfigFilename, "from_config_filename", fromConfigFilename)
+	output, _ := cmd.Flags().GetString("output")
+
+	format, filename := ParsedOutput(output)
+
+	slog.Debug("config convert", "config_filename", configFilename, "output_format",
+		format, "output_filename", filename, "output_flag_value", output)
 
 	// Let viper handle unmarshalling from the various file types without env or flag values
 	tempViper := viper.New()
 
-	tempViper.SetConfigFile(fromConfigFilename)
+	tempViper.SetConfigFile(configFilename)
 	if err := tempViper.ReadInConfig(); err != nil {
 		return err
 	}
 
-	if err := tempViper.WriteConfigAs(toConfigFilename); err != nil {
+	// check for a target destination filename or default to STDOUT
+	var outputWriter io.Writer
+	switch {
+	case filename != "":
+		f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0o644)
+		if err != nil {
+			return fmt.Errorf("failed to open output file: %w", err)
+		}
+		outputWriter = f
+	default:
+		outputWriter = cmd.OutOrStdout()
+	}
+
+	config := new(pipelines.Config)
+	// Force load without default configuration
+	if err := LoadOrDefault("", config, tempViper); err != nil {
 		return err
 	}
 
-	return nil
+	return NewAbstractEncoder(outputWriter, config).Encode(format)
 }
 
 // Execution functions - Logic for command execution

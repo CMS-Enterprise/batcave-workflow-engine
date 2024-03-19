@@ -1,37 +1,35 @@
-name: Image Scan
-description: Scan a container image with Workflow Engine
+name: Scan Image
+description: Scans a Container Image using workflow-engine
+
 inputs:
-  artifact_dir:
-    description: The target directory for all generated artifacts
-    default: artifacts
-  clamav_filename:
-    description: The filename for the clamscan virus report - must contain 'clamav'
-    default: clamav-virus-report.txt
   config_file:
-    description: The workflow engine config file name
-  gatecheck_bundle_filename:
-    description: The filename for the gatecheck bundle, a validatable archive of security artifacts
-    default: gatecheck-bundle.tar.gz
-  grype_config_filename:
-    description: The config filename for the grype vulnerability report
-  grype_filename:
-    description: The filename for the grype vulnerability report - must contain 'grype'
-    default: grype-vulnerability-report-full.json
-  image_tag:
-    description: The full image tag for the target container image
-    default: my-app:latest
+    description: "The file location where the workflow-engine configuration is located"
+    default: ""
+  tag:
+    description: "The target for image scanning."
+  clamav_filename:
+    description: "Filename for ClamAV scan report."
   syft_filename:
-    description: The filename for the syft SBOM report - must contain 'syft'
-    default: syft-sbom-report.json
+    description: "Filename for Syft SBOM report."
+  grype_config_filename:
+    description: "Configuration file for Grype."
+  grype_active_findings_filename:
+    description: "Filename for Grype active findings report."
+  grype_all_findings_filename:
+    description: "Filename for Grype full findings report."
+  artifact_dir:
+    description: "The directory where image scan artifacts should be stored"
+
 runs:
   using: docker
-  image: ghcr.io/cms-enterprise/batcave/workflow-engine:v0.0.1-rc.11
-  args: [run, image-scan, --cli-interface, docker, --config, '${{ inputs.config_file }}', --verbose]
+  image: "docker://ghcr.io/cms-enterprise/batcave/workflow-engine:56dca66a"
+  args: [ "run", "image-scan", "--config", "${{inputs.config_file}}", "--verbose" ]
   env:
-    WFE_ARTIFACT_DIR: ${{ inputs.artifact_dir }}
-    WFE_GATECHECK_BUNDLE_FILENAME: ${{ inputs.gatecheck_bundle_filename }}
-    WFE_IMAGE_SCAN_CLAMAV_FILENAME: ${{ inputs.clamav_filename }}
-    WFE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME: ${{ inputs.grype_config_filename }}
-    WFE_IMAGE_SCAN_GRYPE_FILENAME: ${{ inputs.grype_filename }}
-    WFE_IMAGE_SCAN_SYFT_FILENAME: ${{ inputs.syft_filename }}
-    WFE_IMAGE_TAG: ${{ inputs.image_tag }}
+    WFE_IMAGE_TAG: "${{inputs.tag}}"
+    WFE_IMAGE_SCAN_CLAMAV_FILENAME: "${{inputs.clamav_filename}}"
+    WFE_IMAGE_SCAN_SYFT_FILENAME: "${{inputs.syft_filename}}"
+    WFE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME: "${{inputs.grype_config_filename}}"
+    WFE_IMAGE_SCAN_GRYPE_ACTIVE_FINDINGS_FILENAME: "${{inputs.grype_active_findings_filename}}"
+    WFE_IMAGE_SCAN_GRYPE_ALL_FINDINGS_FILENAME: "${{inputs.grype_all_findings_filename}}"
+    WFE_ARTIFACT_DIR: "${{inputs.artifact_dir}}"
+
