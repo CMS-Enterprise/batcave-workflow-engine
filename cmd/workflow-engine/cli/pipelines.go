@@ -78,13 +78,21 @@ func newRunCommand() *cobra.Command {
 
 	// run image-delivery
 
-	imageDeliveryCmd := newBasicCommand("image-delivery", "run image-build + image-scan + image-publish", runImageDelivery)
+	imageDeliveryCmd := newBasicCommand("image-delivery", "run image build + image scan + image publish", runImageDelivery)
 
 	imageDeliveryCmd.Flags().AddFlagSet(imageBuildCmd.Flags())
 	imageDeliveryCmd.Flags().AddFlagSet(imageScanCmd.Flags())
 	imageDeliveryCmd.Flags().AddFlagSet(imagePublishCmd.Flags())
 
 	imageDeliveryCmd.Flags().Bool("skip-publish", false, "skip the publish pipeline")
+
+	// run all
+
+	allCmd := newBasicCommand("all", "run code scan + image delivery + deployment validation", runAll)
+
+	allCmd.Flags().AddFlagSet(codeScanCmd.Flags())
+	allCmd.Flags().AddFlagSet(imageBuildCmd.Flags())
+	allCmd.Flags().AddFlagSet(deployCmd.Flags())
 
 	// run
 	cmd := &cobra.Command{Use: "run", Short: "run a pipeline"}
@@ -109,7 +117,7 @@ func newRunCommand() *cobra.Command {
 	cmd.SilenceUsage = true
 
 	// Add sub commands
-	cmd.AddCommand(debugCmd, imageBuildCmd, imageScanCmd, imagePublishCmd, codeScanCmd, deployCmd, imageDeliveryCmd)
+	cmd.AddCommand(debugCmd, imageBuildCmd, imageScanCmd, imagePublishCmd, codeScanCmd, deployCmd, imageDeliveryCmd, allCmd)
 
 	return cmd
 }
@@ -195,6 +203,19 @@ func runImageDelivery(cmd *cobra.Command, args []string) error {
 	}
 
 	return runimagePublish(cmd, args)
+}
+
+func runAll(cmd *cobra.Command, args []string) error {
+	err := runCodeScan(cmd, args)
+	if err != nil {
+		return err
+	}
+	err = runImageDelivery(cmd, args)
+	if err != nil {
+		return err
+	}
+
+	return runDeploy(cmd, args)
 }
 
 // Execution functions - Logic for command execution
