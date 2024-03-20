@@ -68,34 +68,35 @@ Configuration Order-of-Precedence:
 
 Note: `(none)` means unset, left blank
 
-<!---
-TODO: update environment variables table
+| Config Key                        | Environment Variable                 | Default Value                        | Description                                                                        |
+| --------------------------------- | ------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------------------- |
+| codescan.enabled                  | WFE_CODE_SCAN_ENABLED                | 1                                    | Enable/Disable the code scan pipeline                                              |
+| codescan.gitleaksfilename         | WFE_CODE_SCAN_GITLEAKS_FILENAME      | gitleaks-secrets-report.json         | The filename for the gitleaks secret report - must contain 'gitleaks'              |
+| codescan.gitleakssrcdir           | WFE_CODE_SCAN_GITLEAKS_SRC_DIR       | .                                    | The target directory for the gitleaks scan                                         |
+| codescan.semgrepfilename          | WFE_CODE_SCAN_SEMGREP_FILENAME       | semgrep-sast-report.json             | The filename for the semgrep SAST report - must contain 'semgrep'                  |
+| codescan.semgreprules             | WFE_CODE_SCAN_SEMGREP_RULES          | p/default                            | Semgrep ruleset manual override                                                    |
+| deploy.enabled                    | WFE_IMAGE_PUBLISH_ENABLED            | 1                                    | Enable/Disable the deploy pipeline                                                 |
+| deploy.gatecheckconfigfilename    | WFE_DEPLOY_GATECHECK_CONFIG_FILENAME | -                                    | The filename for the gatecheck config                                              |
+| gatecheckbundlefilename           | WFE_GATECHECK_BUNDLE_FILENAME        | artifacts/gatecheck-bundle.tar.gz    | The filename for the gatecheck bundle, a validatable archive of security artifacts |
+| imagebuild.args                   | WFE_IMAGE_BUILD_ARGS                 | -                                    | Comma seperated list of build time variables                                       |
+| imagebuild.builddir               | WFE_IMAGE_BUILD_DIR                  | .                                    | The build directory to using during an image build                                 |
+| imagebuild.cachefrom              | WFE_IMAGE_BUILD_CACHE_FROM           | -                                    | External cache sources (e.g., "user/app:cache", "type=local,src=path/to/dir")      |
+| imagebuild.cacheto                | WFE_IMAGE_BUILD_CACHE_TO             | -                                    | Cache export destinations (e.g., "user/app:cache", "type=local,src=path/to/dir")   |
+| imagebuild.dockerfile             | WFE_IMAGE_BUILD_DOCKERFILE           | Dockerfile                           | The Dockerfile/Containerfile to use during an image build                          |
+| imagebuild.enabled                | WFE_IMAGE_BUILD_ENABLED              | 1                                    | Enable/Disable the image build pipeline                                            |
+| imagebuild.platform               | WFE_IMAGE_BUILD_PLATFORM             | -                                    | The target platform for build                                                      |
+| imagebuild.squashlayers           | WFE_IMAGE_BUILD_SQUASH_LAYERS        | 0                                    | squash image layers - Only Supported with Podman CLI                               |
+| imagebuild.target                 | WFE_IMAGE_BUILD_TARGET               | -                                    | The target build stage to build (e.g., [linux/amd64])                              |
+| imagepublish.bundlepublishenabled | WFE_IMAGE_BUNDLE_PUBLISH_ENABLED     | 1                                    | Enable/Disable gatecheck artifact bundle publish task                              |
+| imagepublish.bundletag            | WFE_IMAGE_PUBLISH_BUNDLE_TAG         | my-app/artifact-bundle:latest        | The full image tag for the target gatecheck bundle image blob                      |
+| imagepublish.enabled              | WFE_IMAGE_PUBLISH_ENABLED            | 1                                    | Enable/Disable the image publish pipeline                                          |
+| imagescan.clamavfilename          | WFE_IMAGE_SCAN_CLAMAV_FILENAME       | clamav-virus-report.txt              | The filename for the clamscan virus report - must contain 'clamav'                 |
+| imagescan.enabled                 | WFE_IMAGE_SCAN_ENABLED               | 1                                    | Enable/Disable the image scan pipeline                                             |
+| imagescan.grypeconfigfilename     | WFE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME | -                                    | The config filename for the grype vulnerability report                             |
+| imagescan.grypefilename           | WFE_IMAGE_SCAN_GRYPE_FILENAME        | grype-vulnerability-report-full.json | The filename for the grype vulnerability report - must contain 'grype'             |
+| imagescan.syftfilename            | WFE_IMAGE_SCAN_SYFT_FILENAME         | syft-sbom-report.json                | The filename for the syft SBOM report - must contain 'syft'                        |
 
-| Env Variable                                  | Viper Key                             | Default Value                            | Description                                      |
-| --------------------------------------------- | ------------------------------------- | ---------------------------------------- | ------------------------------------------------ |
-| WFE_IMAGE_BUILD_ENABLED                       | imagebuild.enabled                    | 1                                        | Enables or disables the image build process.     |
-| WFE_IMAGE_BUILD_DIR                           | imagebuild.builddir                   | "."                                      | The directory where the image build takes place. |
-| WFE_IMAGE_BUILD_DOCKERFILE                    | imagebuild.dockerfile                 | "Dockerfile"                             | The name/path of the Dockerfile.                 |
-| WFE_IMAGE_BUILD_TAG                           | imagebuild.tag                        | (none)                                   | The tag to be applied to the built image.        |
-| WFE_BUILD_IMAGE_PLATFORM                      | imagebuild.platform                   | (none)                                   | The platform for the image build.                |
-| WFE_IMAGE_BUILD_TARGET                        | imagebuild.target                     | (none)                                   | The target build stage in the Dockerfile.        |
-| WFE_IMAGE_BUILD_CACHE_TO                      | imagebuild.cacheto                    | (none)                                   | Specifies where to store build cache.            |
-| WFE_IMAGE_BUILD_CACHE_FROM                    | imagebuild.cachefrom                  | (none)                                   | Specifies where to load build cache from.        |
-| WFE_IMAGE_BUILD_SQUASH_LAYERS                 | imagebuild.squashlayers               | (none)                                   | Enable or disable squashing of build layers.     |
-| WFE_IMAGE_BUILD_SCAN_TARGET                   | imagebuild.scantarget                 | (none)                                   | The target for image scanning.                   |
-| WFE_IMAGE_SCAN_ENABLED                        | imagescan.enabled                     | 1                                        | Enables or disables the image scanning process.  |
-| WFE_IMAGE_SCAN_CLAMAV_FILENAME                | imagescan.clamavFilename              | "clamav-virus-report.txt"                | Filename for ClamAV scan report.                 |
-| WFE_IMAGE_SCAN_SYFT_FILENAME                  | imagescan.syftFilename                | "syft-sbom-report.json"                  | Filename for Syft SBOM report.                   |
-| WFE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME          | imagescan.grypeConfigFilename         | (none)                                   | Configuration file for Grype.                    |
-| WFE_IMAGE_SCAN_GRYPE_ACTIVE_FINDINGS_FILENAME | imagescan.grypeActiveFindingsFilename | "grype-vulnerability-report-active.json" | Filename for Grype active findings report.       |
-| WFE_IMAGE_SCAN_GRYPE_ALL_FINDINGS_FILENAME    | imagescan.grypeAllFindingsFilename    | "grype-vulnerability-report-full.json"   | Filename for Grype full findings report.         |
-| WFE_CODE_SCAN_ENABLED                         | codescan.enabled                      | 1                                        | Enables or disables the code scanning process.   |
-| WFE_CODE_SCAN_GITLEAKS_FILENAME               | codescan.gitleaksFilename             | "gitleaks-secrets-report.json"           | Filename for Gitleaks secrets report.            |
-| WFE_CODE_SCAN_GITLEAKS_SRC_DIR                | codescan.gitleaksSrcDir               | "."                                      | Source directory for Gitleaks scan.              |
-| WFE_CODE_SCAN_SEMGREP_FILENAME                | codescan.semgrepFilename              | "semgrep-sast-report.json"               | Filename for Semgrep SAST report.                |
-| WFE_CODE_SCAN_SEMGREP_RULES                   | codescan.semgrepRules                 | "p/default"                              | Rule set for Semgrep scan.                       |
 
---->
 ## Running in Docker
 
 When running workflow-engine in a docker container there are some pipelines that need to run docker commands.
