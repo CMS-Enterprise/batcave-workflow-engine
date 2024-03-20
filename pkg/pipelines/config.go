@@ -222,10 +222,10 @@ type actionInputField struct {
 }
 
 type actionRunsConfig struct {
-	Using string            `yaml:"using"`
-	Image string            `yaml:"image"`
-	Args  []string          `yaml:"args,flow"`
-	Env   map[string]string `yaml:"env"`
+	Using               string            `yaml:"using"`
+	WorkflowEngineImage string            `yaml:"image"`
+	Args                []string          `yaml:"args,flow"`
+	Env                 map[string]string `yaml:"env"`
 }
 
 type supportedField struct {
@@ -253,10 +253,10 @@ func WriteGithubActionCodeScan(dst io.Writer, image string) error {
 			},
 		},
 		Runs: actionRunsConfig{
-			Using: "docker",
-			Image: image,
-			Args:  []string{"run", "code-scan", "--config", "${{ inputs.config_file }}", "--verbose"},
-			Env:   map[string]string{},
+			Using:               "docker",
+			WorkflowEngineImage: image,
+			Args:                []string{"run", "code-scan", "--config", "${{ inputs.config_file }}", "--verbose"},
+			Env:                 map[string]string{},
 		},
 	}
 
@@ -288,10 +288,10 @@ func WriteGithubActionImageBuild(dst io.Writer, image string, alias string) erro
 			},
 		},
 		Runs: actionRunsConfig{
-			Using: "docker",
-			Image: image,
-			Args:  []string{"run", "image-build", "--cli-interface", alias, "--config", "${{ inputs.config_file }}", "--verbose"},
-			Env:   map[string]string{},
+			Using:               "docker",
+			WorkflowEngineImage: image,
+			Args:                []string{"run", "image-build", "--cli-interface", alias, "--config", "${{ inputs.config_file }}", "--verbose"},
+			Env:                 map[string]string{},
 		},
 	}
 
@@ -319,10 +319,10 @@ func WriteGithubActionImageScan(dst io.Writer, image string, alias string) error
 			},
 		},
 		Runs: actionRunsConfig{
-			Using: "docker",
-			Image: image,
-			Args:  []string{"run", "image-scan", "--cli-interface", alias, "--config", "${{ inputs.config_file }}", "--verbose"},
-			Env:   map[string]string{},
+			Using:               "docker",
+			WorkflowEngineImage: image,
+			Args:                []string{"run", "image-scan", "--cli-interface", alias, "--config", "${{ inputs.config_file }}", "--verbose"},
+			Env:                 map[string]string{},
 		},
 	}
 
@@ -346,10 +346,10 @@ func WriteGithubActionImagePublish(dst io.Writer, image string, alias string) er
 			},
 		},
 		Runs: actionRunsConfig{
-			Using: "docker",
-			Image: image,
-			Args:  []string{"run", "image-publish", "--cli-interface", alias, "--config", "${{ inputs.config_file }}", "--verbose"},
-			Env:   map[string]string{},
+			Using:               "docker",
+			WorkflowEngineImage: image,
+			Args:                []string{"run", "image-publish", "--cli-interface", alias, "--config", "${{ inputs.config_file }}", "--verbose"},
+			Env:                 map[string]string{},
 		},
 	}
 
@@ -366,10 +366,52 @@ func WriteGithubActionDeploy(dst io.Writer, image string) error {
 		Description: "Validate Artifacts with Workflow Engine for Deployment",
 		Inputs:      map[string]actionInputField{},
 		Runs: actionRunsConfig{
-			Using: "docker",
-			Image: image,
-			Args:  []string{"run", "deploy", "--verbose"},
-			Env:   map[string]string{},
+			Using:               "docker",
+			WorkflowEngineImage: image,
+			Args:                []string{"run", "deploy", "--verbose"},
+			Env:                 map[string]string{},
+		},
+	}
+
+	return writeAction(action, supportedFields, dst)
+}
+
+func WriteGithubActionAll(dst io.Writer, workflowEngineImage string) error {
+
+	supportedFields := []supportedField{
+		{key: "artifactdir", inputField: "artifact_dir"},
+		{key: "gatecheckbundlefilename", inputField: "gatecheck_bundle_filename"},
+		{key: "imagetag", inputField: "image_tag"},
+		{key: "codescan.gitleaksfilename", inputField: "gitleaks_filename"},
+		{key: "codescan.gitleakssrcdir", inputField: "gitleaks_src_dir"},
+		{key: "codescan.semgrepfilename", inputField: "semgrep_filename"},
+		{key: "codescan.semgreprules", inputField: "semgrep_rules"},
+		{key: "imagebuild.builddir", inputField: "build_dir"},
+		{key: "imagebuild.dockerfile", inputField: "dockerfile"},
+		{key: "imagebuild.args", inputField: "args"},
+		{key: "imagebuild.platform", inputField: "platform"},
+		{key: "imagebuild.target", inputField: "target"},
+		{key: "imagebuild.cacheto", inputField: "cache_to"},
+		{key: "imagebuild.cachefrom", inputField: "cache_from"},
+		{key: "imagebuild.squashlayers", inputField: "squash_layers"},
+		{key: "imagescan.syftfilename", inputField: "syft_filename"},
+		{key: "imagescan.grypeconfigfilename", inputField: "grype_config_filename"},
+		{key: "imagescan.grypefilename", inputField: "grype_filename"},
+		{key: "imagescan.clamavfilename", inputField: "clamav_filename"},
+		{key: "imagepublish.bundletag", inputField: "bundle_tag"},
+		{key: "imagepublish.bundlepublishenabled", inputField: "bundle_publish_enabled"},
+		{key: "deploy.gatecheckconfigfilename", inputField: "gatecheck_config_filename"},
+	}
+
+	action := githubAction{
+		Name:        "Workflow Engine",
+		Description: "Code Scan + Image Build + Image Scan + Image Publish + Validation",
+		Inputs:      map[string]actionInputField{},
+		Runs: actionRunsConfig{
+			Using:               "docker",
+			WorkflowEngineImage: workflowEngineImage,
+			Args:                []string{"run", "all", "--verbose"},
+			Env:                 map[string]string{},
 		},
 	}
 
