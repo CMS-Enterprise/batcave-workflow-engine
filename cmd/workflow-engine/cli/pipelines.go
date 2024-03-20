@@ -74,7 +74,17 @@ func newRunCommand() *cobra.Command {
 	// run deploy
 	deployCmd := newBasicCommand("deploy", "Beta Feature: VALIDATION ONLY - run gatecheck validate on artifacts from previous pipelines", runDeploy)
 	deployCmd.Flags().String("gatecheck-config", "", "gatecheck configuration file")
-	_ = viper.BindPFlag("deploy.gatecheckConfigFilename", deployCmd.Flags().Lookup("gatecheck-config"))
+	_ = viper.BindPFlag("deploy.gatecheckconfigfilename", deployCmd.Flags().Lookup("gatecheck-config"))
+
+	// run image-delivery
+
+	imageDeliveryCmd := newBasicCommand("image-delivery", "run image-build + image-scan + image-publish", runImageDelivery)
+
+	imageDeliveryCmd.Flags().AddFlagSet(imageBuildCmd.Flags())
+	imageDeliveryCmd.Flags().AddFlagSet(imageScanCmd.Flags())
+	imageDeliveryCmd.Flags().AddFlagSet(imagePublishCmd.Flags())
+
+	imageDeliveryCmd.Flags().Bool("skip-publish", false, "skip the publish pipeline")
 
 	// run
 	cmd := &cobra.Command{Use: "run", Short: "run a pipeline"}
@@ -99,7 +109,7 @@ func newRunCommand() *cobra.Command {
 	cmd.SilenceUsage = true
 
 	// Add sub commands
-	cmd.AddCommand(debugCmd, imageBuildCmd, imageScanCmd, imagePublishCmd, codeScanCmd, deployCmd)
+	cmd.AddCommand(debugCmd, imageBuildCmd, imageScanCmd, imagePublishCmd, codeScanCmd, deployCmd, imageDeliveryCmd)
 
 	return cmd
 }
@@ -172,6 +182,19 @@ func runCodeScan(cmd *cobra.Command, _ []string) error {
 	}
 
 	return codeScanPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled, semgrepExperimental)
+}
+
+func runImageDelivery(cmd *cobra.Command, args []string) error {
+	err := runImageBuild(cmd, args)
+	if err != nil {
+		return err
+	}
+	err = runImageScan(cmd, args)
+	if err != nil {
+		return err
+	}
+
+	return runimagePublish(cmd, args)
 }
 
 // Execution functions - Logic for command execution
