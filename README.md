@@ -2,6 +2,8 @@
 
 [![Build workflow-engine](https://github.com/CMS-Enterprise/batcave-workflow-engine/actions/workflows/delivery.yaml/badge.svg)](https://github.com/CMS-Enterprise/batcave-workflow-engine/actions/workflows/delivery.yaml)
 
+![Workflow Engine Splash Logo](https://static.caffeineforcode.com/workflow-engine-splash-red.png)
+
 Workflow Engine is a security and delivery pipeline designed to orchestrate the process of building and scanning an
 application image for security vulnerabilities.
 It solves the problem of having to configure a hardened-predefined security pipeline using traditional CI/CD.
