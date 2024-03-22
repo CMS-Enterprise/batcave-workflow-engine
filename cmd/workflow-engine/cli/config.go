@@ -30,68 +30,25 @@ func newConfigCommand() *cobra.Command {
 	convertCmd := newBasicCommand("convert <TO CONFIG FILE>.[json|yaml|yml|toml] <FROM CONFIG FILE>.[json|yaml|yml|toml]", "convert a configuration file", runConfigConvert)
 	convertCmd.Args = cobra.ExactArgs(2)
 
-	// config generate
-	genCmd := &cobra.Command{
-		Use:     "generate",
-		Aliases: []string{"gen"},
-		Short:   "generate documentation or github action files",
-	}
+	generateActionCmd := newBasicCommand("generate-action", "generate a single action for all pipelines", runGenAllAction)
+	generateActionCmd.Flags().String("docker-alias", "docker", "an Docker CLI compatible alias [docker/podman]")
+	generateActionCmd.Args = cobra.ExactArgs(1)
 
-	genCmd.PersistentFlags().String("docker-alias", "docker", "an Docker CLI compatible alias [docker/podman]")
-	genCmd.PersistentFlags().StringP("image", "i", "", "workflow engine image name")
-	_ = genCmd.MarkFlagRequired("image")
-
-	codeScanActionCmd := newBasicCommand("code-scan-action", "generate a github action for the code scan pipeline", runGenCodeScanAction)
-	imageBuildActionCmd := newBasicCommand("image-build-action", "generate a github action for the image build pipeline", runGenImageBuildAction)
-	imageScanActionCmd := newBasicCommand("image-scan-action", "generate a github action for the image scan pipeline", runGenImageScanAction)
-	imagePublishActionCmd := newBasicCommand("image-publish-action", "generate a github action for the image publish pipeline", runGenImagePublishAction)
-	deployActionCmd := newBasicCommand("deploy-action", "generate a github action for the deploy pipeline", runGenDeployAction)
-	allActionCmd := newBasicCommand("all-action", "generate a single action for all pipelines", runGenAllAction)
-
-	markdownCmd := newBasicCommand("markdown-table", "generate a markdown table with all of the keys, env variables, and defaults", runGenMarkdown)
-
-	genCmd.AddCommand(codeScanActionCmd, imageBuildActionCmd, imageScanActionCmd, imagePublishActionCmd, deployActionCmd, markdownCmd, allActionCmd)
+	generateTableCmd := newBasicCommand("generate-table", "generate a markdown table with all of the keys, env variables, and defaults", runGenMarkdown)
+	generateActionsTableCmd := newBasicCommand("generate-action-table", "generate a markdown table designed for github actions documentation", runGenActionMarkdown)
 
 	// config
 	cmd := &cobra.Command{Use: "config", Short: "manage the workflow engine config file"}
 
 	// add sub commands
-	cmd.AddCommand(infoCmd, initCmd, varsCmd, renderCmd, convertCmd, genCmd, markdownCmd)
+	cmd.AddCommand(infoCmd, initCmd, varsCmd, renderCmd, convertCmd, generateActionCmd, generateTableCmd, generateActionsTableCmd)
 
 	return cmd
 }
 
 // Run Functions - Parsing flags and arguments at command runtime
-func runGenCodeScanAction(cmd *cobra.Command, args []string) error {
-	wfeImage, _ := cmd.Flags().GetString("image")
-	return pipelines.WriteGithubActionCodeScan(cmd.OutOrStdout(), wfeImage)
-}
-
-func runGenImageBuildAction(cmd *cobra.Command, args []string) error {
-	wfeImage, _ := cmd.Flags().GetString("image")
-	alias, _ := cmd.Flags().GetString("docker-alias")
-	return pipelines.WriteGithubActionImageBuild(cmd.OutOrStdout(), wfeImage, alias)
-}
-
-func runGenImageScanAction(cmd *cobra.Command, args []string) error {
-	wfeImage, _ := cmd.Flags().GetString("image")
-	alias, _ := cmd.Flags().GetString("docker-alias")
-	return pipelines.WriteGithubActionImageScan(cmd.OutOrStdout(), wfeImage, alias)
-}
-
-func runGenImagePublishAction(cmd *cobra.Command, args []string) error {
-	wfeImage, _ := cmd.Flags().GetString("image")
-	alias, _ := cmd.Flags().GetString("docker-alias")
-	return pipelines.WriteGithubActionImagePublish(cmd.OutOrStdout(), wfeImage, alias)
-}
-
-func runGenDeployAction(cmd *cobra.Command, args []string) error {
-	wfeImage, _ := cmd.Flags().GetString("image")
-	return pipelines.WriteGithubActionDeploy(cmd.OutOrStdout(), wfeImage)
-}
-
 func runGenAllAction(cmd *cobra.Command, args []string) error {
-	wfeImage, _ := cmd.Flags().GetString("image")
+	wfeImage := args[0]
 	alias, _ := cmd.Flags().GetString("docker-alias")
 	return pipelines.WriteGithubActionAll(cmd.OutOrStdout(), wfeImage, alias)
 }
@@ -118,7 +75,11 @@ func runConfigInit(cmd *cobra.Command, args []string) error {
 }
 
 func runGenMarkdown(cmd *cobra.Command, args []string) error {
-	return pipelines.WriteMarkdownEnv(cmd.OutOrStdout())
+	return pipelines.WriteConfigAsMarkdownTable(cmd.OutOrStdout())
+}
+
+func runGenActionMarkdown(cmd *cobra.Command, args []string) error {
+	return pipelines.WriteConfigAsActionsTable(cmd.OutOrStdout())
 }
 
 func runConfigVars(cmd *cobra.Command, _ []string) error {

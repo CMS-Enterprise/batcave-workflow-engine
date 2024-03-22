@@ -1,12 +1,10 @@
 package pipelines
 
 import (
-	"errors"
 	"fmt"
 	"html/template"
 	"io"
 	"log/slog"
-	"slices"
 	"strings"
 
 	"github.com/go-git/go-git/v5"
@@ -68,136 +66,236 @@ type configDeploy struct {
 
 // metaConfigField is used to map viper values to env variables and their associated default values
 type metaConfigField struct {
-	Key         string
-	Env         string
-	Default     any
-	Description string
+	Key             string
+	Env             string
+	ActionInputName string
+	ActionType      string
+	Default         any
+	Description     string
 }
 
 var metaConfig = []metaConfigField{
 	{
-		Key: "imagetag", Env: "WFE_IMAGE_TAG", Default: "my-app:latest",
-		Description: "The full image tag for the target container image",
+		Key:             "imagetag",
+		Env:             "WFE_IMAGE_TAG",
+		ActionInputName: "tag",
+		ActionType:      "String",
+		Default:         "my-app:latest",
+		Description:     "The full image tag for the target container image",
 	},
 
 	{
-		Key: "artifactdir", Env: "WFE_ARTIFACT_DIR", Default: "artifacts",
-		Description: "The target directory for all generated artifacts",
+		Key:             "artifactdir",
+		Env:             "WFE_ARTIFACT_DIR",
+		ActionInputName: "artifact_dir",
+		ActionType:      "String",
+		Default:         "artifacts",
+		Description:     "The target directory for all generated artifacts",
 	},
 	{
-		Key: "gatecheckbundlefilename", Env: "WFE_GATECHECK_BUNDLE_FILENAME", Default: "gatecheck-bundle.tar.gz",
-		Description: "The filename for the gatecheck bundle, a validatable archive of security artifacts",
+		Key:             "gatecheckbundlefilename",
+		Env:             "WFE_GATECHECK_BUNDLE_FILENAME",
+		ActionInputName: "gatecheck_bundle_filename",
+		ActionType:      "String",
+		Default:         "gatecheck-bundle.tar.gz",
+		Description:     "The filename for the gatecheck bundle, a validatable archive of security artifacts",
 	},
 
 	{
-		Key: "imagebuild.enabled", Env: "WFE_IMAGE_BUILD_ENABLED", Default: true,
-		Description: "Enable/Disable the image build pipeline",
+		Key:             "imagebuild.enabled",
+		Env:             "WFE_IMAGE_BUILD_ENABLED",
+		ActionInputName: "image_build_enabled",
+		ActionType:      "Bool",
+		Default:         true,
+		Description:     "Enable/Disable the image build pipeline",
 	},
 	{
-		Key: "imagebuild.builddir", Env: "WFE_IMAGE_BUILD_DIR", Default: ".",
-		Description: "The build directory to using during an image build",
+		Key:             "imagebuild.builddir",
+		Env:             "WFE_IMAGE_BUILD_DIR",
+		ActionInputName: "build_dir",
+		ActionType:      "String",
+		Default:         ".",
+		Description:     "The build directory to using during an image build",
 	},
 	{
-		Key: "imagebuild.dockerfile", Env: "WFE_IMAGE_BUILD_DOCKERFILE", Default: "Dockerfile",
-		Description: "The Dockerfile/Containerfile to use during an image build",
+		Key:             "imagebuild.dockerfile",
+		Env:             "WFE_IMAGE_BUILD_DOCKERFILE",
+		ActionInputName: "dockerfile",
+		ActionType:      "String",
+		Default:         "Dockerfile",
+		Description:     "The Dockerfile/Containerfile to use during an image build",
 	},
 	{
-		Key: "imagebuild.platform", Env: "WFE_IMAGE_BUILD_PLATFORM", Default: nil,
-		Description: "The target platform for build",
+		Key:             "imagebuild.platform",
+		Env:             "WFE_IMAGE_BUILD_PLATFORM",
+		ActionInputName: "platform",
+		ActionType:      "String",
+		Default:         nil,
+		Description:     "The target platform for build",
 	},
 	{
-		Key: "imagebuild.target", Env: "WFE_IMAGE_BUILD_TARGET", Default: nil,
-		Description: "The target build stage to build (e.g., [linux/amd64])",
+		Key:             "imagebuild.target",
+		Env:             "WFE_IMAGE_BUILD_TARGET",
+		ActionInputName: "target",
+		ActionType:      "String",
+		Default:         nil,
+		Description:     "The target build stage to build (e.g., [linux/amd64])",
 	},
 	{
-		Key: "imagebuild.cacheto", Env: "WFE_IMAGE_BUILD_CACHE_TO", Default: nil,
-		Description: "Cache export destinations (e.g., \"user/app:cache\", \"type=local,src=path/to/dir\")",
+		Key:             "imagebuild.cacheto",
+		Env:             "WFE_IMAGE_BUILD_CACHE_TO",
+		ActionInputName: "cache_to",
+		ActionType:      "String",
+		Default:         nil,
+		Description:     "Cache export destinations (e.g., \"user/app:cache\", \"type=local,src=path/to/dir\")",
 	},
 	{
-		Key: "imagebuild.cachefrom", Env: "WFE_IMAGE_BUILD_CACHE_FROM", Default: nil,
-		Description: "External cache sources (e.g., \"user/app:cache\", \"type=local,src=path/to/dir\")",
+		Key:             "imagebuild.cachefrom",
+		Env:             "WFE_IMAGE_BUILD_CACHE_FROM",
+		ActionInputName: "cache_from",
+		ActionType:      "String",
+		Default:         nil,
+		Description:     "External cache sources (e.g., \"user/app:cache\", \"type=local,src=path/to/dir\")",
 	},
 	{
-		Key: "imagebuild.squashlayers", Env: "WFE_IMAGE_BUILD_SQUASH_LAYERS", Default: false,
-		Description: "squash image layers - Only Supported with Podman CLI",
+		Key:             "imagebuild.squashlayers",
+		Env:             "WFE_IMAGE_BUILD_SQUASH_LAYERS",
+		ActionInputName: "squash_layers",
+		ActionType:      "Bool",
+		Default:         false,
+		Description:     "squash image layers - Only Supported with Podman CLI",
 	},
 	{
-		Key: "imagebuild.args", Env: "WFE_IMAGE_BUILD_ARGS", Default: nil,
-		Description: "Comma seperated list of build time variables",
+		Key:             "imagebuild.args",
+		Env:             "WFE_IMAGE_BUILD_ARGS",
+		ActionInputName: "build_args",
+		ActionType:      "List",
+		Default:         nil,
+		Description:     "Comma seperated list of build time variables",
+	},
+	{
+		Key:             "imagescan.enabled",
+		Env:             "WFE_IMAGE_SCAN_ENABLED",
+		Default:         true,
+		ActionInputName: "image_scan_enabled",
+		ActionType:      "Bool",
+		Description:     "Enable/Disable the image scan pipeline",
+	},
+	{
+		Key:             "imagescan.syftfilename",
+		Env:             "WFE_IMAGE_SCAN_SYFT_FILENAME",
+		ActionInputName: "syft_filename",
+		ActionType:      "String",
+		Default:         "syft-sbom-report.json",
+		Description:     "The filename for the syft SBOM report - must contain 'syft'",
+	},
+	{
+		Key:             "imagescan.grypeconfigfilename",
+		Env:             "WFE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME",
+		ActionInputName: "grype_config_filename",
+		ActionType:      "String",
+		Default:         nil,
+		Description:     "The config filename for the grype vulnerability report",
+	},
+	{
+		Key:             "imagescan.grypefilename",
+		Env:             "WFE_IMAGE_SCAN_GRYPE_FILENAME",
+		ActionInputName: "grype_filename",
+		ActionType:      "String",
+		Default:         "grype-vulnerability-report-full.json",
+		Description:     "The filename for the grype vulnerability report - must contain 'grype'",
+	},
+	{
+		Key:             "imagescan.clamavfilename",
+		Env:             "WFE_IMAGE_SCAN_CLAMAV_FILENAME",
+		ActionInputName: "clamav_filename",
+		ActionType:      "String",
+		Default:         "clamav-virus-report.txt",
+		Description:     "The filename for the clamscan virus report - must contain 'clamav'",
 	},
 
 	{
-		Key: "imagescan.enabled", Env: "WFE_IMAGE_SCAN_ENABLED", Default: true,
-		Description: "Enable/Disable the image scan pipeline",
+		Key:             "codescan.enabled",
+		Env:             "WFE_CODE_SCAN_ENABLED",
+		ActionInputName: "code_scan_enabled",
+		ActionType:      "Bool",
+		Default:         true,
+		Description:     "Enable/Disable the code scan pipeline",
 	},
 	{
-		Key: "imagescan.syftfilename", Env: "WFE_IMAGE_SCAN_SYFT_FILENAME", Default: "syft-sbom-report.json",
-		Description: "The filename for the syft SBOM report - must contain 'syft'",
+		Key:             "codescan.gitleaksfilename",
+		Env:             "WFE_CODE_SCAN_GITLEAKS_FILENAME",
+		ActionInputName: "gitleaks_filename",
+		ActionType:      "String",
+		Default:         "gitleaks-secrets-report.json",
+		Description:     "The filename for the gitleaks secret report - must contain 'gitleaks'",
 	},
 	{
-		Key: "imagescan.grypeconfigfilename", Env: "WFE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME", Default: nil,
-		Description: "The config filename for the grype vulnerability report",
+		Key:             "codescan.gitleakssrcdir",
+		Env:             "WFE_CODE_SCAN_GITLEAKS_SRC_DIR",
+		ActionInputName: "gitleaks_src_dir",
+		ActionType:      "String",
+		Default:         ".",
+		Description:     "The target directory for the gitleaks scan",
 	},
 	{
-		Key: "imagescan.grypefilename", Env: "WFE_IMAGE_SCAN_GRYPE_FILENAME", Default: "grype-vulnerability-report-full.json",
-		Description: "The filename for the grype vulnerability report - must contain 'grype'",
+		Key:             "codescan.semgrepfilename",
+		Env:             "WFE_CODE_SCAN_SEMGREP_FILENAME",
+		ActionInputName: "semgrep_filename",
+		ActionType:      "String",
+		Default:         "semgrep-sast-report.json",
+		Description:     "The filename for the semgrep SAST report - must contain 'semgrep'",
 	},
 	{
-		Key: "imagescan.clamavfilename", Env: "WFE_IMAGE_SCAN_CLAMAV_FILENAME", Default: "clamav-virus-report.txt",
-		Description: "The filename for the clamscan virus report - must contain 'clamav'",
+		Key:             "codescan.semgreprules",
+		Env:             "WFE_CODE_SCAN_SEMGREP_RULES",
+		ActionInputName: "semgrep_rules",
+		ActionType:      "String",
+		Default:         "p/default",
+		Description:     "Semgrep ruleset manual override",
 	},
 
 	{
-		Key: "codescan.enabled", Env: "WFE_CODE_SCAN_ENABLED", Default: true,
-		Description: "Enable/Disable the code scan pipeline",
+		Key:             "imagepublish.enabled",
+		Env:             "WFE_IMAGE_PUBLISH_ENABLED",
+		ActionInputName: "image_publish_enabled",
+		ActionType:      "Bool",
+		Default:         true,
+		Description:     "Enable/Disable the image publish pipeline",
 	},
 	{
-		Key: "codescan.gitleaksfilename", Env: "WFE_CODE_SCAN_GITLEAKS_FILENAME", Default: "gitleaks-secrets-report.json",
-		Description: "The filename for the gitleaks secret report - must contain 'gitleaks'",
+		Key:             "imagepublish.bundlepublishenabled",
+		Env:             "WFE_IMAGE_BUNDLE_PUBLISH_ENABLED",
+		ActionInputName: "bundle_publish_enabled",
+		ActionType:      "Bool",
+		Default:         true,
+		Description:     "Enable/Disable gatecheck artifact bundle publish task",
 	},
 	{
-		Key: "codescan.gitleakssrcdir", Env: "WFE_CODE_SCAN_GITLEAKS_SRC_DIR", Default: ".",
-		Description: "The target directory for the gitleaks scan",
-	},
-	{
-		Key: "codescan.semgrepfilename", Env: "WFE_CODE_SCAN_SEMGREP_FILENAME", Default: "semgrep-sast-report.json",
-		Description: "The filename for the semgrep SAST report - must contain 'semgrep'",
-	},
-	{
-		Key: "codescan.semgreprules", Env: "WFE_CODE_SCAN_SEMGREP_RULES", Default: "p/default",
-		Description: "Semgrep ruleset manual override",
+		Key:             "imagepublish.bundletag",
+		Env:             "WFE_IMAGE_PUBLISH_BUNDLE_TAG",
+		ActionInputName: "bundle_publish_tag",
+		ActionType:      "String",
+		Default:         "my-app/artifact-bundle:latest",
+		Description:     "The full image tag for the target gatecheck bundle image blob",
 	},
 
 	{
-		Key: "imagepublish.enabled", Env: "WFE_IMAGE_PUBLISH_ENABLED", Default: true,
-		Description: "Enable/Disable the image publish pipeline",
+		Key:             "deploy.enabled",
+		Env:             "WFE_DEPLOY_ENABLED",
+		ActionInputName: "deploy_enabled",
+		ActionType:      "Bool",
+		Default:         true,
+		Description:     "Enable/Disable the deploy pipeline",
 	},
 	{
-		Key: "imagepublish.bundlepublishenabled", Env: "WFE_IMAGE_BUNDLE_PUBLISH_ENABLED", Default: true,
-		Description: "Enable/Disable gatecheck artifact bundle publish task",
+		Key:             "deploy.gatecheckconfigfilename",
+		Env:             "WFE_DEPLOY_GATECHECK_CONFIG_FILENAME",
+		ActionInputName: "gatecheck_config_filename",
+		ActionType:      "String",
+		Default:         nil,
+		Description:     "The filename for the gatecheck config",
 	},
-	{
-		Key: "imagepublish.bundletag", Env: "WFE_IMAGE_PUBLISH_BUNDLE_TAG", Default: "my-app/artifact-bundle:latest",
-		Description: "The full image tag for the target gatecheck bundle image blob",
-	},
-
-	{
-		Key: "deploy.enabled", Env: "WFE_IMAGE_PUBLISH_ENABLED", Default: true,
-		Description: "Enable/Disable the deploy pipeline",
-	},
-	{
-		Key: "deploy.gatecheckconfigfilename", Env: "WFE_DEPLOY_GATECHECK_CONFIG_FILENAME", Default: nil,
-		Description: "The filename for the gatecheck config",
-	},
-}
-
-func metaConfigLookup(key string) metaConfigField {
-	for _, value := range metaConfig {
-		if value.Key == key {
-			return value
-		}
-	}
-	return metaConfigField{}
 }
 
 func BindViper(v *viper.Viper) {
@@ -228,180 +326,7 @@ type actionRunsConfig struct {
 	Env                 map[string]string `yaml:"env"`
 }
 
-type supportedField struct {
-	key        string
-	inputField string
-}
-
-func WriteGithubActionCodeScan(dst io.Writer, image string) error {
-	supportedFields := []supportedField{
-		{key: "artifactdir", inputField: "artifact_dir"},
-		{key: "gatecheckbundlefilename", inputField: "gatecheck_bundle_filename"},
-		{key: "codescan.gitleaksfilename", inputField: "gitleaks_filename"},
-		{key: "codescan.gitleakssrcdir", inputField: "gitleaks_src_dir"},
-		{key: "codescan.semgrepfilename", inputField: "semgrep_filename"},
-		{key: "codescan.semgreprules", inputField: "semgrep_rules"},
-	}
-
-	action := githubAction{
-		Name:        "Code Scan",
-		Description: "Scan a code repository with Workflow Engine",
-		Inputs: map[string]actionInputField{
-			"config_file": {
-				Description: "The workflow engine config file name",
-				Default:     "",
-			},
-		},
-		Runs: actionRunsConfig{
-			Using:               "docker",
-			WorkflowEngineImage: image,
-			Args:                []string{"run", "code-scan", "--config", "${{ inputs.config_file }}", "--verbose"},
-			Env:                 map[string]string{},
-		},
-	}
-
-	return writeAction(action, supportedFields, dst)
-}
-
-func WriteGithubActionImageBuild(dst io.Writer, image string, alias string) error {
-	supportedFields := []supportedField{
-		{key: "imagetag", inputField: "image_tag"},
-		{key: "artifactdir", inputField: "artifact_dir"},
-		{key: "gatecheckbundlefilename", inputField: "gatecheck_bundle_filename"},
-		{key: "imagebuild.builddir", inputField: "build_dir"},
-		{key: "imagebuild.dockerfile", inputField: "dockerfile"},
-		{key: "imagebuild.args", inputField: "args"},
-		{key: "imagebuild.platform", inputField: "platform"},
-		{key: "imagebuild.target", inputField: "target"},
-		{key: "imagebuild.cacheto", inputField: "cache_to"},
-		{key: "imagebuild.cachefrom", inputField: "cache_from"},
-		{key: "imagebuild.squashlayers", inputField: "squash_layers"},
-	}
-
-	action := githubAction{
-		Name:        "Build Image",
-		Description: "Build a container image with Workflow Engine",
-		Inputs: map[string]actionInputField{
-			"config_file": {
-				Description: "The workflow engine config file name",
-				Default:     "",
-			},
-		},
-		Runs: actionRunsConfig{
-			Using:               "docker",
-			WorkflowEngineImage: image,
-			Args:                []string{"run", "image-build", "--cli-interface", alias, "--config", "${{ inputs.config_file }}", "--verbose"},
-			Env:                 map[string]string{},
-		},
-	}
-
-	return writeAction(action, supportedFields, dst)
-}
-
-func WriteGithubActionImageScan(dst io.Writer, image string, alias string) error {
-	supportedFields := []supportedField{
-		{key: "artifactdir", inputField: "artifact_dir"},
-		{key: "imagetag", inputField: "image_tag"},
-		{key: "gatecheckbundlefilename", inputField: "gatecheck_bundle_filename"},
-		{key: "imagescan.syftfilename", inputField: "syft_filename"},
-		{key: "imagescan.grypeconfigfilename", inputField: "grype_config_filename"},
-		{key: "imagescan.grypefilename", inputField: "grype_filename"},
-		{key: "imagescan.clamavfilename", inputField: "clamav_filename"},
-	}
-
-	action := githubAction{
-		Name:        "Image Scan",
-		Description: "Scan a container image with Workflow Engine",
-		Inputs: map[string]actionInputField{
-			"config_file": {
-				Description: "The workflow engine config file name",
-				Default:     "",
-			},
-		},
-		Runs: actionRunsConfig{
-			Using:               "docker",
-			WorkflowEngineImage: image,
-			Args:                []string{"run", "image-scan", "--cli-interface", alias, "--config", "${{ inputs.config_file }}", "--verbose"},
-			Env:                 map[string]string{},
-		},
-	}
-
-	return writeAction(action, supportedFields, dst)
-}
-
-func WriteGithubActionImagePublish(dst io.Writer, image string, alias string) error {
-	supportedFields := []supportedField{
-		{key: "imagetag", inputField: "image_tag"},
-		{key: "imagepublish.bundletag", inputField: "bundle_tag"},
-		{key: "imagepublish.bundlepublishenabled", inputField: "bundle_publish_enabled"},
-	}
-
-	action := githubAction{
-		Name:        "Image Publish",
-		Description: "Publish a container image with Workflow Engine",
-		Inputs: map[string]actionInputField{
-			"config_file": {
-				Description: "The workflow engine config file name",
-				Default:     "",
-			},
-		},
-		Runs: actionRunsConfig{
-			Using:               "docker",
-			WorkflowEngineImage: image,
-			Args:                []string{"run", "image-publish", "--cli-interface", alias, "--config", "${{ inputs.config_file }}", "--verbose"},
-			Env:                 map[string]string{},
-		},
-	}
-
-	return writeAction(action, supportedFields, dst)
-}
-
-func WriteGithubActionDeploy(dst io.Writer, image string) error {
-	supportedFields := []supportedField{
-		{key: "deploy.gatecheckconfigfilename", inputField: "gatecheck_config_filename"},
-	}
-
-	action := githubAction{
-		Name:        "Deploy Validation",
-		Description: "Validate Artifacts with Workflow Engine for Deployment",
-		Inputs:      map[string]actionInputField{},
-		Runs: actionRunsConfig{
-			Using:               "docker",
-			WorkflowEngineImage: image,
-			Args:                []string{"run", "deploy", "--verbose"},
-			Env:                 map[string]string{},
-		},
-	}
-
-	return writeAction(action, supportedFields, dst)
-}
-
 func WriteGithubActionAll(dst io.Writer, workflowEngineImage string, dockerAlias string) error {
-	supportedFields := []supportedField{
-		{key: "artifactdir", inputField: "artifact_dir"},
-		{key: "gatecheckbundlefilename", inputField: "gatecheck_bundle_filename"},
-		{key: "imagetag", inputField: "image_tag"},
-		{key: "codescan.gitleaksfilename", inputField: "gitleaks_filename"},
-		{key: "codescan.gitleakssrcdir", inputField: "gitleaks_src_dir"},
-		{key: "codescan.semgrepfilename", inputField: "semgrep_filename"},
-		{key: "codescan.semgreprules", inputField: "semgrep_rules"},
-		{key: "imagebuild.builddir", inputField: "build_dir"},
-		{key: "imagebuild.dockerfile", inputField: "dockerfile"},
-		{key: "imagebuild.args", inputField: "args"},
-		{key: "imagebuild.platform", inputField: "platform"},
-		{key: "imagebuild.target", inputField: "target"},
-		{key: "imagebuild.cacheto", inputField: "cache_to"},
-		{key: "imagebuild.cachefrom", inputField: "cache_from"},
-		{key: "imagebuild.squashlayers", inputField: "squash_layers"},
-		{key: "imagescan.syftfilename", inputField: "syft_filename"},
-		{key: "imagescan.grypeconfigfilename", inputField: "grype_config_filename"},
-		{key: "imagescan.grypefilename", inputField: "grype_filename"},
-		{key: "imagescan.clamavfilename", inputField: "clamav_filename"},
-		{key: "imagepublish.bundletag", inputField: "bundle_tag"},
-		{key: "imagepublish.bundlepublishenabled", inputField: "bundle_publish_enabled"},
-		{key: "deploy.gatecheckconfigfilename", inputField: "gatecheck_config_filename"},
-	}
-
 	action := githubAction{
 		Name:        "Workflow Engine",
 		Description: "Code Scan + Image Build + Image Scan + Image Publish + Validation",
@@ -414,21 +339,12 @@ func WriteGithubActionAll(dst io.Writer, workflowEngineImage string, dockerAlias
 		},
 	}
 
-	return writeAction(action, supportedFields, dst)
-}
-
-func writeAction(action githubAction, supportedFields []supportedField, dst io.Writer) error {
-	for _, field := range supportedFields {
-		configField := metaConfigLookup(field.key)
-		defaultValue, ok := configField.Default.(string)
-		if !ok {
-			defaultValue = ""
+	for _, field := range metaConfig {
+		action.Inputs[field.ActionInputName] = actionInputField{
+			Description: field.Description,
+			Default:     defaultValueToString(field.Default, ""),
 		}
-		action.Inputs[field.inputField] = actionInputField{
-			Description: configField.Description,
-			Default:     defaultValue,
-		}
-		action.Runs.Env[configField.Env] = fmt.Sprintf("${{ inputs.%s }}", field.inputField)
+		action.Runs.Env[field.Env] = fmt.Sprintf("${{ inputs.%s }}", field.ActionInputName)
 	}
 
 	enc := yaml.NewEncoder(dst)
@@ -478,96 +394,118 @@ func BuiltIns() (map[string]string, error) {
 	return builtins, nil
 }
 
-func paddedMetaConfigData() [][4]string {
-	data := [][4]string{{"Config Key", "Environment Variable", "Default Value", "Description"}}
-
-	maxLens := []int{
-		len(data[0][0]),
-		len(data[0][1]),
-		len(data[0][2]),
-		len(data[0][3]),
+func defaultValueToString(v any, valueIfNil string) string {
+	var defaultValue string
+	enabled, isBool := v.(bool)
+	switch {
+	case v == nil:
+		defaultValue = valueIfNil
+	case isBool && enabled:
+		defaultValue = "1"
+	case isBool && !enabled:
+		defaultValue = "0"
+	default:
+		defaultValue = fmt.Sprintf("%v", v)
 	}
-	printableMetaConfig := slices.Clone(metaConfig)
 
-	// find the max length for each field in the slice
-	for i := range printableMetaConfig {
-		if printableMetaConfig[i].Default == nil {
-			printableMetaConfig[i].Default = "-"
+	return defaultValue
+}
+
+func paddedMetaConfigData() [][]string {
+
+	data := [][]string{{"Config Key", "Environment Variable", "Default Value", "Description"}}
+	for _, field := range metaConfig {
+
+		newRow := []string{
+			field.Key,
+			field.Env,
+			defaultValueToString(field.Default, "-"),
+			field.Description,
 		}
-		enabled, ok := printableMetaConfig[i].Default.(bool)
-		if ok {
-			printableMetaConfig[i].Default = "0"
-			if enabled {
-				printableMetaConfig[i].Default = "1"
-			}
-		}
 
-		maxLens[0] = max(len(printableMetaConfig[i].Key), maxLens[0])
-		maxLens[1] = max(len(printableMetaConfig[i].Env), maxLens[1])
-		maxLens[2] = max(len(printableMetaConfig[i].Default.(string)), maxLens[2])
-		maxLens[3] = max(len(printableMetaConfig[i].Description), maxLens[3])
+		data = append(data, newRow)
 	}
 
-	slices.SortFunc(printableMetaConfig, func(a, b metaConfigField) int {
-		return strings.Compare(a.Key, b.Key)
-	})
-
-	for i := 0; i < 4; i++ {
-		// adjust header row
-		format := fmt.Sprintf("%%-%ds", maxLens[i])
-		data[0][i] = fmt.Sprintf(format, data[0][i])
-	}
-
-	for i := 1; i < len(printableMetaConfig); i++ {
-
-		data = append(data, [4]string{})
-		format := fmt.Sprintf("%%-%ds", maxLens[0])
-		data[i][0] = fmt.Sprintf(format, printableMetaConfig[i].Key)
-
-		format = fmt.Sprintf("%%-%ds", maxLens[1])
-		data[i][1] = fmt.Sprintf(format, printableMetaConfig[i].Env)
-
-		format = fmt.Sprintf("%%-%ds", maxLens[2])
-		data[i][2] = fmt.Sprintf(format, printableMetaConfig[i].Default)
-
-		format = fmt.Sprintf("%%-%ds", maxLens[3])
-		data[i][3] = fmt.Sprintf(format, printableMetaConfig[i].Description)
-	}
+	pad(data)
 
 	return data
 }
 
-func WriteMarkdownEnv(dst io.Writer) error {
-	data := paddedMetaConfigData()
+func paddedActionsTable() [][]string {
 
-	// header
-	var headerErr error
-	_, headerErr = fmt.Fprintf(dst, "| %s | %s | %s | %s |\n",
-		data[0][0],
-		data[0][1],
-		data[0][2],
-		data[0][3],
-	)
+	data := [][]string{{"Name", "Type", "Default Value", "Description"}}
+	for _, field := range metaConfig {
 
-	// header seperator
-	_, err := fmt.Fprintf(dst, "| %s | %s | %s | %s |\n",
-		strings.Repeat("-", len(data[0][0])),
-		strings.Repeat("-", len(data[0][1])),
-		strings.Repeat("-", len(data[0][2])),
-		strings.Repeat("-", len(data[0][3])),
-	)
+		newRow := []string{
+			field.ActionInputName,
+			field.ActionType,
+			defaultValueToString(field.Default, ""),
+			field.Description,
+		}
 
-	headerErr = errors.Join(headerErr, err)
-	if headerErr != nil {
-		return headerErr
+		data = append(data, newRow)
 	}
 
-	// Rows of content, skip header
-	for i := 1; i < len(data)-1; i++ {
-		_, err = fmt.Fprintf(dst, "| %s | %s | %s | %s |\n", data[i][0], data[i][1], data[i][2], data[i][3])
-		if err != nil {
-			return err
+	pad(data)
+
+	return data
+}
+
+func pad(data [][]string) {
+	maxLengthForCol := make([]int, len(data[0]))
+
+	// find the max length for each field in the slice
+	for rowIdx := range data {
+		for colIdx := range data[rowIdx] {
+			maxLengthForCol[colIdx] = max(len(data[rowIdx][colIdx]), maxLengthForCol[colIdx])
 		}
 	}
-	return nil
+
+	// Pad each "cell" with spaces based on the max length for the column
+	for rowIdx := range data {
+		for colIdx := range data[rowIdx] {
+			format := fmt.Sprintf("%%-%ds", maxLengthForCol[colIdx])
+			data[rowIdx][colIdx] = fmt.Sprintf(format, data[rowIdx][colIdx])
+		}
+	}
+}
+
+func markdownTable(data [][]string) string {
+	var sb strings.Builder
+
+	// header row
+	row := strings.Join(data[0], " | ")
+	sb.WriteString(fmt.Sprintf("| %s |\n", row))
+
+	// header seperator
+	seperatorRowData := make([]string, len(data[0]))
+	for idx := range seperatorRowData {
+		seperatorRowData[idx] = strings.Repeat("-", len(data[0][idx]))
+		row = strings.Join(seperatorRowData, " | ")
+	}
+
+	sb.WriteString(fmt.Sprintf("| %s |\n", row))
+
+	// Data Rows
+	for rowIdx := range data {
+		if rowIdx == 0 {
+			continue
+		}
+		row = strings.Join(data[rowIdx], " | ")
+		sb.WriteString(fmt.Sprintf("| %s |\n", row))
+	}
+
+	return sb.String()
+}
+
+func WriteConfigAsMarkdownTable(dst io.Writer) error {
+	s := markdownTable(paddedMetaConfigData())
+	_, err := strings.NewReader(s).WriteTo(dst)
+	return err
+}
+
+func WriteConfigAsActionsTable(dst io.Writer) error {
+	s := markdownTable(paddedActionsTable())
+	_, err := strings.NewReader(s).WriteTo(dst)
+	return err
 }
