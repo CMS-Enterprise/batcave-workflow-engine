@@ -46,6 +46,8 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - command run with IO
 - grype CMD 
 - async task object
+- "Combo" pipelines for image-delivery and all pipelines
+- GitHub Actions Code Generation
 
 ### Fixed
 

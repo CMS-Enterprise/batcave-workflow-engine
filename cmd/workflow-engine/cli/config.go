@@ -41,15 +41,16 @@ func newConfigCommand() *cobra.Command {
 	genCmd.PersistentFlags().StringP("image", "i", "", "workflow engine image name")
 	_ = genCmd.MarkFlagRequired("image")
 
-	codeScanActionCmd := newBasicCommand("code-scan-action", "generate a github action for the code scan pipeline outputs to STDOUT", runGenCodeScanAction)
-	imageBuildActionCmd := newBasicCommand("image-build-action", "generate a github action for the image build pipeline outputs to STDOUT", runGenImageBuildAction)
-	imageScanActionCmd := newBasicCommand("image-scan-action", "generate a github action for the image scan pipeline outputs to STDOUT", runGenImageScanAction)
-	imagePublishActionCmd := newBasicCommand("image-publish-action", "generate a github action for the image publish pipeline outputs to STDOUT", runGenImagePublishAction)
-	deployActionCmd := newBasicCommand("deploy-action", "generate a github action for the deploy pipeline outputs to STDOUT", runGenDeployAction)
+	codeScanActionCmd := newBasicCommand("code-scan-action", "generate a github action for the code scan pipeline", runGenCodeScanAction)
+	imageBuildActionCmd := newBasicCommand("image-build-action", "generate a github action for the image build pipeline", runGenImageBuildAction)
+	imageScanActionCmd := newBasicCommand("image-scan-action", "generate a github action for the image scan pipeline", runGenImageScanAction)
+	imagePublishActionCmd := newBasicCommand("image-publish-action", "generate a github action for the image publish pipeline", runGenImagePublishAction)
+	deployActionCmd := newBasicCommand("deploy-action", "generate a github action for the deploy pipeline", runGenDeployAction)
+	allActionCmd := newBasicCommand("all-action", "generate a single action for all pipelines", runGenAllAction)
 
 	markdownCmd := newBasicCommand("markdown-table", "generate a markdown table with all of the keys, env variables, and defaults", runGenMarkdown)
 
-	genCmd.AddCommand(codeScanActionCmd, imageBuildActionCmd, imageScanActionCmd, imagePublishActionCmd, deployActionCmd, markdownCmd)
+	genCmd.AddCommand(codeScanActionCmd, imageBuildActionCmd, imageScanActionCmd, imagePublishActionCmd, deployActionCmd, markdownCmd, allActionCmd)
 
 	// config
 	cmd := &cobra.Command{Use: "config", Short: "manage the workflow engine config file"}
@@ -87,6 +88,12 @@ func runGenImagePublishAction(cmd *cobra.Command, args []string) error {
 func runGenDeployAction(cmd *cobra.Command, args []string) error {
 	wfeImage, _ := cmd.Flags().GetString("image")
 	return pipelines.WriteGithubActionDeploy(cmd.OutOrStdout(), wfeImage)
+}
+
+func runGenAllAction(cmd *cobra.Command, args []string) error {
+	wfeImage, _ := cmd.Flags().GetString("image")
+	alias, _ := cmd.Flags().GetString("docker-alias")
+	return pipelines.WriteGithubActionAll(cmd.OutOrStdout(), wfeImage, alias)
 }
 
 func runConfigInfo(cmd *cobra.Command, args []string) error {

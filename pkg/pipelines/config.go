@@ -376,8 +376,7 @@ func WriteGithubActionDeploy(dst io.Writer, image string) error {
 	return writeAction(action, supportedFields, dst)
 }
 
-func WriteGithubActionAll(dst io.Writer, workflowEngineImage string) error {
-
+func WriteGithubActionAll(dst io.Writer, workflowEngineImage string, dockerAlias string) error {
 	supportedFields := []supportedField{
 		{key: "artifactdir", inputField: "artifact_dir"},
 		{key: "gatecheckbundlefilename", inputField: "gatecheck_bundle_filename"},
@@ -410,7 +409,7 @@ func WriteGithubActionAll(dst io.Writer, workflowEngineImage string) error {
 		Runs: actionRunsConfig{
 			Using:               "docker",
 			WorkflowEngineImage: workflowEngineImage,
-			Args:                []string{"run", "all", "--verbose"},
+			Args:                []string{"run", "all", "--verbose", "--cli-interface", dockerAlias},
 			Env:                 map[string]string{},
 		},
 	}
