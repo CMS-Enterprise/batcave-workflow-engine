@@ -32,7 +32,6 @@ func newConfigCommand() *cobra.Command {
 
 	generateActionCmd := newBasicCommand("generate-action", "generate a single action for all pipelines", runGenAllAction)
 	generateActionCmd.Flags().String("docker-alias", "docker", "an Docker CLI compatible alias [docker/podman]")
-	generateActionCmd.Args = cobra.ExactArgs(1)
 
 	generateTableCmd := newBasicCommand("generate-table", "generate a markdown table with all of the keys, env variables, and defaults", runGenMarkdown)
 	generateActionsTableCmd := newBasicCommand("generate-action-table", "generate a markdown table designed for github actions documentation", runGenActionMarkdown)
@@ -48,9 +47,8 @@ func newConfigCommand() *cobra.Command {
 
 // Run Functions - Parsing flags and arguments at command runtime
 func runGenAllAction(cmd *cobra.Command, args []string) error {
-	wfeImage := args[0]
 	alias, _ := cmd.Flags().GetString("docker-alias")
-	return pipelines.WriteGithubActionAll(cmd.OutOrStdout(), wfeImage, alias)
+	return pipelines.WriteGithubActionAll(cmd.OutOrStdout(), alias)
 }
 
 func runConfigInfo(cmd *cobra.Command, args []string) error {

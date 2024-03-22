@@ -25,6 +25,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - shell command errors instead of exit codes
 - shell command rich errors
 - async task wraps stderr for cleaner log output
+- Limit the number of supported Github action fields
 
 ### Added
 

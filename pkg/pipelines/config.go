@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"io"
 	"log/slog"
+	"slices"
 	"strings"
 
 	"github.com/go-git/go-git/v5"
@@ -298,6 +299,35 @@ var metaConfig = []metaConfigField{
 	},
 }
 
+func githubActionsMetaConfig() []metaConfigField {
+	supportedKeys := []string{
+		"imagetag",
+		"imagebuild.enabled",
+		"imagebuild.builddir",
+		"imagebuild.dockerfile",
+		"imagebuild.platform",
+		"imagebuild.target",
+		"imagebuild.args",
+		"imagescan.enabled",
+		"codescan.enabled",
+		"codescan.semgreprules",
+		"imagepublish.enabled",
+		"imagepublish.bundletag",
+		"imagepublish.bundlepublishenabled",
+		"deploy.enabled",
+	}
+	fields := make([]metaConfigField, 0)
+
+	for _, field := range metaConfig {
+		// filter non-supported fields
+		if slices.Contains(supportedKeys, field.Key) {
+			fields = append(fields, field)
+		}
+	}
+
+	return fields
+}
+
 func BindViper(v *viper.Viper) {
 	for _, field := range metaConfig {
 		viper.MustBindEnv(field.Key, field.Env)
@@ -320,26 +350,30 @@ type actionInputField struct {
 }
 
 type actionRunsConfig struct {
-	Using               string            `yaml:"using"`
-	WorkflowEngineImage string            `yaml:"image"`
-	Args                []string          `yaml:"args,flow"`
-	Env                 map[string]string `yaml:"env"`
+	Using string            `yaml:"using"`
+	Image string            `yaml:"image"`
+	Args  []string          `yaml:"args,flow"`
+	Env   map[string]string `yaml:"env"`
 }
 
-func WriteGithubActionAll(dst io.Writer, workflowEngineImage string, dockerAlias string) error {
+func WriteGithubActionAll(dst io.Writer, dockerAlias string) error {
 	action := githubAction{
 		Name:        "Workflow Engine",
 		Description: "Code Scan + Image Build + Image Scan + Image Publish + Validation",
 		Inputs:      map[string]actionInputField{},
 		Runs: actionRunsConfig{
-			Using:               "docker",
-			WorkflowEngineImage: workflowEngineImage,
-			Args:                []string{"run", "all", "--verbose", "--cli-interface", dockerAlias, "--semgrep-experimental"},
-			Env:                 map[string]string{},
+			Using: "docker",
+			Image: "Dockerfile",
+			Args:  []string{},
+			Env:   map[string]string{},
 		},
 	}
+	if dockerAlias == "podman" {
+		action.Runs.Image = "Dockerfile.podman"
+	}
 
-	for _, field := range metaConfig {
+	for _, field := range githubActionsMetaConfig() {
+		// filter non-supported fields
 		action.Inputs[field.ActionInputName] = actionInputField{
 			Description: field.Description,
 			Default:     defaultValueToString(field.Default, ""),
@@ -412,7 +446,6 @@ func defaultValueToString(v any, valueIfNil string) string {
 }
 
 func paddedMetaConfigData() [][]string {
-
 	data := [][]string{{"Config Key", "Environment Variable", "Default Value", "Description"}}
 	for _, field := range metaConfig {
 
@@ -432,9 +465,8 @@ func paddedMetaConfigData() [][]string {
 }
 
 func paddedActionsTable() [][]string {
-
 	data := [][]string{{"Name", "Type", "Default Value", "Description"}}
-	for _, field := range metaConfig {
+	for _, field := range githubActionsMetaConfig() {
 
 		newRow := []string{
 			field.ActionInputName,
