@@ -334,7 +334,7 @@ func WriteGithubActionAll(dst io.Writer, workflowEngineImage string, dockerAlias
 		Runs: actionRunsConfig{
 			Using:               "docker",
 			WorkflowEngineImage: workflowEngineImage,
-			Args:                []string{"run", "all", "--verbose", "--cli-interface", dockerAlias, "-semgrep-experimental"},
+			Args:                []string{"run", "all", "--verbose", "--cli-interface", dockerAlias, "--semgrep-experimental"},
 			Env:                 map[string]string{},
 		},
 	}
