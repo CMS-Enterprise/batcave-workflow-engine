@@ -222,6 +222,9 @@ func (p *ImageScan) dockerSaveJob(task *AsyncTask) {
 
 	<-ctx.Done()
 
+	// Dump the summary to stdout to prevent collisions during async runs
+	_, _ = p.runtime.postSummaryBuffer.WriteTo(p.Stdout)
+
 	if task.ExitError != nil {
 		_ = os.Remove(p.runtime.tarImageFilename)
 	}
@@ -356,7 +359,7 @@ func (p *ImageScan) gatecheckBundleJob(task *AsyncTask, syftTask *AsyncTask, gry
 		shell.WithDryRun(p.DryRunEnabled),
 		shell.WithLogger(task.Logger),
 		shell.WithWaitFunc(grypeTask.Wait),
-		shell.WithStdout(p.Stdout),
+		shell.WithStdout(p.runtime.postSummaryBuffer),
 		shell.WithErrorOnly(task.StderrPipeWriter),
 	}
 
@@ -382,7 +385,6 @@ func (p *ImageScan) postRunJob(task *AsyncTask, allTasks ...*AsyncTask) {
 	opts := []shell.OptionFunc{
 		shell.WithDryRun(p.DryRunEnabled),
 		shell.WithLogger(task.Logger),
-		shell.WithStdout(p.Stdout),
 		shell.WithErrorOnly(task.StderrPipeWriter),
 		shell.WithStdout(p.runtime.postSummaryBuffer),
 		shell.WithListTarget(p.runtime.bundleFilename),
@@ -391,7 +393,4 @@ func (p *ImageScan) postRunJob(task *AsyncTask, allTasks ...*AsyncTask) {
 	// Add the bundle summary output to the summary buffer before dumping
 	err := shell.GatecheckList(opts...)
 	task.ExitError = errors.Join(task.ExitError, err)
-
-	// print gatecheck list summary content
-	_, _ = p.runtime.postSummaryBuffer.WriteTo(p.Stdout)
 }

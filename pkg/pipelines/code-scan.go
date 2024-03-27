@@ -129,11 +129,13 @@ func (p *CodeScan) Run() error {
 		}
 	}
 
+	// Dump the summary to stdout to prevent collisions during async runs
+	_, _ = io.Copy(p.Stdout, p.runtime.postSummaryBuffer)
+
 	if len(allErrors) > 0 {
 		return errors.Join(allErrors...)
 	}
 
-	_, _ = io.Copy(p.Stdout, p.runtime.postSummaryBuffer)
 	return nil
 }
 
