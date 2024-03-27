@@ -132,6 +132,8 @@ func (p *CodeScan) Run() error {
 	if len(allErrors) > 0 {
 		return errors.Join(allErrors...)
 	}
+
+	_, _ = io.Copy(p.Stdout, p.runtime.postSummaryBuffer)
 	return nil
 }
 
@@ -227,7 +229,7 @@ func (p *CodeScan) gatecheckBundleJob(task *AsyncTask, semgrep *AsyncTask, gitle
 	opts := []shell.OptionFunc{
 		shell.WithDryRun(p.DryRunEnabled),
 		shell.WithLogger(task.Logger),
-		shell.WithStdout(p.Stdout),
+		shell.WithStdout(p.runtime.postSummaryBuffer),
 		shell.WithErrorOnly(task.StderrPipeWriter),
 	}
 
@@ -244,13 +246,12 @@ func (p *CodeScan) postRunJob(task *AsyncTask, allTasks ...*AsyncTask) {
 	defer task.Close()
 
 	for _, task := range allTasks {
-		task.Wait()
+		_ = task.Wait()
 	}
 
 	opts := []shell.OptionFunc{
 		shell.WithDryRun(p.DryRunEnabled),
 		shell.WithLogger(task.Logger),
-		shell.WithStdout(p.Stdout),
 		shell.WithErrorOnly(task.StderrPipeWriter),
 		shell.WithStdout(p.runtime.postSummaryBuffer),
 		shell.WithListTarget(p.runtime.bundleFilename),
@@ -261,5 +262,4 @@ func (p *CodeScan) postRunJob(task *AsyncTask, allTasks ...*AsyncTask) {
 	task.ExitError = errors.Join(task.ExitError, err)
 
 	// print clamAV Report and grype summary
-	_, _ = p.runtime.postSummaryBuffer.WriteTo(p.Stdout)
 }

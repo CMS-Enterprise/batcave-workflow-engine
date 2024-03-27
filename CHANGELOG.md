@@ -11,6 +11,12 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ### Changed
 
+- Fixed code scan stderr/stdout collision by moving the stdout dump to the end of the run function
+
+## [v0.0.0-rc.12]
+
+### Changed
+
 - refactored CLI for readability and maintenance
 - upgraded to go 1.22.0
 - New Executable will default inputs and outputs to OS
