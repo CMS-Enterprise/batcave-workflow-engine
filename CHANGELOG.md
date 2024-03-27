@@ -9,6 +9,10 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ## [UNRELEASED]
 
+### Added
+
+- GitHub action auth support
+
 ### Changed
 
 - Fixed code scan stderr/stdout collision by moving the stdout dump to the end of the run function
