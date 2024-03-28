@@ -55,7 +55,7 @@ jobs:
         build-args: "VERSION=${{ steps.vars.outputs.version }},GIT_COMMIT=${{ steps.vars.outputs.git_commit }},GIT_DESCRIPTION=${{ steps.vars.outputs.git_description }}"
         target: workflow-engine-podman
 
-    - name: Run Workflow Engine
+    - name: Run Workflow Engine Scans
       uses: cms-enterprise/batcave-workflow-engine-action@main
       with:
         image_build_enabled: false

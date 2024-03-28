@@ -33,6 +33,12 @@ func (p *ImageBuild) WithBuildConfig(config *Config) *ImageBuild {
 }
 
 func (p *ImageBuild) Run() error {
+
+	if !p.config.ImageBuild.Enabled {
+		slog.Warn("image build pipeline is disabled, skip.")
+		return nil
+	}
+
 	slog.Info("run image build pipeline", "dry_run_enabled", p.DryRunEnabled, "artifact_directory", p.config.ArtifactDir, "alias", p.DockerAlias)
 
 	alias := shell.DockerAliasDocker
