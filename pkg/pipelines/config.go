@@ -325,6 +325,16 @@ func githubActionsMetaConfig() []metaConfigField {
 		}
 	}
 
+	// A field outside of the meta config specific to github actions
+	fields = append(fields, metaConfigField{
+		Key:             "docker_auth_json",
+		Env:             "DOCKER_AUTH_JSON",
+		ActionInputName: "docker_auth_json",
+		ActionType:      "string",
+		Default:         nil,
+		Description:     "The Docker config with credentials that will be used for ~/.docker/config.json",
+	})
+
 	return fields
 }
 
