@@ -34,8 +34,10 @@ jobs:
         if [[ $GITHUB_REF == refs/tags/v* ]]; then
           image_tag=${GITHUB_REF/refs\/tags\//}
         fi
+        # Image Names
         echo "image_name=$image_repo:$image_tag" >> $GITHUB_OUTPUT 
         echo "podman_image_name=$image_repo:podman-$image_tag" >> $GITHUB_OUTPUT 
+        # Build Variables
         echo "version=$(git describe --tags)" >> $GITHUB_OUTPUT
         echo "git_commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
         echo "git_description=$(git log -1 --pretty=%B | head -n 1)" >> $GITHUB_OUTPUT
@@ -51,7 +53,7 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         push: true
-        tags: ${{ steps.vars.outputs.image_name }}
+        tags: ${{ steps.vars.outputs.podman_image_name }}
         build-args: "VERSION=${{ steps.vars.outputs.version }},GIT_COMMIT=${{ steps.vars.outputs.git_commit }},GIT_DESCRIPTION=${{ steps.vars.outputs.git_description }}"
         target: workflow-engine-podman
 
