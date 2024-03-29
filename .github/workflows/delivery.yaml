@@ -1,5 +1,5 @@
 name: Build workflow-engine
-run-name: "Building workflow-engine Image: ${{ github.event.head_commit.message }}"
+run-name: "Build & Scan Workflow Engine Images"
 on:
   workflow_dispatch:
   push:
