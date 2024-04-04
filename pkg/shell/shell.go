@@ -346,7 +346,9 @@ func run(cmd *exec.Cmd, o *Options) error {
 
 	cmd.Stdin = o.stdin
 	cmd.Stdout = o.stdout
-	cmd.Stderr = o.stderr
+	if !o.errorOnly {
+		cmd.Stderr = o.stderr
+	}
 
 	if o.dryRunEnabled {
 		return gracefulExit(nil, o)
