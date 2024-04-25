@@ -31,7 +31,9 @@ ENTRYPOINT ["workflow-engine"]
 
 LABEL org.opencontainers.image.title="workflow-engine-docker"
 LABEL org.opencontainers.image.description="A standalone CD engine for BatCAVE"
+LABEL org.opencontainers.image.licenses="CC0-1.0"
 LABEL io.artifacthub.package.readme-url="https://github.com/CMS-Enterprise/batcave-workflow-engine/blob/main/README.md"
+LABEL io.artifacthub.package.license="CC0-1.0"
 
 FROM workflow-engine-base as workflow-engine-podman
 
