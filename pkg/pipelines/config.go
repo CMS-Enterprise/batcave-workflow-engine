@@ -1,6 +1,7 @@
 package pipelines
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -76,6 +77,14 @@ type metaConfigField struct {
 }
 
 var metaConfig = []metaConfigField{
+	{
+		Key:             "config",
+		Env:             "WFE_CONFIG",
+		ActionInputName: "config_file",
+		ActionType:      "String",
+		Default:         nil,
+		Description:     "The path to a config file to use when executing workflow-engine",
+	},
 	{
 		Key:             "imagetag",
 		Env:             "WFE_IMAGE_TAG",
@@ -299,8 +308,9 @@ var metaConfig = []metaConfigField{
 	},
 }
 
-func githubActionsMetaConfig() []metaConfigField {
+func githubActionsMetaConfig(additionalInputs []string) ([]metaConfigField, error) {
 	supportedKeys := []string{
+		"config",
 		"imagetag",
 		"imagebuild.enabled",
 		"imagebuild.builddir",
@@ -325,24 +335,28 @@ func githubActionsMetaConfig() []metaConfigField {
 		}
 	}
 
-	// A field outside of the meta config specific to github actions
-	fields = append(fields, metaConfigField{
-		Key:             "docker_auth_json",
-		Env:             "DOCKER_AUTH_JSON",
-		ActionInputName: "docker_auth_json",
-		ActionType:      "string",
-		Default:         nil,
-		Description:     "The Docker config with credentials that will be used for ~/.docker/config.json",
-	})
+	for _, additionalInput := range additionalInputs {
+		parts := strings.SplitN(additionalInput, ":", 4)
+		if len(parts) < 4 {
+			return nil, errors.New(fmt.Sprintf("Invalid additional input specification: %s", additionalInput))
+		}
+		fields = append(fields, metaConfigField{
+			Key: parts[0],
+			ActionInputName: parts[0],
+			Env: parts[1],
+			Default: parts[2],
+			Description: parts[3],
+		})
+	}
 
-	return fields
+	return fields, nil
 }
 
 func BindViper(v *viper.Viper) {
 	for _, field := range metaConfig {
-		viper.MustBindEnv(field.Key, field.Env)
+		v.MustBindEnv(field.Key, field.Env)
 		if field.Default != nil {
-			viper.SetDefault(field.Key, field.Default)
+			v.SetDefault(field.Key, field.Default)
 		}
 	}
 }
@@ -366,23 +380,24 @@ type actionRunsConfig struct {
 	Env   map[string]string `yaml:"env"`
 }
 
-func WriteGithubActionAll(dst io.Writer, dockerAlias string) error {
+func WriteGithubActionAll(dst io.Writer, image string, additionalInputs []string) error {
 	action := githubAction{
 		Name:        "Workflow Engine",
 		Description: "Code Scan + Image Build + Image Scan + Image Publish + Validation",
 		Inputs:      map[string]actionInputField{},
 		Runs: actionRunsConfig{
 			Using: "docker",
-			Image: "Dockerfile",
+			Image: image,
 			Args:  []string{},
 			Env:   map[string]string{},
 		},
 	}
-	if dockerAlias == "podman" {
-		action.Runs.Image = "Dockerfile.podman"
-	}
 
-	for _, field := range githubActionsMetaConfig() {
+	fields, err := githubActionsMetaConfig(additionalInputs)
+	if err != nil {
+		return err
+	}
+	for _, field := range fields {
 		// filter non-supported fields
 		action.Inputs[field.ActionInputName] = actionInputField{
 			Description: field.Description,
@@ -474,9 +489,13 @@ func paddedMetaConfigData() [][]string {
 	return data
 }
 
-func paddedActionsTable() [][]string {
+func paddedActionsTable(additionalInputs []string) ([][]string, error) {
 	data := [][]string{{"Name", "Type", "Default Value", "Description"}}
-	for _, field := range githubActionsMetaConfig() {
+	fields, err := githubActionsMetaConfig(additionalInputs)
+	if err != nil {
+		return nil, err
+	}
+	for _, field := range fields {
 
 		newRow := []string{
 			field.ActionInputName,
@@ -490,7 +509,7 @@ func paddedActionsTable() [][]string {
 
 	pad(data)
 
-	return data
+	return data, nil
 }
 
 func pad(data [][]string) {
@@ -546,8 +565,12 @@ func WriteConfigAsMarkdownTable(dst io.Writer) error {
 	return err
 }
 
-func WriteConfigAsActionsTable(dst io.Writer) error {
-	s := markdownTable(paddedActionsTable())
-	_, err := strings.NewReader(s).WriteTo(dst)
+func WriteConfigAsActionsTable(additionalInputs []string, dst io.Writer) error {
+	actionsTable, err := paddedActionsTable(additionalInputs)
+	if err != nil {
+		return err
+	}
+	s := markdownTable(actionsTable)
+	_, err = strings.NewReader(s).WriteTo(dst)
 	return err
 }

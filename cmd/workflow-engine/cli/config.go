@@ -31,10 +31,13 @@ func newConfigCommand() *cobra.Command {
 	convertCmd.Args = cobra.ExactArgs(2)
 
 	generateActionCmd := newBasicCommand("generate-action", "generate a single action for all pipelines", runGenAllAction)
-	generateActionCmd.Flags().String("docker-alias", "docker", "an Docker CLI compatible alias [docker/podman]")
+	generateActionCmd.Flags().String("image", "Dockerfile", "The image or Dockerfile to use for the generated action")
+	generateActionCmd.Flags().StringSlice("input", make([]string, 0), "Additional input(s) to make available as environment variables (format: \"input:variable:default:description\")")
 
 	generateTableCmd := newBasicCommand("generate-table", "generate a markdown table with all of the keys, env variables, and defaults", runGenMarkdown)
 	generateActionsTableCmd := newBasicCommand("generate-action-table", "generate a markdown table designed for github actions documentation", runGenActionMarkdown)
+	generateActionsTableCmd.Flags().String("image", "Dockerfile", "The image or Dockerfile to use for the generated action")
+	generateActionsTableCmd.Flags().StringSlice("input", make([]string, 0), "Additional input(s) to make available as environment variables (format: \"input:variable:default:description\")")
 
 	// config
 	cmd := &cobra.Command{Use: "config", Short: "manage the workflow engine config file"}
@@ -47,8 +50,9 @@ func newConfigCommand() *cobra.Command {
 
 // Run Functions - Parsing flags and arguments at command runtime
 func runGenAllAction(cmd *cobra.Command, args []string) error {
-	alias, _ := cmd.Flags().GetString("docker-alias")
-	return pipelines.WriteGithubActionAll(cmd.OutOrStdout(), alias)
+	image, _ := cmd.Flags().GetString("image")
+	additionalInputs, _ := cmd.Flags().GetStringSlice("input")
+	return pipelines.WriteGithubActionAll(cmd.OutOrStdout(), image, additionalInputs)
 }
 
 func runConfigInfo(cmd *cobra.Command, args []string) error {
@@ -77,7 +81,8 @@ func runGenMarkdown(cmd *cobra.Command, args []string) error {
 }
 
 func runGenActionMarkdown(cmd *cobra.Command, args []string) error {
-	return pipelines.WriteConfigAsActionsTable(cmd.OutOrStdout())
+	additionalInputs, _ := cmd.Flags().GetStringSlice("input")
+	return pipelines.WriteConfigAsActionsTable(additionalInputs, cmd.OutOrStdout())
 }
 
 func runConfigVars(cmd *cobra.Command, _ []string) error {
