@@ -20,7 +20,7 @@ func NewWorkflowEngineCommand() *cobra.Command {
 	versionCmd := newBasicCommand("version", "print version information", runVersion)
 	cmd := &cobra.Command{
 		Use:              "workflow-engine",
-		Short:            "A portable, opinionate security pipeline",
+		Short:            "A portable, opinionated security pipeline",
 		PersistentPreRun: runCheckLoggingFlags,
 	}
 
