@@ -104,7 +104,7 @@ Typically rules and rulesets have already been written by various developers tha
 Or if you're the type to blaze your own path, here's some documentation on how to write your own custom rules with the correct syntax including advanced pattern matching syntax:
 
 - [Writing Rules & Rulesets](https://semgrep.dev/docs/writing-rules/rule-syntax)
-- [Pattern matching Syntax](https://semgrep.dev/docs/writing-rules/pattern-syntax)
+- [Pattern Matching Syntax](https://semgrep.dev/docs/writing-rules/pattern-syntax)
 
 ---
 
@@ -115,15 +115,15 @@ Here below is a rule playground you can test writing your own semgrep rules:
 
 ## Logging Semgrep with Workflow-engine
 
-Within workflow engine, `semgrep-sast-report.json` is the default value for a file that will be the output semgrep. As covered above in [configuration](#flags) using the flag `--semgrep-filename filename` will configure a custom file to output the semgrep-report to.
+Within workflow engine, `semgrep-sast-report.json` is the default value for a file that will be the output semgrep it will appear in the artifacts directory if workflowengine is given read write permissions. As covered above in [configuration](#flags) using the flag `--semgrep-filename filename` will configure a custom file to output the semgrep-report to.
 
-Furthermore semgrep when enabled via code-scan, `workflow-engine ru code-scan -v` will output the semgrep outputs with verbosity.
+Furthermore semgrep when enabled via code-scan, `workflow-engine run code-scan -v` will output the semgrep outputs with verbosity.
 
 The contents of the `semgrep-sast-report.json` contains rules and snippets of code that have potential vulnerabilities as well as amended code that has been fixed with the tag `fix` in the rule.
 
 ## Handling False Positives & Problematic File(s)
 
-Semgrep is a rather simplistic tool that searches for vulnerabilities in your code based on the rules given to it. It is up to you to handle these false positives and problematic file(s). There are a multitude of ways to handle this.
+Semgrep is a rather simplistic tool that searches for vulnerabilities in your code based on the rules given to it. It is up to you to handle these false positives and problematic file(s). There are a multitude of ways to handle this, that will increase complexity of the base rule but increase its power and specificity. 
 
 ### False Positives
 
@@ -131,7 +131,7 @@ You notice that semgrep is screaming at you from the console in workflow-engine.
 
 #### Nosemgrep
 
-Just add a comment with `nosemgrep` on the line next to the vulnerability or function head of the block of code and boom, false positives away. This is a full semgrep blocker, for best practice use `// nosemgrep: rule-id-1, rule-id-2, ....` to restrict certain rules that cause the false positive. Click on this for more info on [nosemgrep.](https://semgrep.dev/docs/ignoring-files-folders-code#ignore-code-through-nosemgrep)
+Just add a comment with `nosemgrep` on the line next to the vulnerability or function head of the block of code and boom, false positives away. This is a full semgrep blocker, for best practice use `// nosemgrep: rule-id-1, rule-id-2, ....` to restrict certain rules that cause the false positive. Here's more info on [nosemgrep.](https://semgrep.dev/docs/ignoring-files-folders-code#ignore-code-through-nosemgrep)
 
 #### Taint Analysis
 
@@ -143,12 +143,12 @@ Of course, the above is somewhat of a workaround and should only be considered m
 - function names
 - propagation (must taint its initialization)
 
-Taints can also be used to track variables that can lead to vulnerabilities in code. It allows the developers to see the flow of this potential vulnerability in a large code base. This can be used by tainting the source variable, and the sink, where the variable ends up at a potential vulnerable function. If it mutates it is best to track the propagators and sanitizers of this variable as well. At a high level, these are functions that modify the tainted variable. Here's an example [below.](#rules-with-certain-paths--taints)
+Taints can also be used to track variables that can lead to vulnerabilities in code. It allows the developers to see the flow of this potential vulnerability in a large code base. This can be used by tainting the source variable, and the sink, where the variable ends up at a potential vulnerable function. If it mutates it is best to track the propagators and sanitizers of this variable as well. At a high level, these are functions that modify the tainted variable in some way. Here's an example [below.](#example-of-rules-with-path-specification-and-taints)
 
 
 ### Problematic File(s)
 
-At a higher level, if a whole file or directory of files is causing a false positive there are multitudes of ways to handle this.
+At a grander scale, if a whole file or directory of files is causing a false positive, or you just don't need to scan these files, there are multitudes of ways to handle this.
 
 - [placing filenames & directories in `.semgrepignore`](https://semgrep.dev/docs/ignoring-files-folders-code)
 - [limiting rules to certain paths](https://semgrep.dev/docs/writing-rules/rule-syntax#paths)
@@ -157,14 +157,21 @@ Down below are some examples of both:
 
 #### .Semgrepignore
 
+`.semgrepignore` is just like a `.gitignore` file, it simply will show semgrep a list of things to not look at and it will skip over them. Place this file in your root directory or in your working directory. The below specifies don't include the .gitignore to scan and ANY node_modules directory, denoted by '**', will be excluded if this is placed at the root directory.
+
 ```
 .gitignore
+.env
+main_test.go
+resources/
 **/node_modules/**
-. . .
 ```
 
-#### Rules with Certain Paths & Taints
+#### Rules with Certain Paths
 
+Semgrep allows two ways inside of a rule to disregard or specify files and directories. These are indicated by first adding the paths field and then adding the exclude and include subfields each with their own lists of files/directories. These values are strings.
+
+##### Example of Rules with Path Specification and Taints
 ```
 rules:
   - id: eqeq-is-bad
@@ -172,7 +179,7 @@ rules:
     source: $X
     sink: $Y
     sanitizer: clean($X)
-    pattern:  clean($X) == $Y
+    pattern: clean($X) == $Y
     paths:
       exclude:
         - "*_test.go"
