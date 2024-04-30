@@ -1,0 +1,193 @@
+# [Semgrep](https://semgrep.dev/)
+
+![Semgrep Logo](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSLzGEe3ZjE6l3mRNAnr78BDS0Bqd9FJn-JbYB53wIU3w&s)
+
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Configuration](#configuration)
+3. [Rulesets](#rulesets)
+4. [Logging Semgrep with Workflow-engine](#logging-semgrep-with-workflow-engine)
+5. [Handling False Positives & Problematic File(s)](#handling-false-positives--problematic-files)
+6. [Official Semgrep Documentation & Resources](#official-semgrep-documentation--resources)
+
+
+
+## Overview
+
+Semgrep is a static code analysis tool that provides a range of features for detecting and preventing security vulnerabilities and bugs in software. It is designed to help businesses improve their applications' security, increase reliability, and reduce the complexity and cost of performing code analysis. As applications become more complex and interconnected, it becomes increasingly difficult to identify and fix security vulnerabilities and bugs before they are exploited or cause problems in production. This can result in security breaches, data loss, and other issues that can damage a business's reputation and success.
+
+### Supported Languages
+
+Apex · Bash · C · C++ · C# · Clojure · Dart · Dockerfile · Elixir · HTML · Go · Java · JavaScript · JSX · JSON · Julia · Jsonnet · Kotlin · Lisp · Lua · OCaml · PHP · Python · R · Ruby · Rust · Scala · Scheme · Solidity · Swift · Terraform · TypeScript · TSX · YAML · XML · Generic (ERB, Jinja, etc.)
+
+### Supported Package Managers
+
+C# (NuGet) · Dart (Pub) · Go (Go modules, go mod) · Java (Gradle, Maven) · Javascript/Typescript (npm, Yarn, Yarn 2, Yarn 3, pnpm) · Kotlin (Gradle, Maven) · PHP (Composer) · Python (pip, pip-tool, Pipenv, Poetry) · Ruby (RubyGems) · Rust (Cargo) · Scala (Maven) · Swift (SwiftPM)
+
+## Configuration
+
+### Semgrep with Workflow-engine Code-scan
+
+On the command line use the following with the necessary flags below:
+
+      workflow-engine run code-scan [semgrep-flags]
+
+#### Flags
+---
+
+Input Flag: 
+
+      --semgrep-rules string
+      
+The input of a `.yaml`,`.toml`, or `.json` file with a ruleset semgrep will use while scanning your code. More on rulesets [here.](#rulesets) This can be further configured by specifying the filename with path into an [environment variable or workflow-engine config keys within wfe-config.yaml.](#env-variables)
+
+---
+
+Output Flag:
+
+      --semgrep-filename string    
+
+The filename for semgrep to output as a vulnerability report. More on the vulnerabilitiy reports [here.](#logging-semgrep-with-workflow-engine)
+
+---
+
+Toggle Osemgrep Flag:
+
+      --semgrep-experimental
+
+Use the osemgrep statically compiled binary, faster and more efficient than the current version.
+
+Note: Still under development by Semgrep to increase speed and efficiency by removing the Python wrapper.
+
+---
+#### Env Variables
+
+| Config Key                        | Environment Variable                 | Default Value                        | Description                                                                        |
+| --------------------------------- | ------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------------------- |
+| codescan.semgrepfilename          | WFE_CODE_SCAN_SEMGREP_FILENAME       | semgrep-sast-report.json             | The filename for the semgrep SAST report - must contain 'semgrep'                  |
+| codescan.semgreprules             | WFE_CODE_SCAN_SEMGREP_RULES          | p/default                            | Semgrep ruleset manual override                                                    |
+
+### Rulesets
+
+    rules:
+      - id: dangerously-setting-html
+        languages:
+          - javascript
+        message: dangerouslySetInnerHTML usage! Don't allow XSS!
+        pattern: ...dangerouslySetInnerHTML(...)...
+        severity: ERROR
+        files:
+          - "*.jsx"
+          - "*.js"
+
+
+
+Semgrep operates on a set of rulesets given by the user to determine on what terms are best to scan your code. These rulesets are given by files with the .yaml or .json extension. 
+
+To identify vulnerabilities Semgrep requires:
+- Language to target
+- Message to display on vulnerability detection
+- Pattern(s) to match
+- Severity Rating from lowest to highest:
+    -  INFO
+    -  WARNING
+    -  ERROR 
+
+Furthermore there are some advanced options, some which can even amend or exlude certain code.
+
+Typically rules and rulesets have already been written by various developers thanks to Semgrep's open source nature which you can find below:
+
+- [Explore Semgrep Rulesets](https://semgrep.dev/explore)
+- [Search Semgrep Rules Database](https://semgrep.dev/r)
+
+Or if you're the type to blaze your own path, here's some documentation on how to write your own custom rules with the correct syntax including advanced pattern matching syntax:
+
+- [Writing Rules & Rulesets](https://semgrep.dev/docs/writing-rules/rule-syntax)
+- [Pattern matching Syntax](https://semgrep.dev/docs/writing-rules/pattern-syntax)
+
+---
+
+Here below is a rule playground you can test writing your own semgrep rules:
+
+#### [Semgrep Rule Playground](https://semgrep.dev/editor)
+<iframe title="semgrep-playground" src="https://semgrep.dev/embed/editor?snippet=KPzL" width="100%" height="432" frameborder="0"></iframe>
+
+## Logging Semgrep with Workflow-engine
+
+Within workflow engine, `semgrep-sast-report.json` is the default value for a file that will be the output semgrep. As covered above in [configuration](#flags) using the flag `--semgrep-filename filename` will configure a custom file to output the semgrep-report to.
+
+Furthermore semgrep when enabled via code-scan, `workflow-engine ru code-scan -v` will output the semgrep outputs with verbosity.
+
+The contents of the `semgrep-sast-report.json` contains rules and snippets of code that have potential vulnerabilities as well as amended code that has been fixed with the tag `fix` in the rule.
+
+## Handling False Positives & Problematic File(s)
+
+Semgrep is a rather simplistic tool that searches for vulnerabilities in your code based on the rules given to it. It is up to you to handle these false positives and problematic file(s). There are a multitude of ways to handle this.
+
+### False Positives
+
+You notice that semgrep is screaming at you from the console in workflow-engine. You rage and rage as your terminal is just polluted with messages for a vulnerability you know is just a false positive.
+
+#### Nosemgrep
+
+Just add a comment with `nosemgrep` on the line next to the vulnerability or function head of the block of code and boom, false positives away. This is a full semgrep blocker, for best practice use `// nosemgrep: rule-id-1, rule-id-2, ....` to restrict certain rules that cause the false positive. Click on this for more info on [nosemgrep.](https://semgrep.dev/docs/ignoring-files-folders-code#ignore-code-through-nosemgrep)
+
+#### Taint Analysis
+
+Of course, the above is somewhat of a workaround and should only be considered mostly when there are only very few areas where false positives occur. The better way to handle false positives is by [tainting rules](https://semgrep.dev/docs/writing-rules/data-flow/taint-mode#minimizing-false-positives) when you understand what the root of the false positive, taints can be applied to places with false positive vulnerabilities such as: 
+
+- boolean inputs
+- numeric inputs
+- index inputs
+- function names
+- propagation (must taint its initialization)
+
+Taints can also be used to track variables that can lead to vulnerabilities in code. It allows the developers to see the flow of this potential vulnerability in a large code base. This can be used by tainting the source variable, and the sink, where the variable ends up at a potential vulnerable function. If it mutates it is best to track the propagators and sanitizers of this variable as well. At a high level, these are functions that modify the tainted variable. Here's an example [below.](#rules-with-certain-paths--taints)
+
+
+### Problematic File(s)
+
+At a higher level, if a whole file or directory of files is causing a false positive there are multitudes of ways to handle this.
+
+- [placing filenames & directories in `.semgrepignore`](https://semgrep.dev/docs/ignoring-files-folders-code)
+- [limiting rules to certain paths](https://semgrep.dev/docs/writing-rules/rule-syntax#paths)
+
+Down below are some examples of both:
+
+#### .Semgrepignore
+
+```
+.gitignore
+**/node_modules/**
+. . .
+```
+
+#### Rules with Certain Paths & Taints
+
+```
+rules:
+  - id: eqeq-is-bad
+    mode: taint
+    source: $X
+    sink: $Y
+    sanitizer: clean($X)
+    pattern:  clean($X) == $Y
+    paths:
+      exclude:
+        - "*_test.go"
+        - "project/tests"
+      include:
+        - "project/server"
+```
+
+## Official Semgrep Documentation & Resources
+
+- [Semgrep Source Code](https://github.com/semgrep/semgrep?tab=readme-ov-file)
+- [Semgrep Official Documentation](https://semgrep.dev/docs/)
+- [Semgrep Ruleset Registry](https://semgrep.dev/explore)
+- [Semgrep Rule Registry](https://semgrep.dev/r)
+- [Semgrep Rule Playground](https://semgrep.dev/editor)
+- [Semgrep Custom Rule Declarations](https://semgrep.dev/docs/writing-rules/overview)
+- [Semgrep Rule Taints](https://semgrep.dev/docs/writing-rules/data-flow/taint-mode)
+- [Semgrep FAQs](https://semgrep.dev/docs/faq)
