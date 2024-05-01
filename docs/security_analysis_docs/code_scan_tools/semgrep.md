@@ -26,7 +26,17 @@ Apex · Bash · C · C++ · C# · Clojure · Dart · Dockerfile · Elixir · HTM
 C# (NuGet) · Dart (Pub) · Go (Go modules, go mod) · Java (Gradle, Maven) · Javascript/Typescript (npm, Yarn, Yarn 2, Yarn 3, pnpm) · Kotlin (Gradle, Maven) · PHP (Composer) · Python (pip, pip-tool, Pipenv, Poetry) · Ruby (RubyGems) · Rust (Cargo) · Scala (Maven) · Swift (SwiftPM)
 
 ## Configuration
+Under the hood, Workflow engine runs Semgrep with certain flags as its base. Workflow engine then continues on to do further improvements on functionality as a security tool and user experience based on the output of on one of the two optional commands.
 
+Runs this over your git repository: 
+```
+semgrep ci --json --config [semgrep-rule-config-file]
+```
+or this when affixed with the `--semgrep-experimental` flag:
+```
+osemgrep ci --json --experimental --config [semgrep-rule-config-file]
+```
+---
 ### Semgrep with Workflow-engine Code-scan
 
 On the command line use the following with the necessary flags below in your git repo:
@@ -56,9 +66,7 @@ Toggle Osemgrep Flag:
 
       --semgrep-experimental
 
-Use the osemgrep statically compiled binary, faster and more efficient than the current version.
-
-Note: Still under development by Semgrep to increase speed and efficiency by removing the Python wrapper.
+Use Semgrep's experimental features that are still in beta that have the potential to increase vulnerability detection. Furthermore uses `osemgrep` a variant built upon Semgrep with OpenSSF Security Metrics in mind.
 
 ---
 #### Env Variables
