@@ -29,7 +29,7 @@ C# (NuGet) · Dart (Pub) · Go (Go modules, go mod) · Java (Gradle, Maven) · J
 
 ### Semgrep with Workflow-engine Code-scan
 
-On the command line use the following with the necessary flags below:
+On the command line use the following with the necessary flags below in your git repo:
 
       workflow-engine run code-scan [semgrep-flags]
 
@@ -48,7 +48,7 @@ Output Flag:
 
       --semgrep-filename string    
 
-The filename for semgrep to output as a vulnerability report. More on the vulnerabilitiy reports [here.](#logging-semgrep-with-workflow-engine)
+The filename for semgrep to output as a vulnerability report. More on the vulnerability reports [here.](#logging-semgrep-with-workflow-engine)
 
 ---
 
@@ -83,9 +83,9 @@ Note: Still under development by Semgrep to increase speed and efficiency by rem
 
 
 
-Semgrep operates on a set of rulesets given by the user to determine on what terms are best to scan your code. These rulesets are given by files with the .yaml or .json extension. 
+Semgrep operates on a set of rulesets given by the user to determine on what terms are best to scan your code. These rulesets are given by files with the .yaml, .json or .toml extension. 
 
-To identify vulnerabilities Semgrep requires:
+To identify vulnerabilities at a basic level Semgrep requires:
 - Language to target
 - Message to display on vulnerability detection
 - Pattern(s) to match
@@ -94,14 +94,14 @@ To identify vulnerabilities Semgrep requires:
     -  WARNING
     -  ERROR 
 
-Furthermore there are some advanced options, some which can even amend or exlude certain code.
+Furthermore there are some advanced options, some which can even amend or exclude certain code snippets.
 
-Typically rules and rulesets have already been written by various developers thanks to Semgrep's open source nature which you can find below:
+Typically rules and rulesets have already been written by various developers; thanks to Semgrep's open source nature you can find these below:
 
 - [Explore Semgrep Rulesets](https://semgrep.dev/explore)
 - [Search Semgrep Rules Database](https://semgrep.dev/r)
 
-Or if you're the type to blaze your own path, here's some documentation on how to write your own custom rules with the correct syntax including advanced pattern matching syntax:
+Or if you're the type to blaze your own path, here's some documentation on how to write your own custom including examples on advanced pattern matching syntax:
 
 - [Writing Rules & Rulesets](https://semgrep.dev/docs/writing-rules/rule-syntax)
 - [Pattern Matching Syntax](https://semgrep.dev/docs/writing-rules/pattern-syntax)
@@ -117,41 +117,41 @@ Here below is a rule playground you can test writing your own semgrep rules:
 
 Within workflow engine, `semgrep-sast-report.json` is the default value for a file that will be the output semgrep it will appear in the artifacts directory if workflowengine is given read write permissions. As covered above in [configuration](#flags) using the flag `--semgrep-filename filename` will configure a custom file to output the semgrep-report to.
 
-Furthermore semgrep when enabled via code-scan, `workflow-engine run code-scan -v` will output the semgrep outputs with verbosity.
+Furthermore semgrep when enabled via code-scan, `workflow-engine run code-scan -v` will output the semgrep outputs with verbosity along with other code-scan tools.
 
 The contents of the `semgrep-sast-report.json` contains rules and snippets of code that have potential vulnerabilities as well as amended code that has been fixed with the tag `fix` in the rule.
 
 ## Handling False Positives & Problematic File(s)
 
-Semgrep is a rather simplistic tool that searches for vulnerabilities in your code based on the rules given to it. It is up to you to handle these false positives and problematic file(s). There are a multitude of ways to handle this, that will increase complexity of the base rule but increase its power and specificity. 
+Semgrep is a rather simplistic tool that searches for vulnerabilities in your code based on the rules given to it. It is up to you to handle these false positives and problematic file(s). There are a multitude of ways to handle this that will increase complexity of the base rule but increase its power and specificity. 
 
 ### False Positives
 
-You notice that semgrep is screaming at you from the console in workflow-engine. You rage and rage as your terminal is just polluted with messages for a vulnerability you know is just a false positive.
+You notice that Semgrep is screaming at you from the console in workflow-engine. You rage and rage as your terminal is just polluted with messages for a vulnerability you know is just a false positive.
 
 #### Nosemgrep
 
-Just add a comment with `nosemgrep` on the line next to the vulnerability or function head of the block of code and boom, false positives away. This is a full semgrep blocker, for best practice use `// nosemgrep: rule-id-1, rule-id-2, ....` to restrict certain rules that cause the false positive. Here's more info on [nosemgrep.](https://semgrep.dev/docs/ignoring-files-folders-code#ignore-code-through-nosemgrep)
+Just add a comment with `nosemgrep` on the line next to the vulnerability or function head of the block of code and boom, false positives away. This is a full Semgrep blocker, for best practice use `// nosemgrep: rule-id-1, rule-id-2, ....` to restrict certain rules that cause the false positive. Here's more info on [nosemgrep.](https://semgrep.dev/docs/ignoring-files-folders-code#ignore-code-through-nosemgrep)
 
 #### Taint Analysis
 
-Of course, the above is somewhat of a workaround and should only be considered mostly when there are only very few areas where false positives occur. The better way to handle false positives is by [tainting rules](https://semgrep.dev/docs/writing-rules/data-flow/taint-mode#minimizing-false-positives) when you understand what the root of the false positive, taints can be applied to places with false positive vulnerabilities such as: 
+Of course, the above is somewhat of a workaround and should only be considered mostly when there are only very few areas where false positives occur. The better way to handle false positives is by [adding taints to rules](https://semgrep.dev/docs/writing-rules/data-flow/taint-mode#minimizing-false-positives) when you understand what the root of the false positive, taints can be applied to places with false positive vulnerabilities, prepended with `taint_assume_safe_` and given a boolean value. False positive taints are for: 
 
-- boolean inputs
-- numeric inputs
-- index inputs
-- function names
-- propagation (must taint its initialization)
+- Boolean inputs
+- Numeric inputs
+- Index inputs
+- Function names
+- Propagation (must taint its initialization)
 
-Taints can also be used to track variables that can lead to vulnerabilities in code. It allows the developers to see the flow of this potential vulnerability in a large code base. This can be used by tainting the source variable, and the sink, where the variable ends up at a potential vulnerable function. If it mutates it is best to track the propagators and sanitizers of this variable as well. At a high level, these are functions that modify the tainted variable in some way. Here's an example [below.](#example-of-rules-with-path-specification-and-taints)
+Taints can also be used to track variables that can lead to vulnerabilities in code. It allows the developers to see the flow of this potential vulnerability in a large code base. This can be used by tainting the source variable, and the sink, where the variable ends up at a potential vulnerable function. If it mutates it is best to track the propagators and sanitizers of this variable as well. At a high level, these are functions that modify the tainted variable in some way and therefore the taint should change in someway. Here's an example of such a [rule with taints.](#example-of-rules-with-path-specification-and-taints) Of course if you'd like to know more,[ click here](https://semgrep.dev/docs/writing-rules/data-flow/taint-mode) to see the official ondocumentation on Semgrep taint analysis.
 
 
 ### Problematic File(s)
 
 At a grander scale, if a whole file or directory of files is causing a false positive, or you just don't need to scan these files, there are multitudes of ways to handle this.
 
-- [placing filenames & directories in `.semgrepignore`](https://semgrep.dev/docs/ignoring-files-folders-code)
-- [limiting rules to certain paths](https://semgrep.dev/docs/writing-rules/rule-syntax#paths)
+- [Placing filenames & directories in `.semgrepignore`](https://semgrep.dev/docs/ignoring-files-folders-code)
+- [Limiting rules to certain paths](https://semgrep.dev/docs/writing-rules/rule-syntax#paths)
 
 Down below are some examples of both:
 
@@ -172,6 +172,7 @@ resources/
 Semgrep allows two ways inside of a rule to disregard or specify files and directories. These are indicated by first adding the paths field and then adding the exclude and include subfields each with their own lists of files/directories. These values are strings.
 
 ##### Example of Rules with Path Specification and Taints
+
 ```
 rules:
   - id: eqeq-is-bad
@@ -179,7 +180,7 @@ rules:
     source: $X
     sink: $Y
     sanitizer: clean($X)
-    pattern: clean($X) == $Y
+    pattern: $X == $Y
     paths:
       exclude:
         - "*_test.go"
