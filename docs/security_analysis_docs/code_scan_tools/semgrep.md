@@ -50,7 +50,7 @@ Input Flag:
 
       --semgrep-rules string
       
-The input of a `.yaml`,`.toml`, or `.json` file with a ruleset semgrep will use while scanning your code. More on rulesets [here.](#rulesets) This can be further configured by specifying the filename with path into an [environment variable or workflow-engine config keys within wfe-config.yaml.](#env-variables)
+The input of a `.yaml`,`.toml`, or `.json` file with a ruleset Semgrep will use while scanning your code. More on rulesets [here.](#rulesets) This can be further configured by specifying the filename with path into an [environment variable or workflow-engine config keys within wfe-config.yaml.](#env-variables)
 
 ---
 
@@ -58,7 +58,7 @@ Output Flag:
 
       --semgrep-filename string    
 
-The filename for semgrep to output as a vulnerability report. More on the vulnerability reports [here.](#logging-semgrep-with-workflow-engine)
+The filename for Semgrep to output as a vulnerability report. More on the vulnerability reports [here.](#logging-semgrep-with-workflow-engine)
 
 ---
 
@@ -123,9 +123,9 @@ Here below is a rule playground you can test writing your own semgrep rules:
 
 ## Logging Semgrep with Workflow-engine
 
-Within workflow engine, `semgrep-sast-report.json` is the default value for a file that will be the output semgrep it will appear in the artifacts directory if workflowengine is given read write permissions. As covered above in [configuration](#flags) using the flag `--semgrep-filename filename` will configure a custom file to output the semgrep-report to.
+Within workflow engine, `semgrep-sast-report.json` is the default value for a file that will be the output Semgrep it will appear in the artifacts directory if workflowengine is given read write permissions. As covered above in [configuration](#flags) using the flag `--semgrep-filename filename` will configure a custom file to output the semgrep-report to.
 
-Furthermore semgrep when enabled via code-scan, `workflow-engine run code-scan -v` will output the semgrep outputs with verbosity along with other code-scan tools.
+Furthermore Semgrep when enabled via code-scan, `workflow-engine run code-scan -v` will output the Semgrep outputs with verbosity along with other code-scan tools.
 
 The contents of the `semgrep-sast-report.json` contains rules and snippets of code that have potential vulnerabilities as well as amended code that has been fixed with the tag `fix` in the rule.
 
