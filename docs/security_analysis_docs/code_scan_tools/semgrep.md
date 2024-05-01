@@ -129,6 +129,16 @@ Furthermore Semgrep when enabled via code-scan, `workflow-engine run code-scan -
 
 The contents of the `semgrep-sast-report.json` contains rules and snippets of code that have potential vulnerabilities as well as amended code that has been fixed with the tag `fix` in the rule.
 
+Workflow engine uses Gatecheck to 'audit' the semgrep logs once Semgrep has finished. It does so by scanning for vulnerabilities defined by [Open Worldwide Application Security Project](https://owasp.org/) IDs and outputs this to STDOUT reading from STDERR, where other errors are congregated by Workflow-engine. 
+
+Ex.
+
+|            Check ID            |                           Owasp IDs                           |  Severity |  Impact |  link |
+|--------------------------------|---------------------------------------------------------------|-----------|---------|-------|
+| react-dangerouslysetinnerhtml  | A07:2017 - Cross-Site Scripting (XSS), A03:2021 - Injection   | ERROR     | MEDIUM  |       |
+
+
+
 ## Handling False Positives & Problematic File(s)
 
 Semgrep is a rather simplistic tool that searches for vulnerabilities in your code based on the rules given to it. It is up to you to handle these false positives and problematic file(s). There are a multitude of ways to handle this that will increase complexity of the base rule but increase its power and specificity. 
