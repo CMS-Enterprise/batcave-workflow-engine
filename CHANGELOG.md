@@ -18,6 +18,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - Fixed code scan stderr/stdout collision by moving the stdout dump to the end of the run function
 - Fixed image scan stderr/stdout collision by moving the stdout dump to the end of the run function
 - Fixed image build disable check
+- Upgrade omnibus base image to v1.5.1
 
 ## [v0.0.0-rc.12]
 
@@ -43,7 +44,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 - Configuration File template rendering with built-in values
 - Configuration conversions
-- Configuration init with the format option 
+- Configuration init with the format option
 - Semgrep, osemgrep, gitleaks shell commands
 - Code Scan Pipeline
 - Config Template auto rendering
@@ -57,7 +58,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - clamscan & freshclam for virus scanning
 - command run with context
 - command run with IO
-- grype CMD 
+- grype CMD
 - async task object
 - "Combo" pipelines for image-delivery and all pipelines
 - GitHub Actions Code Generation
