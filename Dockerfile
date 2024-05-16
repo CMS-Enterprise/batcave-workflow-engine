@@ -12,7 +12,7 @@ WORKDIR /app/src
 COPY go.* .
 
 # pre-fetch dependencies
-RUN go mod download 
+RUN go mod download
 
 COPY cmd ./cmd
 COPY pkg ./pkg
@@ -20,7 +20,7 @@ COPY pkg ./pkg
 RUN mkdir -p ../bin && \
     go build -ldflags="-X 'main.cliVersion=${VERSION}' -X 'main.gitCommit=${GIT_COMMIT}' -X 'main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=${GIT_DESCRIPTION}'" -o ../bin/workflow-engine ./cmd/workflow-engine
 
-FROM ghcr.io/cms-enterprise/batcave/omnibus:v1.4.1 as workflow-engine-base
+FROM ghcr.io/cms-enterprise/batcave/omnibus:v1.5.1 as workflow-engine-base
 
 COPY --from=build /app/bin/workflow-engine /usr/local/bin/workflow-engine
 

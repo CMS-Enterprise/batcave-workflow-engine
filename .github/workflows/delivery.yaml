@@ -35,8 +35,8 @@ jobs:
           image_tag=${GITHUB_REF/refs\/tags\//}
         fi
         # Image Names
-        echo "image_name=$image_repo:$image_tag" >> $GITHUB_OUTPUT 
-        echo "podman_image_name=$image_repo:podman-$image_tag" >> $GITHUB_OUTPUT 
+        echo "image_name=$image_repo:$image_tag" >> $GITHUB_OUTPUT
+        echo "podman_image_name=$image_repo:podman-$image_tag" >> $GITHUB_OUTPUT
         # Build Variables
         echo "version=$(git describe --tags)" >> $GITHUB_OUTPUT
         echo "git_commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
@@ -58,7 +58,7 @@ jobs:
         target: workflow-engine-podman
 
     - name: Run Workflow Engine Scans
-      uses: cms-enterprise/batcave-workflow-engine-action@main
+      uses: cms-enterprise/batcave-workflow-engine-action/image-build-scan-publish/docker@main
       with:
         image_build_enabled: false
         image_publish_enabled: false
@@ -71,5 +71,3 @@ jobs:
         echo "## Docker Action Image Build and Push Summary" >> $GITHUB_STEP_SUMMARY
         echo ":white_check_mark: Image (Docker CLI): ${{ steps.vars.outputs.image_name }}" >> $GITHUB_STEP_SUMMARY
         echo ":white_check_mark: Image (Podman CLI): ${{ steps.vars.outputs.podman_image_name }}" >> $GITHUB_STEP_SUMMARY
-
-          
