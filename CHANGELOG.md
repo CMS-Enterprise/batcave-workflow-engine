@@ -12,6 +12,9 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 ### Added
 
 - GitHub action auth support
+- settings package for config and metaconfig values
+- settings package marshalling / unmarshalling
+- Grype Image Scan Task
 
 ### Changed
 

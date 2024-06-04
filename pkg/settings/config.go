@@ -146,7 +146,6 @@ func Unmarshal(toConfig *Config, fromMetaConfig *MetaConfig) error {
 	}
 
 	return nil
-
 }
 
 func MustUnmarshal(toConfig *Config, fromMetaConfig *MetaConfig) {

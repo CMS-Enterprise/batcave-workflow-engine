@@ -54,23 +54,26 @@ type ImageScanTask interface {
 	Apply(...taskOptionFunc)
 }
 
-func NewImageScanTask(t TaskType) ImageScanTask {
+func NewImageScanTask(t TaskType, opts ...taskOptionFunc) ImageScanTask {
 	switch t {
 	case TaskType(GrypeTaskType):
-		return new(GrypeImageScanTask)
+		task := new(GrypeImageScanTask)
+		task.Apply(opts...)
+		return task
 	default:
 		panic("Unsupported image scan type")
-
 	}
 }
 
 type GrypeImageScanTask struct {
-	opts        *taskOptions
-	syftCmd     *exec.Cmd
-	grypeCmd    *exec.Cmd
-	syftStderr  io.ReadCloser
-	grypeStderr io.ReadCloser
-	logger      *slog.Logger
+	opts            *taskOptions
+	syftCmd         *exec.Cmd
+	grypeCmd        *exec.Cmd
+	gatecheckCmd    *exec.Cmd
+	syftStderr      io.ReadCloser
+	grypeStderr     io.ReadCloser
+	gatecheckStderr io.ReadCloser
+	logger          *slog.Logger
 }
 
 func (t *GrypeImageScanTask) Apply(opts ...taskOptionFunc) {
@@ -79,14 +82,15 @@ func (t *GrypeImageScanTask) Apply(opts ...taskOptionFunc) {
 	for _, optFunc := range opts {
 		optFunc(o)
 	}
+	t.opts = o
 }
 
 func (t *GrypeImageScanTask) preStart() error {
-	type option struct {
+	type setting struct {
 		name  string
 		value string
 	}
-	opts := []option{
+	settings := []setting{
 		{name: "image name", value: t.opts.ImageName},
 		{name: "sbom filename", value: t.opts.SBOMFilename},
 		{name: "grype filename", value: t.opts.GrypeFilename},
@@ -95,9 +99,9 @@ func (t *GrypeImageScanTask) preStart() error {
 
 	var errs error
 
-	for _, opt := range opts {
-		if strings.EqualFold(opt.value, "") {
-			err := fmt.Errorf("Grype image scan task pre-start error: %s is required", opt.name)
+	for _, s := range settings {
+		if strings.EqualFold(s.value, "") {
+			err := fmt.Errorf("Grype image scan task pre-start error -> %s is required", s.name)
 			errs = errors.Join(errs, err)
 		}
 	}
@@ -162,6 +166,16 @@ func (t *GrypeImageScanTask) Start(ctx context.Context) error {
 		return err
 	}
 
+	// Start after grype is done, list report with epss scores
+	t.gatecheckCmd = exec.CommandContext(ctx, "gatecheck", "ls", "--verbose", "--epss", fullGrypePath)
+	t.logger.Info("delayed start, wait for grype", "command", t.gatecheckCmd.String())
+
+	t.gatecheckStderr, err = t.gatecheckCmd.StderrPipe()
+	if err != nil {
+		t.logger.Error("command stderr pipe failure", "command", t.gatecheckCmd.String())
+		return err
+	}
+
 	return nil
 }
 
@@ -201,6 +215,12 @@ func (t *GrypeImageScanTask) Stream(stderr io.Writer) error {
 	err = t.grypeCmd.Wait()
 	if err != nil {
 		t.logger.Error("run failure", "command", t.grypeCmd.String())
+		return err
+	}
+
+	err = t.gatecheckCmd.Wait()
+	if err != nil {
+		t.logger.Error("run failure", "command", t.gatecheckCmd.String())
 		return err
 	}
 

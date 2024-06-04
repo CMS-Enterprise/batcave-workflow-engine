@@ -13,6 +13,10 @@ import (
 
 type stringDecoderFunc func(string) (any, error)
 
+func SetupCobra(f *MetaField, cmd *cobra.Command) {
+	f.cobraFunc(f, cmd)
+}
+
 type MetaField struct {
 	FlagValueP      any
 	FlagName        string
