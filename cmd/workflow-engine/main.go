@@ -6,7 +6,8 @@ import (
 	"os"
 	"runtime"
 	"time"
-	"workflow-engine/cmd/workflow-engine/cli"
+	"workflow-engine/cmd/workflow-engine/cli/v0"
+	cliv1 "workflow-engine/cmd/workflow-engine/cli/v1"
 
 	"github.com/lmittmann/tint"
 )
@@ -17,17 +18,48 @@ const (
 )
 
 var (
-	cliVersion     = "[Not Provided]"
-	buildDate      = "[Not Provided]"
-	gitCommit      = "[Not Provided]"
-	gitDescription = "[Not Provided]"
+	cliVersion        = "[Not Provided]"
+	buildDate         = "[Not Provided]"
+	gitCommit         = "[Not Provided]"
+	gitDescription    = "[Not Provided]"
+	experimentalCLIv1 = "0"
 )
 
 func main() {
-	os.Exit(runCLI())
+	if experimentalCLIv1 == "1" {
+		os.Exit(runCLIv1())
+	}
+	os.Exit(runCLIv0())
 }
 
-func runCLI() int {
+func runCLIv1() int {
+	cliv1.AppLogLever = &slog.LevelVar{}
+	cliv1.AppLogLever.Set(slog.LevelDebug)
+	// Set up custom structured logging with colorized output
+	slog.SetDefault(slog.New(tint.NewHandler(os.Stderr, &tint.Options{
+		Level:      cliv1.AppLogLever,
+		TimeFormat: time.TimeOnly,
+	})))
+
+	cmd := cliv1.NewWorkflowEngineCommand()
+
+	start := time.Now()
+	slog.Debug("execute command")
+	defer func(t time.Time) {
+	}(start)
+
+	err := cmd.Execute()
+	elapsed := time.Since(start)
+
+	if err != nil {
+		slog.Error("done", "elapsed", elapsed)
+		return 1
+	}
+	slog.Info("done", "elapsed", elapsed)
+	return 0
+}
+
+func runCLIv0() int {
 	lvler := &slog.LevelVar{}
 	lvler.Set(slog.LevelInfo)
 	// Set up custom structured logging with colorized output

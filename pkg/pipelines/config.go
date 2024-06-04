@@ -1,7 +1,6 @@
 package pipelines
 
 import (
-	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -338,14 +337,14 @@ func githubActionsMetaConfig(additionalInputs []string) ([]metaConfigField, erro
 	for _, additionalInput := range additionalInputs {
 		parts := strings.SplitN(additionalInput, ":", 4)
 		if len(parts) < 4 {
-			return nil, errors.New(fmt.Sprintf("Invalid additional input specification: %s", additionalInput))
+			return nil, fmt.Errorf("Invalid additional input specification: %s", additionalInput)
 		}
 		fields = append(fields, metaConfigField{
-			Key: parts[0],
+			Key:             parts[0],
 			ActionInputName: parts[0],
-			Env: parts[1],
-			Default: parts[2],
-			Description: parts[3],
+			Env:             parts[1],
+			Default:         parts[2],
+			Description:     parts[3],
 		})
 	}
 

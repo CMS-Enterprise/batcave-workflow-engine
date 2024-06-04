@@ -33,7 +33,6 @@ func (p *ImageBuild) WithBuildConfig(config *Config) *ImageBuild {
 }
 
 func (p *ImageBuild) Run() error {
-
 	if !p.config.ImageBuild.Enabled {
 		slog.Warn("image build pipeline is disabled, skip.")
 		return nil

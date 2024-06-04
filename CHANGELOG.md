@@ -15,6 +15,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - settings package for config and metaconfig values
 - settings package marshalling / unmarshalling
 - Grype Image Scan Task
+- Task pattern instead of pipeline pattern for simplicity Note: currently the new experimental is behind a build flag
 
 ### Changed
 
@@ -22,6 +23,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - Fixed image scan stderr/stdout collision by moving the stdout dump to the end of the run function
 - Fixed image build disable check
 - Upgrade omnibus base image to v1.5.1
+- Move existing CLI package to v0
 
 ## [v0.0.0-rc.12]
 
