@@ -9,11 +9,17 @@ import (
 )
 
 func newRunCommand() *cobra.Command {
+	// Image scan flags
 	settings.SetupCobra(&metaConfig.ImageTag, runImageScanTask)
 	settings.SetupCobra(&metaConfig.ImageScanSyftFilename, runImageScanTask)
 	settings.SetupCobra(&metaConfig.ImageScanGrypeFilename, runImageScanTask)
 	settings.SetupCobra(&metaConfig.ArtifactDir, runImageScanTask)
-	runCmd.AddCommand(runImageScanTask)
+
+	// Antivirus Scan flags
+	settings.SetupCobra(&metaConfig.ArtifactDir, runAntivirusScanTask)
+	settings.SetupCobra(&metaConfig.ImageScanClamavFilename, runAntivirusScanTask)
+
+	runCmd.AddCommand(runImageScanTask, runAntivirusScanTask)
 	return runCmd
 }
 
@@ -37,20 +43,41 @@ var runImageScanTask = &cobra.Command{
 		return enc.Encode(config)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		opts := tasks.WithOptions(
+		imageOptions := tasks.WithImageOptions(
 			config.ImageTag,
 			config.ImageScan.SyftFilename,
 			config.ImageScan.GrypeFilename,
 			config.ArtifactDir,
 		)
 
-		task := tasks.NewImageScanTask(tasks.GrypeTaskType, opts)
+		task := tasks.NewImageScanTask(tasks.GrypeTaskType, imageOptions, tasks.WithStdout(cmd.OutOrStdout()))
 
-		err := task.Start(cmd.Context())
+		return task.Run(cmd.Context(), cmd.ErrOrStderr())
+	},
+}
+
+var runAntivirusScanTask = &cobra.Command{
+	Use:   "antivirus-scan",
+	Short: "run an antivirus scan on an image or image archive",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		err := settings.Unmarshal(config, metaConfig)
 		if err != nil {
 			return err
 		}
 
-		return task.Stream(cmd.ErrOrStderr())
+		enc := json.NewEncoder(cmd.OutOrStdout())
+		enc.SetIndent("", "  ")
+
+		return enc.Encode(config)
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		clamOpts := tasks.WithClamOptions(
+			config.ImageScan.ClamavFilename,
+			"image-tar",
+			config.ArtifactDir,
+		)
+		task := tasks.NewAntivirusScanTask(tasks.ClamTaskType, clamOpts)
+
+		return task.Run(cmd.Context(), cmd.ErrOrStderr())
 	},
 }

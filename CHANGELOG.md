@@ -24,6 +24,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - Fixed image build disable check
 - Upgrade omnibus base image to v1.5.1
 - Move existing CLI package to v0
+- Task Run pattern
 
 ## [v0.0.0-rc.12]
 
