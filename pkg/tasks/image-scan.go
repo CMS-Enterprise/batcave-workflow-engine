@@ -83,7 +83,7 @@ func (t *GrypeImageScanTask) Run(ctx context.Context, stderr io.Writer) error {
 
 	syftCmd := exec.CommandContext(ctx, "syft", syftArgs...)
 
-	err = Stream(syftCmd, stderr, "syft")
+	err = StreamStderr(syftCmd, stderr, "syft")
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (t *GrypeImageScanTask) Run(ctx context.Context, stderr io.Writer) error {
 	grypeCmd := exec.CommandContext(ctx, "grype", grypeArgs...)
 	slog.Info("run", "command", grypeCmd.String())
 
-	err = Stream(grypeCmd, stderr, "grype")
+	err = StreamStderr(grypeCmd, stderr, "grype")
 	if err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ func (t *GrypeImageScanTask) Run(ctx context.Context, stderr io.Writer) error {
 	gatecheckCmd := exec.CommandContext(ctx, "gatecheck", "ls", "--verbose", "--epss", fullGrypePath)
 	gatecheckCmd.Stdout = t.opts.DisplayStdout
 
-	err = Stream(gatecheckCmd, stderr, "gatecheck")
+	err = StreamStderr(gatecheckCmd, stderr, "gatecheck")
 	if err != nil {
 		return err
 	}

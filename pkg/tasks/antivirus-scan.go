@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -57,7 +58,11 @@ func (t *ClamAntivirusScanTask) preRun() error {
 	}
 
 	reportFilename := path.Join(t.opts.ArtifactDir, t.opts.ClamFilename)
-	t.clamReportFile, err = os.OpenFile(reportFilename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	err = os.MkdirAll(t.opts.ArtifactDir, 0777)
+	if err != nil {
+		return err
+	}
+	t.clamReportFile, err = os.Create(reportFilename)
 	if err != nil {
 		return err
 	}
@@ -71,13 +76,16 @@ func (t *ClamAntivirusScanTask) Run(ctx context.Context, stderr io.Writer) error
 		return err
 	}
 
-	freshclamCmd := exec.Command("freshclam")
+	err = t.runFreshclam(ctx, stderr)
 
-	Stream(freshclamCmd, stderr, "freshclam")
+	if err != nil {
+		return err
+	}
 
 	clamscanArgs := []string{
 		"--infected",
 		"--recursive",
+		"--verbose",
 		"--archive-verbose",
 		"--scan-archive=yes",
 		"--max-filesize=1000M", // files larger will be skipped and assumed clean
@@ -86,8 +94,26 @@ func (t *ClamAntivirusScanTask) Run(ctx context.Context, stderr io.Writer) error
 		t.opts.ClamscanTarget,
 	}
 
+	buf := new(bytes.Buffer)
+	mw := io.MultiWriter(buf, t.clamReportFile)
 	clamscanCmd := exec.Command("clamscan", clamscanArgs...)
-	clamscanCmd.Stdout = t.clamReportFile
+	clamscanCmd.Stdout = mw
 
-	return Stream(clamscanCmd, stderr, "clamscan")
+	err = StreamStderr(clamscanCmd, stderr, "clamscan")
+	if err != nil {
+		return err
+	}
+	_, err = buf.WriteTo(stderr)
+	return err
+}
+
+func (t *ClamAntivirusScanTask) runFreshclam(ctx context.Context, stderr io.Writer) error {
+
+	if t.opts.FreshclamDisabled {
+		return nil
+	}
+
+	freshclamCmd := exec.Command("freshclam")
+
+	return StreamStderr(freshclamCmd, stderr, "freshclam")
 }

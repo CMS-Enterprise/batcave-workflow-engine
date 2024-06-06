@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"os"
 	"workflow-engine/pkg/settings"
 	"workflow-engine/pkg/tasks"
 
@@ -16,8 +17,11 @@ func newRunCommand() *cobra.Command {
 	settings.SetupCobra(&metaConfig.ArtifactDir, runImageScanTask)
 
 	// Antivirus Scan flags
+	settings.SetupCobra(&metaConfig.ImageTag, runAntivirusScanTask)
 	settings.SetupCobra(&metaConfig.ArtifactDir, runAntivirusScanTask)
 	settings.SetupCobra(&metaConfig.ImageScanClamavFilename, runAntivirusScanTask)
+	settings.SetupCobra(&metaConfig.ImageScanFreshclamDisabled, runAntivirusScanTask)
+	runAntivirusScanTask.Flags().Bool("pull", false, "pull the image before saving if it's not locally loaded")
 
 	runCmd.AddCommand(runImageScanTask, runAntivirusScanTask)
 	return runCmd
@@ -71,10 +75,32 @@ var runAntivirusScanTask = &cobra.Command{
 		return enc.Encode(config)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		cliInterface := "docker"
+		imagePull, _ := cmd.Flags().GetBool("pull")
+
+		if podmanEnabled, _ := cmd.Flags().GetBool("podman"); podmanEnabled {
+			cliInterface = "podman"
+		}
+		f, err := os.CreateTemp(os.TempDir(), "*.container-image.tar")
+		if err != nil {
+			return err
+		}
+		imageTarFilename := f.Name()
+		_ = f.Close()
+
+		imageSaveOpts := tasks.WithImageSaveOptions(config.ImageTag, imageTarFilename, imagePull)
+		imageSaveTask := tasks.NewImageSaveTask(cliInterface, imageSaveOpts)
+
+		err = imageSaveTask.Run(cmd.Context(), cmd.ErrOrStderr())
+		if err != nil {
+			return err
+		}
+
 		clamOpts := tasks.WithClamOptions(
 			config.ImageScan.ClamavFilename,
-			"image-tar",
+			imageTarFilename,
 			config.ArtifactDir,
+			config.ImageScan.FreshclamDisabled,
 		)
 		task := tasks.NewAntivirusScanTask(tasks.ClamTaskType, clamOpts)
 

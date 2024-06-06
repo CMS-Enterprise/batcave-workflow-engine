@@ -48,6 +48,7 @@ type configImageScan struct {
 	GrypeConfigFilename string `mapstructure:"grypeConfigFilename" metafield:"ImageScanGrypeConfigFilename"`
 	GrypeFilename       string `mapstructure:"grypeFilename"       metafield:"ImageScanGrypeFilename"`
 	ClamavFilename      string `mapstructure:"clamavFilename"      metafield:"ImageScanClamavFilename"`
+	FreshclamDisabled   bool   `mapstructure:"freshclamDisabled"    metafield:"ImageScanFreshclamDisabled"`
 }
 
 type configCodeScan struct {
@@ -87,6 +88,7 @@ type MetaConfig struct {
 	ImageScanGrypeConfigFilename      MetaField
 	ImageScanGrypeFilename            MetaField
 	ImageScanClamavFilename           MetaField
+	ImageScanFreshclamDisabled        MetaField
 	CodeScanEnabled                   MetaField
 	CodeScanGitleaksFilename          MetaField
 	CodeScanSemgrepFilename           MetaField
@@ -382,6 +384,20 @@ func NewMetaConfig() *MetaConfig {
 			stringDecoder:   stringToStringDecoder,
 			cobraFunc: func(f *MetaField, c *cobra.Command) {
 				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
+			},
+		},
+		ImageScanFreshclamDisabled: MetaField{
+			FlagValueP:      new(bool),
+			FlagName:        "no-freshclam",
+			FlagDesc:        "enable/disable freshclam database update",
+			EnvKey:          "WFE_IMAGE_SCAN_CLAMAV_FRESHCLAM_DISABLED",
+			ActionInputName: "clamav_freshclam_disabled",
+			ActionType:      "Bool",
+			DefaultValue:    "false",
+			stringDecoder:   stringToStringDecoder,
+			cobraFunc: func(f *MetaField, c *cobra.Command) {
+				defaultValue, _ := stringToBoolDecoder(f.DefaultValue)
+				c.Flags().BoolVar(f.FlagValueP.(*bool), f.FlagName, defaultValue.(bool), f.FlagDesc)
 			},
 		},
 		CodeScanEnabled: MetaField{

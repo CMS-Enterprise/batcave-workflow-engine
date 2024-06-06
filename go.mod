@@ -3,6 +3,7 @@ module workflow-engine
 go 1.22.2
 
 require (
+	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.17.0
 	github.com/lmittmann/tint v1.0.4
 	github.com/pelletier/go-toml/v2 v2.2.2
