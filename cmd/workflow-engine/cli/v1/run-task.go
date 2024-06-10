@@ -14,6 +14,7 @@ var flagCLIInterface = new(string)
 var flagAntivirusPull = new(bool)
 var flagExperimental = new(bool)
 var flagPodmanInterface = new(bool)
+var flagSnyk = new(bool)
 
 func newRunTaskCommand() *cobra.Command {
 	// Image scan flags
@@ -56,6 +57,11 @@ func newRunTaskCommand() *cobra.Command {
 	runSASTCodeScanTask.Flags().BoolVar(flagExperimental, "experimental", false,
 		"run using osemgrep, the statically compiled version of semgrep using OCAML")
 
+	// Code Scan flags - snyk
+	settings.SetupCobra(&metaConfig.CodeScanSnykFilename, runSASTCodeScanTask)
+	settings.SetupCobra(&metaConfig.CodeScanSnykSrcDir, runSASTCodeScanTask)
+	runSASTCodeScanTask.Flags().BoolVar(flagSnyk, "snyk", false, "use snyk for SAST scan")
+
 	runTaskCmd.AddCommand(
 		runImageScanTask,
 		runAntivirusScanTask,
@@ -67,7 +73,7 @@ func newRunTaskCommand() *cobra.Command {
 	return runTaskCmd
 }
 
-func ConfigPreRunE(cmd *cobra.Command, args []string) error {
+func configPreRunE(cmd *cobra.Command, args []string) error {
 	err := settings.Unmarshal(config, metaConfig)
 	if err != nil {
 		return err
@@ -82,7 +88,7 @@ func ConfigPreRunE(cmd *cobra.Command, args []string) error {
 var runImageBuildTask = &cobra.Command{
 	Use:     "image-build",
 	Short:   "build an image",
-	PreRunE: ConfigPreRunE,
+	PreRunE: configPreRunE,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cliInterfaceStr := "docker"
 		if *flagPodmanInterface {
@@ -108,7 +114,7 @@ var runImageBuildTask = &cobra.Command{
 var runImageScanTask = &cobra.Command{
 	Use:     "image-vul-scan",
 	Short:   "run security scans on an image",
-	PreRunE: ConfigPreRunE,
+	PreRunE: configPreRunE,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		imageOptions := tasks.WithImgVulOptions(
 			config.ImageTag,
@@ -126,7 +132,7 @@ var runImageScanTask = &cobra.Command{
 var runAntivirusScanTask = &cobra.Command{
 	Use:     "image-antivirus-scan",
 	Short:   "run an antivirus scan on an image or image archive",
-	PreRunE: ConfigPreRunE,
+	PreRunE: configPreRunE,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cliInterfaceStr := "docker"
 		if *flagPodmanInterface {
@@ -163,7 +169,7 @@ var runAntivirusScanTask = &cobra.Command{
 var runSecretsCodeScanTask = &cobra.Command{
 	Use:     "secrets-code-scan",
 	Short:   "run secrets dectection in the code base",
-	PreRunE: ConfigPreRunE,
+	PreRunE: configPreRunE,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := tasks.CodeScanOptions{
 			GitleaksFilename: path.Join(config.ArtifactDir, config.CodeScan.GitleaksFilename),
@@ -180,16 +186,35 @@ var runSecretsCodeScanTask = &cobra.Command{
 var runSASTCodeScanTask = &cobra.Command{
 	Use:     "sast-code-scan",
 	Short:   "run static analysis security testing (SAST) on the code base",
-	PreRunE: ConfigPreRunE,
+	PreRunE: configPreRunE,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		opts := tasks.CodeScanOptions{
-			SemgrepRules:        config.CodeScan.SemgrepRules,
-			SemgrepFilename:     path.Join(config.ArtifactDir, config.CodeScan.SemgrepFilename),
-			SemgrepExperimental: *flagExperimental,
+		if *flagSnyk {
+			return runSnyk(cmd, args)
 		}
-		task := new(tasks.SemgrepCodeScanTask)
-		task.SetOptions(opts)
-		task.SetDisplayWriter(cmd.OutOrStdout())
-		return task.Run(cmd.Context(), cmd.ErrOrStderr())
+		return runSemgrep(cmd, args)
 	},
+}
+
+func runSemgrep(cmd *cobra.Command, args []string) error {
+	opts := tasks.CodeScanOptions{
+		SemgrepRules:        config.CodeScan.SemgrepRules,
+		SemgrepFilename:     path.Join(config.ArtifactDir, config.CodeScan.SemgrepFilename),
+		SemgrepExperimental: *flagExperimental,
+	}
+	task := new(tasks.SemgrepCodeScanTask)
+	task.SetOptions(opts)
+	task.SetDisplayWriter(cmd.OutOrStdout())
+	return task.Run(cmd.Context(), cmd.ErrOrStderr())
+}
+
+func runSnyk(cmd *cobra.Command, args []string) error {
+	opts := tasks.CodeScanOptions{
+		SnykCodeFilename: config.CodeScan.SnykFilename,
+		SnykSrcDir:       config.CodeScan.SnykSrcDir,
+	}
+
+	task := new(tasks.SnykCodeScanTask)
+	task.SetOptions(opts)
+	task.SetDisplayWriter(cmd.OutOrStdout())
+	return task.Run(cmd.Context(), cmd.ErrOrStderr())
 }

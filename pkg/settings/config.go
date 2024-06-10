@@ -5,7 +5,6 @@ import (
 	"reflect"
 
 	"github.com/sagikazarmark/slog-shim"
-	"github.com/spf13/cobra"
 )
 
 // Config contains all parameters for the various pipelines
@@ -53,6 +52,7 @@ type configCodeScan struct {
 	SemgrepFilename  string `mapstructure:"semgrepFilename"  metafield:"CodeScanSemgrepFilename"`
 	SemgrepRules     string `mapstructure:"semgrepRules" metafield:"CodeScanSemgrepRules"`
 	SnykFilename     string `mapstructure:"snykFilename" metafield:"CodeScanSnykFilename"`
+	SnykSrcDir       string `mapstructure:"snykSrcDir" metafield:"CodeScanSnykSrcDir"`
 }
 
 type configImagePublish struct {
@@ -91,6 +91,7 @@ type MetaConfig struct {
 	CodeScanSemgrepRules              MetaField
 	CodeScanGitleaksSrcDir            MetaField
 	CodeScanSnykFilename              MetaField
+	CodeScanSnykSrcDir                MetaField
 	ImagePublishEnabled               MetaField
 	ImagePublishBundleEnabled         MetaField
 	ImagePublishBundleTag             MetaField
@@ -410,6 +411,17 @@ func NewMetaConfig() *MetaConfig {
 			stringDecoder:   stringToStringDecoder,
 			cobraFunc:       stringVarCobraFunc,
 		},
+		CodeScanSnykSrcDir: MetaField{
+			FlagValueP:      new(string),
+			FlagName:        "snyk-src-dir",
+			FlagDesc:        "source directory for the scan",
+			EnvKey:          "WFE_CODE_SCAN_SNYK_SRC_DIR",
+			ActionInputName: "snyk_src_dir",
+			ActionType:      "String",
+			DefaultValue:    ".",
+			stringDecoder:   stringToStringDecoder,
+			cobraFunc:       stringVarCobraFunc,
+		},
 		CodeScanSnykFilename: MetaField{
 			FlagValueP:      new(string),
 			FlagName:        "snyk-filename",
@@ -431,7 +443,6 @@ func NewMetaConfig() *MetaConfig {
 			DefaultValue:    "true",
 			stringDecoder:   stringToBoolDecoder,
 			cobraFunc:       boolVarCobraFunc,
-			},
 		},
 		ImagePublishBundleEnabled: MetaField{
 			FlagValueP:      new(bool),

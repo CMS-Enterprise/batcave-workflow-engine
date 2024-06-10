@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -16,6 +17,8 @@ type CodeScanOptions struct {
 	SemgrepExperimental bool
 	GitleaksFilename    string
 	GitleaksSrc         string
+	SnykCodeFilename    string
+	SnykSrcDir          string
 }
 
 type CodeScanTask interface {
@@ -140,4 +143,37 @@ func (t *GitleaksCodeScanTask) Run(ctx context.Context, dstStderr io.Writer) err
 	gatecheckCmd.Stdout = t.displayWriter
 
 	return StreamStderr(gatecheckCmd, dstStderr, "gatecheck")
+}
+
+type SnykCodeScanTask struct {
+	opts          CodeScanOptions
+	displayWriter io.Writer
+}
+
+func (t *SnykCodeScanTask) SetOptions(opts CodeScanOptions) {
+	t.opts = opts
+}
+
+func (t *SnykCodeScanTask) SetDisplayWriter(w io.Writer) {
+	t.displayWriter = w
+}
+
+func (t *SnykCodeScanTask) Run(ctx context.Context, dstStderr io.Writer) error {
+	if strings.EqualFold(t.opts.SnykCodeFilename, "") {
+		return errors.New("snyk report filename required")
+	}
+	if strings.EqualFold(t.opts.SnykSrcDir, "") {
+		return errors.New("snyk src directory required")
+	}
+
+	args := []string{
+		"code",
+		"test",
+		"-d",
+		fmt.Sprintf("--sarif-file-ouput=%s", t.opts.SnykCodeFilename),
+		t.opts.SnykSrcDir,
+	}
+	snykCodeCmd := exec.CommandContext(ctx, "snyk", args...)
+
+	return StreamStderr(snykCodeCmd, dstStderr, "snyk code scan")
 }
