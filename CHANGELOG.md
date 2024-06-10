@@ -16,6 +16,9 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - settings package marshalling / unmarshalling
 - Grype Image Scan Task
 - Task pattern instead of pipeline pattern for simplicity Note: currently the new experimental is behind a build flag
+- Image vulnerability scan task
+- Image antivirus scan
+- Image build
 
 ### Changed
 

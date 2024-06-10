@@ -24,18 +24,43 @@ var (
 )
 
 type taskOptions struct {
+	DisplayStdout        io.Writer
 	ImageName            string
 	SBOMFilename         string
 	GrypeFilename        string
+	GitleaksFilename     string
+	GitleaksTargetDir    string
+	SemgrepFilename      string
+	SemgrepRules         string
+	SemgrepExperimental  bool
 	FreshclamDisabled    bool
 	ClamFilename         string
 	ClamscanTarget       string
 	ArtifactDir          string
 	AntivirusScanEnabled bool
-	DisplayStdout        io.Writer
 	ImageTarFilename     string
 	ImageTarCleanup      bool
 	ImageSavePull        bool
+	ImageBuildBakefile   string
+	ImageBuildBakeTarget string
+	ImageBuildOpts       ImageBuildOptions
+}
+
+type ImageBuildOptions struct {
+	Context      string
+	Dockerfile   string
+	Platform     string
+	Target       string
+	CacheTo      string
+	CacheFrom    string
+	SquashLayers bool
+	BuildArgs    string
+}
+
+func WithImageBuildOptions(buildOpts ImageBuildOptions) taskOptionFunc {
+	return func(taskOptions *taskOptions) {
+		taskOptions.ImageBuildOpts = buildOpts
+	}
 }
 
 func WithImageName(imageName string) taskOptionFunc {
@@ -50,7 +75,7 @@ func WithStdout(w io.Writer) taskOptionFunc {
 	}
 }
 
-func WithImageOptions(imageName string, sbomFilename string, grypeFilename string, artifactDir string) taskOptionFunc {
+func WithImgVulOptions(imageName string, sbomFilename string, grypeFilename string, artifactDir string) taskOptionFunc {
 	return func(o *taskOptions) {
 		o.ImageName = imageName
 		o.SBOMFilename = sbomFilename
@@ -82,13 +107,16 @@ func newDefaultTaskOpts() *taskOptions {
 		SBOMFilename:      "sbom.syft.json",
 		GrypeFilename:     "image-scan.grype.json",
 		ClamFilename:      "antivirus-scan.clamav.txt",
-		ClamscanTarget:    "",
+		GitleaksFilename:  "secrets-detection.gitleaks.json",
+		SemgrepFilename:   "sast.semgrep.json",
+		ClamscanTarget:    ".",
 		ArtifactDir:       "artifacts",
 		DisplayStdout:     os.Stdout,
 		ImageTarFilename:  "image.tar",
 		ImageTarCleanup:   true,
 		ImageSavePull:     false,
 		FreshclamDisabled: true,
+		ImageBuildOpts:    ImageBuildOptions{},
 	}
 }
 
@@ -131,6 +159,28 @@ func StreamStdout(cmd *exec.Cmd, dstWriter io.Writer, prefix string) error {
 
 	return cmd.Wait()
 
+}
+
+func StreamElapsed(cmd *exec.Cmd, dstWriter io.Writer, interval time.Duration, prefix string) error {
+	slog.Info("run", "command", cmd.String())
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	start := time.Now()
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(interval):
+				ts := time.Since(start)
+				fmt.Fprintf(dstWriter, "[%s] running... elapsed=%s\n", prefix, ts)
+			}
+		}
+	}()
+
+	return cmd.Run()
 }
 
 func StreamStderr(cmd *exec.Cmd, dstWriter io.Writer, prefix string) error {

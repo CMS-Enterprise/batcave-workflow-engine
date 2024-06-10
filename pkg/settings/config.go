@@ -3,7 +3,6 @@ package settings
 import (
 	"errors"
 	"reflect"
-	"strings"
 
 	"github.com/sagikazarmark/slog-shim"
 	"github.com/spf13/cobra"
@@ -23,23 +22,19 @@ type Config struct {
 }
 
 func NewConfig() *Config {
-	return &Config{
-		ImageBuild: configImageBuild{
-			Args: []string{},
-		},
-	}
+	return new(Config)
 }
 
 type configImageBuild struct {
-	Enabled      bool     `mapstructure:"enabled"      metafield:"ImageBuildEnabled"`
-	BuildDir     string   `mapstructure:"buildDir"     metafield:"ImageBuildBuildDir"`
-	Dockerfile   string   `mapstructure:"dockerfile"   metafield:"ImageBuildDockerfile"`
-	Platform     string   `mapstructure:"platform"     metafield:"ImageBuildPlatform"`
-	Target       string   `mapstructure:"target"       metafield:"ImageBuildTarget"`
-	CacheTo      string   `mapstructure:"cacheTo"      metafield:"ImageBuildCacheTo"`
-	CacheFrom    string   `mapstructure:"cacheFrom"    metafield:"ImageBuildCacheFrom"`
-	SquashLayers bool     `mapstructure:"squashLayers" metafield:"ImageBuildSquashLayers"`
-	Args         []string `mapstructure:"args"         metafield:"ImageBuildArgs"`
+	Enabled      bool   `mapstructure:"enabled"      metafield:"ImageBuildEnabled"`
+	BuildDir     string `mapstructure:"buildDir"     metafield:"ImageBuildBuildDir"`
+	Dockerfile   string `mapstructure:"dockerfile"   metafield:"ImageBuildDockerfile"`
+	Platform     string `mapstructure:"platform"     metafield:"ImageBuildPlatform"`
+	Target       string `mapstructure:"target"       metafield:"ImageBuildTarget"`
+	CacheTo      string `mapstructure:"cacheTo"      metafield:"ImageBuildCacheTo"`
+	CacheFrom    string `mapstructure:"cacheFrom"    metafield:"ImageBuildCacheFrom"`
+	SquashLayers bool   `mapstructure:"squashLayers" metafield:"ImageBuildSquashLayers"`
+	Args         string `mapstructure:"args"         metafield:"ImageBuildArgs"`
 }
 
 type configImageScan struct {
@@ -56,7 +51,7 @@ type configCodeScan struct {
 	GitleaksFilename string `mapstructure:"gitleaksFilename" metafield:"CodeScanGitleaksFilename"`
 	GitleaksSrcDir   string `mapstructure:"gitleaksSrcDir"   metafield:"CodeScanGitleaksSrcDir"`
 	SemgrepFilename  string `mapstructure:"semgrepFilename"  metafield:"CodeScanSemgrepFilename"`
-	SemgrepRules     string `mapstructure:"semgrepRules"`
+	SemgrepRules     string `mapstructure:"semgrepRules" metafield:"CodeScanSemgrepRules"`
 }
 
 type configImagePublish struct {
@@ -92,6 +87,7 @@ type MetaConfig struct {
 	CodeScanEnabled                   MetaField
 	CodeScanGitleaksFilename          MetaField
 	CodeScanSemgrepFilename           MetaField
+	CodeScanSemgrepRules              MetaField
 	CodeScanGitleaksSrcDir            MetaField
 	ImagePublishEnabled               MetaField
 	ImagePublishBundleEnabled         MetaField
@@ -132,7 +128,7 @@ func Unmarshal(toConfig *Config, fromMetaConfig *MetaConfig) error {
 	metaConfigValue := reflect.ValueOf(fromMetaConfig).Elem()
 
 	for key, toValue := range toConfigFields {
-		slog.Debug("evaluate field", "key", key)
+
 		_, exists := metaConfigValue.Type().FieldByName(key)
 		if !exists {
 			slog.Error("field not found", "key", key)
@@ -305,19 +301,16 @@ func NewMetaConfig() *MetaConfig {
 			},
 		},
 		ImageBuildArgs: MetaField{
-			FlagValueP:      new([]string),
+			FlagValueP:      new(string),
 			FlagName:        "build-args",
-			FlagDesc:        "Comma separated list of build time variables",
+			FlagDesc:        "docker build arguments as a json map (ex. '{\"key_1\":\"value\"}')",
 			EnvKey:          "WFE_IMAGE_BUILD_ARGS",
 			ActionInputName: "build_args",
-			ActionType:      "List",
+			ActionType:      "String",
 			DefaultValue:    "",
-			stringDecoder: func(s string) (any, error) {
-				return strings.Split(s, ","), nil
-			},
+			stringDecoder:   stringToStringDecoder,
 			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				// TODO: Image Build Args
-				// c.Flags().StringSliceVar(f.FlagValueP.([]string{}), f.FlagName, f.DefaultValue.([]string), f.FlagDesc)
+				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
 			},
 		},
 		ImageScanEnabled: MetaField{
@@ -394,7 +387,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionInputName: "clamav_freshclam_disabled",
 			ActionType:      "Bool",
 			DefaultValue:    "false",
-			stringDecoder:   stringToStringDecoder,
+			stringDecoder:   stringToBoolDecoder,
 			cobraFunc: func(f *MetaField, c *cobra.Command) {
 				defaultValue, _ := stringToBoolDecoder(f.DefaultValue)
 				c.Flags().BoolVar(f.FlagValueP.(*bool), f.FlagName, defaultValue.(bool), f.FlagDesc)
@@ -448,6 +441,19 @@ func NewMetaConfig() *MetaConfig {
 			ActionInputName: "gitleaks_src_dir",
 			ActionType:      "String",
 			DefaultValue:    ".",
+			stringDecoder:   stringToStringDecoder,
+			cobraFunc: func(f *MetaField, c *cobra.Command) {
+				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
+			},
+		},
+		CodeScanSemgrepRules: MetaField{
+			FlagValueP:      new(string),
+			FlagName:        "semgrep-rules",
+			FlagDesc:        "rules for semgrep SAST code scan",
+			EnvKey:          "WFE_CODE_SCAN_SEMGREP_RULES",
+			ActionInputName: "semgrep_rules",
+			ActionType:      "String",
+			DefaultValue:    "p/auto",
 			stringDecoder:   stringToStringDecoder,
 			cobraFunc: func(f *MetaField, c *cobra.Command) {
 				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)

@@ -19,7 +19,7 @@ func NewWorkflowEngineCommand() *cobra.Command {
 
 	workflowEngineCmd.SilenceUsage = true
 
-	workflowEngineCmd.AddCommand(newRunCommand())
+	workflowEngineCmd.AddCommand(newRunTaskCommand())
 	return workflowEngineCmd
 }
 
