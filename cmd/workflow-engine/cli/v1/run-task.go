@@ -211,7 +211,7 @@ func runSemgrep(cmd *cobra.Command, args []string) error {
 
 func runSnyk(cmd *cobra.Command, args []string) error {
 	opts := tasks.CodeScanOptions{
-		SnykCodeFilename: config.CodeScan.SnykFilename,
+		SnykCodeFilename: path.Join(config.ArtifactDir, config.CodeScan.SnykFilename),
 		SnykSrcDir:       config.CodeScan.SnykSrcDir,
 	}
 

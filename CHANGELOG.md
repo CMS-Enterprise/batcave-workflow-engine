@@ -19,6 +19,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 - Image vulnerability scan task
 - Image antivirus scan
 - Image build
+- Snyk SAST Scan
 
 ### Changed
 
