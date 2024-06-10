@@ -44,7 +44,7 @@ func (t *GenericImageSaveTask) Run(ctx context.Context, stderr io.Writer) error 
 
 	// let the open file command handle any invalid filename errors
 	// run this first just incase to fail early if something goes wrong
-	imageSaveFile, err := os.OpenFile(t.opts.ImageTarFilename, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
+	imageSaveFile, err := os.OpenFile(t.opts.ImageTarFilename, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0o644)
 	if err != nil {
 		return err
 	}

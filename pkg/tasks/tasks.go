@@ -158,7 +158,6 @@ func StreamStdout(cmd *exec.Cmd, dstWriter io.Writer, prefix string) error {
 	}
 
 	return cmd.Wait()
-
 }
 
 func StreamElapsed(cmd *exec.Cmd, dstWriter io.Writer, interval time.Duration, prefix string) error {

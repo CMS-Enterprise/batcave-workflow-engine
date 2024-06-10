@@ -42,7 +42,7 @@ type configImageScan struct {
 	GrypeConfigFilename string `mapstructure:"grypeConfigFilename" metafield:"ImageScanGrypeConfigFilename"`
 	GrypeFilename       string `mapstructure:"grypeFilename"       metafield:"ImageScanGrypeFilename"`
 	ClamavFilename      string `mapstructure:"clamavFilename"      metafield:"ImageScanClamavFilename"`
-	FreshclamDisabled   bool   `mapstructure:"freshclamDisabled"    metafield:"ImageScanFreshclamDisabled"`
+	FreshclamDisabled   bool   `mapstructure:"freshclamDisabled"   metafield:"ImageScanFreshclamDisabled"`
 }
 
 type configCodeScan struct {
@@ -50,9 +50,9 @@ type configCodeScan struct {
 	GitleaksFilename string `mapstructure:"gitleaksFilename" metafield:"CodeScanGitleaksFilename"`
 	GitleaksSrcDir   string `mapstructure:"gitleaksSrcDir"   metafield:"CodeScanGitleaksSrcDir"`
 	SemgrepFilename  string `mapstructure:"semgrepFilename"  metafield:"CodeScanSemgrepFilename"`
-	SemgrepRules     string `mapstructure:"semgrepRules" metafield:"CodeScanSemgrepRules"`
-	SnykFilename     string `mapstructure:"snykFilename" metafield:"CodeScanSnykFilename"`
-	SnykSrcDir       string `mapstructure:"snykSrcDir" metafield:"CodeScanSnykSrcDir"`
+	SemgrepRules     string `mapstructure:"semgrepRules"     metafield:"CodeScanSemgrepRules"`
+	SnykFilename     string `mapstructure:"snykFilename"     metafield:"CodeScanSnykFilename"`
+	SnykSrcDir       string `mapstructure:"snykSrcDir"       metafield:"CodeScanSnykSrcDir"`
 }
 
 type configImagePublish struct {

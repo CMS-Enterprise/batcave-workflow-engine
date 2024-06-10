@@ -10,11 +10,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var flagCLIInterface = new(string)
-var flagAntivirusPull = new(bool)
-var flagExperimental = new(bool)
-var flagPodmanInterface = new(bool)
-var flagSnyk = new(bool)
+var (
+	flagCLIInterface    = new(string)
+	flagAntivirusPull   = new(bool)
+	flagExperimental    = new(bool)
+	flagPodmanInterface = new(bool)
+	flagSnyk            = new(bool)
+)
 
 func newRunTaskCommand() *cobra.Command {
 	// Image scan flags

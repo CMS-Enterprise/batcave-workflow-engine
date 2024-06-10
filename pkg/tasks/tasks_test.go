@@ -31,5 +31,4 @@ func TestSizeMonitorWriter(t *testing.T) {
 	for scanner.Scan() {
 		t.Log(scanner.Text())
 	}
-
 }

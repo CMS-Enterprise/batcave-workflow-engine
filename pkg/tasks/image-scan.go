@@ -169,7 +169,7 @@ func (t *ClamAntivirusScanTask) preRun() error {
 	}
 
 	reportFilename := path.Join(t.opts.ArtifactDir, t.opts.ClamFilename)
-	err = os.MkdirAll(t.opts.ArtifactDir, 0777)
+	err = os.MkdirAll(t.opts.ArtifactDir, 0o777)
 	if err != nil {
 		return err
 	}
@@ -220,7 +220,6 @@ func (t *ClamAntivirusScanTask) Run(ctx context.Context, stderr io.Writer) error
 }
 
 func (t *ClamAntivirusScanTask) runFreshclam(ctx context.Context, stderr io.Writer) error {
-
 	if t.opts.FreshclamDisabled {
 		return nil
 	}
