@@ -11,7 +11,6 @@ import (
 )
 
 var (
-	flagCLIInterface    = new(string)
 	flagAntivirusPull   = new(bool)
 	flagExperimental    = new(bool)
 	flagPodmanInterface = new(bool)
@@ -181,6 +180,20 @@ var runSecretsCodeScanTask = &cobra.Command{
 		task := new(tasks.GitleaksCodeScanTask)
 		task.SetOptions(opts)
 		task.SetDisplayWriter(cmd.OutOrStdout())
+		return task.Run(cmd.Context(), cmd.ErrOrStderr())
+	},
+}
+
+var runImagePushTask = &cobra.Command{
+	Use:     "image-push",
+	Short:   "push an image to an image registry",
+	PreRunE: configPreRunE,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if *flagPodmanInterface {
+			task := tasks.NewGenericImagePushTask("podman", config.ImageTag)
+			return task.Run(cmd.Context(), cmd.ErrOrStderr())
+		}
+		task := tasks.NewGenericImagePushTask("docker", config.ImageTag)
 		return task.Run(cmd.Context(), cmd.ErrOrStderr())
 	},
 }
