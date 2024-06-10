@@ -52,6 +52,7 @@ type configCodeScan struct {
 	GitleaksSrcDir   string `mapstructure:"gitleaksSrcDir"   metafield:"CodeScanGitleaksSrcDir"`
 	SemgrepFilename  string `mapstructure:"semgrepFilename"  metafield:"CodeScanSemgrepFilename"`
 	SemgrepRules     string `mapstructure:"semgrepRules" metafield:"CodeScanSemgrepRules"`
+	SnykFilename     string `mapstructure:"snykFilename" metafield:"CodeScanSnykFilename"`
 }
 
 type configImagePublish struct {
@@ -89,6 +90,7 @@ type MetaConfig struct {
 	CodeScanSemgrepFilename           MetaField
 	CodeScanSemgrepRules              MetaField
 	CodeScanGitleaksSrcDir            MetaField
+	CodeScanSnykFilename              MetaField
 	ImagePublishEnabled               MetaField
 	ImagePublishBundleEnabled         MetaField
 	ImagePublishBundleTag             MetaField
@@ -164,9 +166,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    "my-app:latest",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
 		},
 		ArtifactDir: MetaField{
 			FlagValueP:      new(string),
@@ -177,9 +177,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    "artifacts",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
 		},
 		GatecheckBundleFilename: MetaField{
 			FlagValueP:      new(string),
@@ -190,9 +188,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    "gatecheck-bundle.tar.gz",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
 		},
 		ImageBuildEnabled: MetaField{
 			FlagValueP:      new(bool),
@@ -203,10 +199,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "Bool",
 			DefaultValue:    "true",
 			stringDecoder:   stringToBoolDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				defaultValue, _ := stringToBoolDecoder(f.DefaultValue)
-				c.Flags().BoolVar(f.FlagValueP.(*bool), f.FlagName, defaultValue.(bool), f.FlagDesc)
-			},
+			cobraFunc:       boolVarCobraFunc,
 		},
 		ImageBuildBuildDir: MetaField{
 			FlagValueP:      new(string),
@@ -217,9 +210,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    ".",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
 		},
 		ImageBuildDockerfile: MetaField{
 			FlagValueP:      new(string),
@@ -230,9 +221,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    "Dockerfile",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
 		},
 		ImageBuildPlatform: MetaField{
 			FlagValueP:      new(string),
@@ -243,9 +232,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    "",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
 		},
 		ImageBuildTarget: MetaField{
 			FlagValueP:      new(string),
@@ -256,9 +243,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    "",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
 		},
 		ImageBuildCacheTo: MetaField{
 			FlagValueP:      new(string),
@@ -269,9 +254,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    "",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
 		},
 		ImageBuildCacheFrom: MetaField{
 			FlagValueP:      new(string),
@@ -282,9 +265,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    "",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
 		},
 		ImageBuildSquashLayers: MetaField{
 			FlagValueP:      new(bool),
@@ -295,10 +276,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "Bool",
 			DefaultValue:    "false",
 			stringDecoder:   stringToBoolDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				defaultValue, _ := stringToBoolDecoder(f.DefaultValue)
-				c.Flags().BoolVar(f.FlagValueP.(*bool), f.FlagName, defaultValue.(bool), f.FlagDesc)
-			},
+			cobraFunc:       boolVarCobraFunc,
 		},
 		ImageBuildArgs: MetaField{
 			FlagValueP:      new(string),
@@ -309,9 +287,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    "",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
 		},
 		ImageScanEnabled: MetaField{
 			FlagValueP:      new(bool),
@@ -322,10 +298,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "Bool",
 			DefaultValue:    "true",
 			stringDecoder:   stringToBoolDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				defaultValue, _ := stringToBoolDecoder(f.DefaultValue)
-				c.Flags().BoolVar(f.FlagValueP.(*bool), f.FlagName, defaultValue.(bool), f.FlagDesc)
-			},
+			cobraFunc:       boolVarCobraFunc,
 		},
 		ImageScanSyftFilename: MetaField{
 			FlagValueP:      new(string),
@@ -336,9 +309,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    "sbom-report.syft.json",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
 		},
 		ImageScanGrypeConfigFilename: MetaField{
 			FlagValueP:      new(string),
@@ -349,9 +320,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    "",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
 		},
 		ImageScanGrypeFilename: MetaField{
 			FlagValueP:      new(string),
@@ -362,9 +331,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    "image-vulnerability-report.grype.json",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
 		},
 		ImageScanClamavFilename: MetaField{
 			FlagValueP:      new(string),
@@ -375,9 +342,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    "virus-report.clamav.txt",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
 		},
 		ImageScanFreshclamDisabled: MetaField{
 			FlagValueP:      new(bool),
@@ -388,10 +353,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "Bool",
 			DefaultValue:    "false",
 			stringDecoder:   stringToBoolDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				defaultValue, _ := stringToBoolDecoder(f.DefaultValue)
-				c.Flags().BoolVar(f.FlagValueP.(*bool), f.FlagName, defaultValue.(bool), f.FlagDesc)
-			},
+			cobraFunc:       boolVarCobraFunc,
 		},
 		CodeScanEnabled: MetaField{
 			FlagValueP:      new(bool),
@@ -402,10 +364,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "Bool",
 			DefaultValue:    "true",
 			stringDecoder:   stringToBoolDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				defaultValue, _ := stringToBoolDecoder(f.DefaultValue)
-				c.Flags().BoolVar(f.FlagValueP.(*bool), f.FlagName, defaultValue.(bool), f.FlagDesc)
-			},
+			cobraFunc:       boolVarCobraFunc,
 		},
 		CodeScanSemgrepFilename: MetaField{
 			FlagValueP:      new(string),
@@ -416,9 +375,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    "code-scan-report.semgrep.json",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
 		},
 		CodeScanGitleaksFilename: MetaField{
 			FlagValueP:      new(string),
@@ -429,9 +386,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    "secrets-report.gitleaks.json",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
 		},
 		CodeScanGitleaksSrcDir: MetaField{
 			FlagValueP:      new(string),
@@ -442,9 +397,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    ".",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
 		},
 		CodeScanSemgrepRules: MetaField{
 			FlagValueP:      new(string),
@@ -455,9 +408,18 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    "p/auto",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
+		},
+		CodeScanSnykFilename: MetaField{
+			FlagValueP:      new(string),
+			FlagName:        "snyk-filename",
+			FlagDesc:        "The filename for snyk code report",
+			EnvKey:          "WFE_CODE_SCAN_SNYK_FILENAME",
+			ActionInputName: "snyk_code_filename",
+			ActionType:      "String",
+			DefaultValue:    "code-scan-report.snyk.sarif.json",
+			stringDecoder:   stringToStringDecoder,
+			cobraFunc:       stringVarCobraFunc,
 		},
 		ImagePublishEnabled: MetaField{
 			FlagValueP:      new(bool),
@@ -468,9 +430,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "Bool",
 			DefaultValue:    "true",
 			stringDecoder:   stringToBoolDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				defaultValue, _ := stringToBoolDecoder(f.DefaultValue)
-				c.Flags().BoolVar(f.FlagValueP.(*bool), f.FlagName, defaultValue.(bool), f.FlagDesc)
+			cobraFunc:       boolVarCobraFunc,
 			},
 		},
 		ImagePublishBundleEnabled: MetaField{
@@ -482,10 +442,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "Bool",
 			DefaultValue:    "true",
 			stringDecoder:   stringToBoolDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				defaultValue, _ := stringToBoolDecoder(f.DefaultValue)
-				c.Flags().BoolVar(f.FlagValueP.(*bool), f.FlagName, defaultValue.(bool), f.FlagDesc)
-			},
+			cobraFunc:       boolVarCobraFunc,
 		},
 		ImagePublishBundleTag: MetaField{
 			FlagValueP:      new(string),
@@ -496,9 +453,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    "my-app/artifact-bundle:latest",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
 		},
 		ValidationEnabled: MetaField{
 			FlagValueP:      new(bool),
@@ -509,10 +464,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "Bool",
 			DefaultValue:    "true",
 			stringDecoder:   stringToBoolDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				defaultValue, _ := stringToBoolDecoder(f.DefaultValue)
-				c.Flags().BoolVar(f.FlagValueP.(*bool), f.FlagName, defaultValue.(bool), f.FlagDesc)
-			},
+			cobraFunc:       boolVarCobraFunc,
 		},
 		ValidationGatecheckConfigFilename: MetaField{
 			FlagValueP:      new(string),
@@ -523,9 +475,7 @@ func NewMetaConfig() *MetaConfig {
 			ActionType:      "String",
 			DefaultValue:    "",
 			stringDecoder:   stringToStringDecoder,
-			cobraFunc: func(f *MetaField, c *cobra.Command) {
-				c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
-			},
+			cobraFunc:       stringVarCobraFunc,
 		},
 	}
 

@@ -185,6 +185,15 @@ func stringToStringDecoder(s string) (interface{}, error) {
 	return s, nil
 }
 
+func stringVarCobraFunc(f *MetaField, c *cobra.Command) {
+	c.Flags().StringVar(f.FlagValueP.(*string), f.FlagName, f.DefaultValue, f.FlagDesc)
+}
+
+func boolVarCobraFunc(f *MetaField, c *cobra.Command) {
+	defaultValue, _ := stringToBoolDecoder(f.DefaultValue)
+	c.Flags().BoolVar(f.FlagValueP.(*bool), f.FlagName, defaultValue.(bool), f.FlagDesc)
+}
+
 func stringToIntDecoder(s string) (interface{}, error) {
 	return strconv.Atoi(s)
 }
